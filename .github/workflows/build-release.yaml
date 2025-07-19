@@ -6,6 +6,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   tag_version:
     runs-on: ubuntu-latest
@@ -13,6 +16,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -45,13 +50,13 @@ jobs:
         id: read_version
         if: steps.version_check.outputs.version_changed == 'true'
         run: |
-          VERSION=$(grep '^version' pyproject.toml | sed -E 's/version *= *"([^"]+)"/\1/')
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Git tag
         if: steps.version_check.outputs.version_changed == 'true'
         run: |
-          git tag "v${{ steps.read_version.outputs.version }}"
+          git tag -f "v${{ steps.read_version.outputs.version }}"
           git push origin "v${{ steps.read_version.outputs.version }}"
 
       - name: Generate changelog
