@@ -22,6 +22,14 @@ MODULE = "test_samples"
             [same_line.py:6] y = 4
             """,
         ),
+        (
+            "nested_expression",
+            "4",
+            """
+            [nested_expression.py:5] (x := (x + 1)) = 4
+            [nested_expression.py:5] dbg((x := (x + 1))) = 4
+            """,
+        ),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
