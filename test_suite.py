@@ -59,6 +59,7 @@ def reset_modules() -> None:
             [multiple_arguments.py:6] y = 8.5
             """,
         ),
+        ("singleton", "False", "[singleton.py:4] v = False"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
