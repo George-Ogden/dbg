@@ -7,7 +7,10 @@ import types
 
 
 def get_source(frame: types.FrameType) -> None | str:
-    lines, offset = inspect.getsourcelines(frame)
+    try:
+        lines, offset = inspect.getsourcelines(frame)
+    except OSError:
+        return None
     traceback = inspect.getframeinfo(frame, context=0)
     positions = traceback.positions
     lineno = traceback.lineno - 1
@@ -26,6 +29,8 @@ def get_source(frame: types.FrameType) -> None | str:
 
 def get_code(frame: types.FrameType) -> None | str:
     source = get_source(frame)
+    if source is None:
+        return "<unknown>"
     tree: ast.Expression = ast.parse(source, mode="eval")
     fn_call: ast.Call = tree.body
     [arg] = fn_call.args
