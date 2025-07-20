@@ -60,6 +60,7 @@ def reset_modules() -> None:
             """,
         ),
         ("singleton", "False", "[singleton.py:4] v = False"),
+        ("no_arguments", "()", "[no_arguments.py:3]"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
@@ -89,6 +90,7 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
             [<string>:6] <unknown> = 8.5
             """,
         ),
+        ("no_arguments", "()", "[<string>:3]"),
     ],
 )
 def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
@@ -121,6 +123,7 @@ def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: Captu
                 [<unknown>] <unknown> = 8.5
                 """,
         ),
+        ("no_arguments", "()", "[<unknown>]"),
     ],
 )
 def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:

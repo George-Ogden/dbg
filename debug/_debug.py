@@ -87,10 +87,13 @@ def dbg(*values: Any) -> Any:
     if frame is not None:
         frame = frame.f_back
     try:
-        codes = display_codes(frame, num_codes=num_args)
         position = display_position(frame)
-        for code, value in zip(codes, values, strict=True):
-            print(f"[{position}] {code} = {value!r}", file=sys.stderr)
+        if num_args == 0:
+            print(f"[{position}]", file=sys.stderr)
+        else:
+            codes = display_codes(frame, num_codes=num_args)
+            for code, value in zip(codes, values, strict=True):
+                print(f"[{position}] {code} = {value!r}", file=sys.stderr)
     finally:
         del frame
     if len(values) == 1:
