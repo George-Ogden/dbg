@@ -65,3 +65,21 @@ def test_run_from_exec(capsys: CaptureFixture) -> None:
 
     assert out.strip() == "True"
     assert err.strip() == "[<string>:6] <unknown> = True"
+
+
+def test_run_with_no_frames(capsys: CaptureFixture) -> None:
+    source = textwrap.dedent("""
+        from debug import dbg
+
+        x = False
+
+        print(dbg(x))
+    """)
+
+    with mock.patch("inspect.currentframe", mock.Mock(return_value=None)):
+        exec(source)
+
+    out, err = capsys.readouterr()
+
+    assert out.strip() == "False"
+    assert err.strip() == "[<unknown>] <unknown> = False"
