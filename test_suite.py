@@ -34,6 +34,15 @@ MODULE = "test_samples"
         ),
         ("nested.file", "foo", "[nested/file.py:5] x = 'foo'"),
         ("offset", "5", "[offset.py:7] arg = 5"),
+        ("no_offset", "-5", "[no_offset.py:3] arg = -5"),
+        (
+            "nested_function",
+            "8",
+            """
+            [nested_function.py:8] a = 2
+            [nested_function.py:8] b = 6
+            """,
+        ),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:

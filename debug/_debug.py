@@ -11,25 +11,26 @@ UNKNOWN_MESSAGE: str = "<unknown>"
 def get_source(frame: types.FrameType) -> None | str:
     try:
         lines, offset = inspect.getsourcelines(frame)
+        offset = max(offset, 1)
     except OSError:
         return None
     traceback = inspect.getframeinfo(frame, context=0)
     positions = traceback.positions
     if positions is None:
         return None
-    lineno = traceback.lineno - 1
+    lineno = traceback.lineno - offset
     if positions.lineno is None or positions.end_lineno is None:
         return None
     if positions.lineno == positions.end_lineno:
-        source = lines[lineno - offset][positions.col_offset : positions.end_col_offset]
+        source = lines[lineno][positions.col_offset : positions.end_col_offset]
     else:
-        source = lines[lineno - offset][positions.col_offset :]
-        end_lineno = positions.end_lineno - 1
+        source = lines[lineno][positions.col_offset :]
+        end_lineno = positions.end_lineno - offset
         lineno += 1
         while lineno < end_lineno:
-            source += lines[lineno - offset]
+            source += lines[lineno]
             lineno += 1
-        source += lines[lineno - offset][: positions.end_col_offset]
+        source += lines[lineno][: positions.end_col_offset]
     return source
 
 
