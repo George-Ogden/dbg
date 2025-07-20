@@ -1,5 +1,7 @@
 import importlib
+import os
 import textwrap
+from unittest import mock
 
 from _pytest.capture import CaptureFixture
 import pytest
@@ -11,7 +13,7 @@ MODULE = "test_samples"
     "name,expected_out,expected_err",
     [
         ("number", "12", "[number.py:3] 12 = 12"),
-        ("variable", "17", "[variable.py:4] x = 17"),
+        ("variable", "17", "[variable.py:5] x = 17"),
         ("two_line", "-32", "[two_line.py:6] x * y = -32"),
         ("three_line", "14\n14", "[three_line.py:3] (y := (10 + 4)) = 14"),
         (
@@ -30,11 +32,15 @@ MODULE = "test_samples"
             [nested_expression.py:5] dbg((x := (x + 1))) = 4
             """,
         ),
+        ("nested.file", "foo", "[nested/file.py:5] x = 'foo'"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+    cwd = os.getcwd()
+
     module = f"{MODULE}.{name}"
-    importlib.import_module(module)
+    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, "test_samples"))):
+        importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
     expected_err = textwrap.dedent(expected_err).strip()

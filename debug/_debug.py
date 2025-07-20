@@ -1,6 +1,7 @@
 import ast
 import inspect
 import os.path
+import re
 import sys
 import types
 
@@ -32,10 +33,15 @@ def get_code(frame: types.FrameType) -> None | str:
     return code
 
 
-def get_position(frame: types.FrameType) -> None | tuple[str, None] | tuple[str, int]:
-    filepath = inspect.getsourcefile(frame)
+def get_position(frame: types.FrameType) -> tuple[str, int]:
+    filepath = frame.f_code.co_filename
+    if re.match(r"<.*>", filepath):
+        path = filepath
+    else:
+        root = os.getcwd()
+        path = os.path.relpath(filepath, start=root)
     lineno = frame.f_lineno
-    return os.path.basename(filepath), lineno
+    return path, lineno
 
 
 def dbg[T](expr: T, /) -> T:
@@ -44,7 +50,7 @@ def dbg[T](expr: T, /) -> T:
     try:
         code = get_code(frame)
         filepath, lineno = get_position(frame)
-        print(f"[{filepath}:{lineno}] {code} = {expr}", file=sys.stderr)
+        print(f"[{filepath}:{lineno}] {code} = {expr!r}", file=sys.stderr)
     finally:
         del frame
     return expr

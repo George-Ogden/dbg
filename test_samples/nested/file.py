@@ -1,5 +1,5 @@
 from debug import dbg
 
-x = 17
+x = "foo"
 
 print(dbg(x))
