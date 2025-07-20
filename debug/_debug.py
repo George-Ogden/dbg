@@ -4,6 +4,7 @@ import os.path
 import re
 import sys
 import types
+from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
 
 UNKNOWN_MESSAGE: str = "<unknown>"
 
@@ -34,19 +35,18 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
-def display_code(frame: None | types.FrameType) -> None | str:
+def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]:
     if frame is None:
         source = None
     else:
         source = get_source(frame)
     if source is None:
-        return UNKNOWN_MESSAGE
+        return [UNKNOWN_MESSAGE] * num_codes
     tree: ast.Expression = ast.parse(source, mode="eval")
     assert isinstance(tree.body, ast.Call)
     fn_call = tree.body
-    [arg] = fn_call.args
-    code = ast.unparse(arg)
-    return code
+    codes = [ast.unparse(arg) for arg in fn_call.args]
+    return codes
 
 
 def get_position(frame: types.FrameType) -> tuple[str, None | int]:
@@ -69,14 +69,32 @@ def display_position(frame: None | types.FrameType) -> str:
     return f"{filepath}:{lineno}"
 
 
-def dbg[T](expr: T, /) -> T:
+T = TypeVar("T")
+Ts = TypeVarTuple("Ts")
+
+
+@overload
+def dbg(value: T, /) -> T: ...
+
+
+@overload
+def dbg(*values: Unpack[Ts]) -> tuple[Unpack[Ts]]: ...
+
+
+def dbg(*values: Any) -> Any:
+    num_args = len(values)
     frame = inspect.currentframe()
     if frame is not None:
         frame = frame.f_back
     try:
-        code = display_code(frame)
+        codes = display_codes(frame, num_codes=num_args)
         position = display_position(frame)
-        print(f"[{position}] {code} = {expr!r}", file=sys.stderr)
+        for code, value in zip(codes, values, strict=True):
+            print(f"[{position}] {code} = {value!r}", file=sys.stderr)
     finally:
         del frame
-    return expr
+    if len(values) == 1:
+        [value] = values
+        return value
+    else:
+        return values

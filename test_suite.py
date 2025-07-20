@@ -43,6 +43,14 @@ MODULE = "test_samples"
             [nested_function.py:8] b = 6
             """,
         ),
+        (
+            "multiple_arguments",
+            "('hello', 8.5)",
+            """
+            [multiple_arguments.py:6] x = 'hello'
+            [multiple_arguments.py:6] y = 8.5
+            """,
+        ),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
