@@ -1,12 +1,20 @@
 import importlib
 import os
+import sys
 import textwrap
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
 import pytest
 
-MODULE = "test_samples"
+SAMPLE_DIR = "test_samples"
+
+
+@pytest.fixture(autouse=True)
+def reset_modules() -> None:
+    for key in list(sys.modules.keys()):
+        if key.startswith(SAMPLE_DIR):
+            del sys.modules[key]
 
 
 @pytest.mark.parametrize(
@@ -56,8 +64,8 @@ MODULE = "test_samples"
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
     cwd = os.getcwd()
 
-    module = f"{MODULE}.{name}"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, "test_samples"))):
+    module = f"{SAMPLE_DIR}.{name}"
+    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
@@ -68,36 +76,65 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
     assert err.strip() == expected_err
 
 
-def test_run_from_exec(capsys: CaptureFixture) -> None:
-    source = textwrap.dedent("""
-        from debug import dbg
+@pytest.mark.parametrize(
+    "name,expected_out,expected_err",
+    [
+        ("variable", "17", "[<string>:5] <unknown> = 17"),
+        (
+            "multiple_arguments",
+            "('hello', 8.5)",
+            """
+            [<string>:6] <unknown> = 'hello'
+            [<string>:6] <unknown> = 8.5
+            """,
+        ),
+    ],
+)
+def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+    filepath = os.path.join(SAMPLE_DIR, *name.split("."))
+    filepath += ".py"
+    with open(filepath) as f:
+        source = f.read()
 
-        x = True
-
-        print(dbg(x))
-    """)
-
-    exec(source)
-
-    out, err = capsys.readouterr()
-
-    assert out.strip() == "True"
-    assert err.strip() == "[<string>:6] <unknown> = True"
-
-
-def test_run_with_no_frames(capsys: CaptureFixture) -> None:
-    source = textwrap.dedent("""
-        from debug import dbg
-
-        x = False
-
-        print(dbg(x))
-    """)
-
-    with mock.patch("inspect.currentframe", mock.Mock(return_value=None)):
+    cwd = os.getcwd()
+    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
         exec(source)
 
-    out, err = capsys.readouterr()
+    expected_out = textwrap.dedent(expected_out).strip()
+    expected_err = textwrap.dedent(expected_err).strip()
 
-    assert out.strip() == "False"
-    assert err.strip() == "[<unknown>] <unknown> = False"
+    out, err = capsys.readouterr()
+    assert out.strip() == expected_out
+    assert err.strip() == expected_err
+
+
+@pytest.mark.parametrize(
+    "name,expected_out,expected_err",
+    [
+        ("variable", "17", "[<unknown>] <unknown> = 17"),
+        (
+            "multiple_arguments",
+            "('hello', 8.5)",
+            """
+                [<unknown>] <unknown> = 'hello'
+                [<unknown>] <unknown> = 8.5
+                """,
+        ),
+    ],
+)
+def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+    cwd = os.getcwd()
+
+    module = f"{SAMPLE_DIR}.{name}"
+    with (
+        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
+        mock.patch("inspect.currentframe", mock.Mock(return_value=None)),
+    ):
+        importlib.import_module(module)
+
+    expected_out = textwrap.dedent(expected_out).strip()
+    expected_err = textwrap.dedent(expected_err).strip()
+
+    out, err = capsys.readouterr()
+    assert out.strip() == expected_out
+    assert err.strip() == expected_err
