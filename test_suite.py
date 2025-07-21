@@ -6,6 +6,7 @@ from unittest import mock
 
 from _pytest.capture import CaptureFixture
 import pytest
+from strip_ansi import strip_ansi
 
 SAMPLE_DIR = "test_samples"
 
@@ -95,7 +96,7 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err
 
 
 @pytest.mark.parametrize(
@@ -128,7 +129,7 @@ def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: Captu
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err
 
 
 @pytest.mark.parametrize(
@@ -161,4 +162,4 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err

@@ -7,6 +7,9 @@ import types
 from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
 
 import black
+import pygments
+from pygments.formatters import TerminalFormatter
+from pygments.lexers import PythonLexer
 
 UNKNOWN_MESSAGE: str = "<unknown>"
 
@@ -37,6 +40,10 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
+def highlight_code(code: str) -> str:
+    return pygments.highlight(code, PythonLexer(), TerminalFormatter()).strip()
+
+
 def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]:
     if frame is None:
         source = None
@@ -51,7 +58,8 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     assert isinstance(tree.body, ast.Call)
     fn_call = tree.body
     codes = [
-        ast.get_source_segment(source=source, node=arg) or UNKNOWN_MESSAGE for arg in fn_call.args
+        highlight_code(ast.get_source_segment(source=source, node=arg) or UNKNOWN_MESSAGE)
+        for arg in fn_call.args
     ]
     return codes
 
@@ -104,7 +112,7 @@ def dbg(*values: Any) -> Any:
         else:
             codes = display_codes(frame, num_codes=num_args)
             for code, value in zip(codes, values, strict=True):
-                print(f"[{position}] {code} = {value!r}", file=sys.stderr)
+                print(f"[{position}] {code} = {highlight_code(repr(value))}", file=sys.stderr)
     finally:
         del frame
     if len(values) == 1:
