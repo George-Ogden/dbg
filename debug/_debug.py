@@ -82,6 +82,10 @@ def dbg(*values: Unpack[Ts]) -> tuple[Unpack[Ts]]: ...
 
 
 def dbg(*values: Any) -> Any:
+    """Write an appropriate debugging message to the stderr for each expression.
+    The value is returned (one argument)
+    or values are returned as a tuple (zero or multiple arguments).
+    """
     num_args = len(values)
     frame = inspect.currentframe()
     if frame is not None:
