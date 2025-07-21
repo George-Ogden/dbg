@@ -6,6 +6,8 @@ import sys
 import types
 from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
 
+import black
+
 UNKNOWN_MESSAGE: str = "<unknown>"
 
 
@@ -42,10 +44,15 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
         source = get_source(frame)
     if source is None:
         return [UNKNOWN_MESSAGE] * num_codes
+    source = black.format_str(
+        source, mode=black.FileMode(string_normalization=False, line_length=len(source))
+    )
     tree: ast.Expression = ast.parse(source, mode="eval")
     assert isinstance(tree.body, ast.Call)
     fn_call = tree.body
-    codes = [ast.unparse(arg) for arg in fn_call.args]
+    codes = [
+        ast.get_source_segment(source=source, node=arg) or UNKNOWN_MESSAGE for arg in fn_call.args
+    ]
     return codes
 
 

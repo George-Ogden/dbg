@@ -23,7 +23,7 @@ def reset_modules() -> None:
         ("number", "12", "[number.py:3] 12 = 12"),
         ("variable", "17", "[variable.py:5] x = 17"),
         ("two_line", "-32", "[two_line.py:6] x * y = -32"),
-        ("three_line", "14\n14", "[three_line.py:3] (y := (10 + 4)) = 14"),
+        ("three_line", "14\n14", "[three_line.py:3] y := (10 + 4) = 14"),
         (
             "same_line",
             "7",
@@ -36,8 +36,8 @@ def reset_modules() -> None:
             "nested_expression",
             "4",
             """
-            [nested_expression.py:5] (x := (x + 1)) = 4
-            [nested_expression.py:5] dbg((x := (x + 1))) = 4
+            [nested_expression.py:5] x := x + 1 = 4
+            [nested_expression.py:5] dbg(x := x + 1) = 4
             """,
         ),
         ("nested.file", "foo", "[nested/file.py:5] x = 'foo'"),
@@ -68,6 +68,17 @@ def reset_modules() -> None:
             [multiline_arguments.py:7] x = 'bye'
             [multiline_arguments.py:7] y = 0.25
             [multiline_arguments.py:7] z + 4 = -5
+            """,
+        ),
+        (
+            "string",
+            """
+            foo
+            bar
+            """,
+            """
+            [string.py:3] 'foo' = 'foo'
+            [string.py:4] "bar" = 'bar'
             """,
         ),
     ],
