@@ -82,6 +82,7 @@ def reset_modules() -> None:
             [string.py:4] "bar" = 'bar'
             """,
         ),
+        ("brackets", "()", "[brackets.py:3] ((())) = ()"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
