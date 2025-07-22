@@ -9,7 +9,7 @@ from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
 import black
 import libcst as cst
 import pygments
-from pygments.formatters import TerminalFormatter
+from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 
 UNKNOWN_MESSAGE: str = "<unknown>"
@@ -42,7 +42,9 @@ def get_source(frame: types.FrameType) -> None | str:
 
 
 def highlight_code(code: str) -> str:
-    return pygments.highlight(code, PythonLexer(), TerminalFormatter()).strip()
+    return pygments.highlight(
+        code, PythonLexer(), Terminal256Formatter(bg="dark", style="github-dark")
+    ).strip()
 
 
 def format_code(code: str) -> str:
