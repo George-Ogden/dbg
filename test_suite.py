@@ -6,6 +6,7 @@ from unittest import mock
 
 from _pytest.capture import CaptureFixture
 import pytest
+from strip_ansi import strip_ansi
 
 SAMPLE_DIR = "test_samples"
 
@@ -23,7 +24,7 @@ def reset_modules() -> None:
         ("number", "12", "[number.py:3] 12 = 12"),
         ("variable", "17", "[variable.py:5] x = 17"),
         ("two_line", "-32", "[two_line.py:6] x * y = -32"),
-        ("three_line", "14\n14", "[three_line.py:3] (y := (10 + 4)) = 14"),
+        ("three_line", "14\n14", "[three_line.py:3] y := (10 + 4) = 14"),
         (
             "same_line",
             "7",
@@ -36,8 +37,8 @@ def reset_modules() -> None:
             "nested_expression",
             "4",
             """
-            [nested_expression.py:5] (x := (x + 1)) = 4
-            [nested_expression.py:5] dbg((x := (x + 1))) = 4
+            [nested_expression.py:5] x := x + 1 = 4
+            [nested_expression.py:5] dbg(x := x + 1) = 4
             """,
         ),
         ("nested.file", "foo", "[nested/file.py:5] x = 'foo'"),
@@ -70,6 +71,18 @@ def reset_modules() -> None:
             [multiline_arguments.py:7] z + 4 = -5
             """,
         ),
+        (
+            "string",
+            """
+            foo
+            bar
+            """,
+            """
+            [string.py:3] 'foo' = 'foo'
+            [string.py:4] "bar" = 'bar'
+            """,
+        ),
+        ("brackets", "()", "[brackets.py:3] ((())) = ()"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
@@ -84,7 +97,7 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err
 
 
 @pytest.mark.parametrize(
@@ -117,7 +130,7 @@ def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: Captu
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err
 
 
 @pytest.mark.parametrize(
@@ -150,4 +163,4 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert err.strip() == expected_err
+    assert strip_ansi(err.strip()) == expected_err

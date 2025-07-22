@@ -1,10 +1,16 @@
-import ast
+from collections.abc import Iterable
 import inspect
 import os.path
 import re
 import sys
 import types
 from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
+
+import black
+import libcst as cst
+import pygments
+from pygments.formatters import TerminalFormatter
+from pygments.lexers import PythonLexer
 
 UNKNOWN_MESSAGE: str = "<unknown>"
 
@@ -35,6 +41,32 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
+def highlight_code(code: str) -> str:
+    return pygments.highlight(code, PythonLexer(), TerminalFormatter()).strip()
+
+
+def format_code(code: str) -> str:
+    return black.format_str(
+        code, mode=black.FileMode(string_normalization=False, line_length=len(code))
+    )
+
+
+def display_code(code: str) -> str:
+    return highlight_code(format_code(code))
+
+
+def get_source_segments(source: str) -> None | Iterable[str]:
+    source = format_code(source)
+    tree = cst.parse_expression(source)
+    module = cst.Module([])
+    if not isinstance(tree, cst.Call):
+        return None
+    args = [
+        module.code_for_node(arg.with_changes(comma=cst.MaybeSentinel.DEFAULT)) for arg in tree.args
+    ]
+    return args
+
+
 def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]:
     if frame is None:
         source = None
@@ -42,10 +74,10 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
         source = get_source(frame)
     if source is None:
         return [UNKNOWN_MESSAGE] * num_codes
-    tree: ast.Expression = ast.parse(source, mode="eval")
-    assert isinstance(tree.body, ast.Call)
-    fn_call = tree.body
-    codes = [ast.unparse(arg) for arg in fn_call.args]
+    source_segments = get_source_segments(source)
+    if source_segments is None:
+        return [UNKNOWN_MESSAGE] * num_codes
+    codes = [highlight_code(source_segment) for source_segment in (source_segments)]
     return codes
 
 
@@ -97,7 +129,7 @@ def dbg(*values: Any) -> Any:
         else:
             codes = display_codes(frame, num_codes=num_args)
             for code, value in zip(codes, values, strict=True):
-                print(f"[{position}] {code} = {value!r}", file=sys.stderr)
+                print(f"[{position}] {code} = {highlight_code(repr(value))}", file=sys.stderr)
     finally:
         del frame
     if len(values) == 1:
