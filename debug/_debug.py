@@ -15,6 +15,17 @@ from pygments.lexers import PythonLexer
 UNKNOWN_MESSAGE: str = "<unknown>"
 
 
+def supports_color() -> bool:
+    """
+    Returns True if the running system's terminal supports color, and False otherwise.
+    Modified from from https://stackoverflow.com/a/22254892.
+    """
+    plat = sys.platform
+    supported_platform = plat != "Pocket PC" and (plat != "win32" or "ANSICON" in os.environ)
+    is_a_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+    return supported_platform and is_a_tty
+
+
 def get_source(frame: types.FrameType) -> None | str:
     try:
         lines, offset = inspect.getsourcelines(frame)
@@ -42,6 +53,8 @@ def get_source(frame: types.FrameType) -> None | str:
 
 
 def highlight_code(code: str) -> str:
+    if not supports_color():
+        return code
     return pygments.highlight(
         code, PythonLexer(), Terminal256Formatter(bg="dark", style="github-dark")
     ).strip()
