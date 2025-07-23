@@ -24,54 +24,54 @@ def reset_modules() -> None:
 @pytest.mark.parametrize(
     "name,expected_out,expected_err",
     [
-        ("number", "12", "[number.py:3] 12 = 12"),
-        ("variable", "17", "[variable.py:5] x = 17"),
-        ("two_line", "-32", "[two_line.py:6] x * y = -32"),
-        ("three_line", "14\n14", "[three_line.py:3] y := (10 + 4) = 14"),
+        ("number", "12", "[number.py:3:7] 12 = 12"),
+        ("variable", "17", "[variable.py:5:7] x = 17"),
+        ("two_line", "-32", "[two_line.py:6:7] x * y = -32"),
+        ("three_line", "14\n14", "[three_line.py:3:7] y := (10 + 4) = 14"),
         (
             "same_line",
             "7",
             """
-            [same_line.py:6] x = 3
-            [same_line.py:6] y = 4
+            [same_line.py:6:7] x = 3
+            [same_line.py:6:16] y = 4
             """,
         ),
         (
             "nested_expression",
             "4",
             """
-            [nested_expression.py:5] x := x + 1 = 4
-            [nested_expression.py:5] dbg(x := x + 1) = 4
+            [nested_expression.py:5:11] x := x + 1 = 4
+            [nested_expression.py:5:7] dbg(x := x + 1) = 4
             """,
         ),
-        ("nested.file", "foo", "[nested/file.py:5] x = 'foo'"),
-        ("offset", "5", "[offset.py:7] arg = 5"),
-        ("no_offset", "-5", "[no_offset.py:3] arg = -5"),
+        ("nested.file", "foo", "[nested/file.py:5:7] x = 'foo'"),
+        ("offset", "5", "[offset.py:7:12] arg = 5"),
+        ("no_offset", "-5", "[no_offset.py:3:12] arg = -5"),
         (
             "nested_function",
             "8",
             """
-            [nested_function.py:8] a = 2
-            [nested_function.py:8] b = 6
+            [nested_function.py:8:16] a = 2
+            [nested_function.py:8:25] b = 6
             """,
         ),
         (
             "multiple_arguments",
             "('hello', 8.5)",
             """
-            [multiple_arguments.py:6] x = 'hello'
-            [multiple_arguments.py:6] y = 8.5
+            [multiple_arguments.py:6:7] x = 'hello'
+            [multiple_arguments.py:6:7] y = 8.5
             """,
         ),
-        ("singleton", "False", "[singleton.py:4] v = False"),
-        ("no_arguments", "()", "[no_arguments.py:3]"),
+        ("singleton", "False", "[singleton.py:4:7] v = False"),
+        ("no_arguments", "()", "[no_arguments.py:3:7]"),
         (
             "multiline_arguments",
             "('bye', 0.25, -5)",
             """
-            [multiline_arguments.py:7] x = 'bye'
-            [multiline_arguments.py:7] y = 0.25
-            [multiline_arguments.py:7] z + 4 = -5
+            [multiline_arguments.py:7:7] x = 'bye'
+            [multiline_arguments.py:7:7] y = 0.25
+            [multiline_arguments.py:7:7] z + 4 = -5
             """,
         ),
         (
@@ -81,11 +81,11 @@ def reset_modules() -> None:
             bar
             """,
             """
-            [string.py:3] 'foo' = 'foo'
-            [string.py:4] "bar" = 'bar'
+            [string.py:3:7] 'foo' = 'foo'
+            [string.py:4:7] "bar" = 'bar'
             """,
         ),
-        ("brackets", "()", "[brackets.py:3] ((())) = ()"),
+        ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
@@ -106,16 +106,16 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
 @pytest.mark.parametrize(
     "name,expected_out,expected_err",
     [
-        ("variable", "17", "[<string>:5] <unknown> = 17"),
+        ("variable", "17", "[<string>:5:7] <unknown> = 17"),
         (
             "multiple_arguments",
             "('hello', 8.5)",
             """
-            [<string>:6] <unknown> = 'hello'
-            [<string>:6] <unknown> = 8.5
+            [<string>:6:7] <unknown> = 'hello'
+            [<string>:6:7] <unknown> = 8.5
             """,
         ),
-        ("no_arguments", "()", "[<string>:3]"),
+        ("no_arguments", "()", "[<string>:3:7]"),
     ],
 )
 def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:

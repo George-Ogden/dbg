@@ -107,24 +107,36 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     return codes
 
 
-def get_position(frame: types.FrameType) -> tuple[str, None | int]:
+def get_position(frame: types.FrameType) -> tuple[str, None | tuple[int, None | int]]:
     filepath = frame.f_code.co_filename
     if re.match(r"<.*>", filepath):
         path = filepath
     else:
         root = os.getcwd()
         path = os.path.relpath(filepath, start=root)
-    lineno = frame.f_lineno
-    return path, lineno
+    traceback = inspect.getframeinfo(frame, context=0)
+    positions = traceback.positions
+    if positions is None or positions.lineno is None:
+        lineno = frame.f_lineno
+        return path, (lineno, None)
+    else:
+        col = positions.col_offset
+        if col is not None:
+            col += 1
+        return path, (positions.lineno, col)
 
 
 def display_position(frame: None | types.FrameType) -> str:
     if frame is None:
         return UNKNOWN_MESSAGE
-    filepath, lineno = get_position(frame)
-    if lineno is None:
+    filepath, location = get_position(frame)
+    if location is None:
         return filepath
-    return f"{filepath}:{lineno}"
+    lineno, col = location
+    if col is None:
+        return f"{filepath}:{lineno}"
+    else:
+        return f"{filepath}:{lineno}:{col}"
 
 
 T = TypeVar("T")
