@@ -1,3 +1,3 @@
-from ._debug import dbg
+from ._debug import CONFIG, dbg
 
-__all__ = ["dbg"]
+__all__ = ["dbg", "CONFIG"]

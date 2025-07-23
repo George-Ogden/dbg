@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from dataclasses import dataclass
 import inspect
 import os.path
 import re
@@ -9,10 +10,22 @@ from typing import Any, TypeVar, TypeVarTuple, Unpack, overload
 import black
 import libcst as cst
 import pygments
+from pygments.formatter import Formatter
 from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 
 UNKNOWN_MESSAGE: str = "<unknown>"
+
+
+@dataclass
+class DbgConfig:
+    style: str = "default"
+
+    def get_formatter(self) -> Formatter:
+        return Terminal256Formatter(style=self.style)
+
+
+CONFIG = DbgConfig()
 
 
 def supports_color() -> bool:
@@ -55,9 +68,7 @@ def get_source(frame: types.FrameType) -> None | str:
 def highlight_code(code: str) -> str:
     if not supports_color():
         return code
-    return pygments.highlight(
-        code, PythonLexer(), Terminal256Formatter(bg="dark", style="github-dark")
-    ).strip()
+    return pygments.highlight(code, PythonLexer(), CONFIG.get_formatter()).strip()
 
 
 def format_code(code: str) -> str:

@@ -5,8 +5,11 @@ import textwrap
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
+from pygments.formatters import Terminal256Formatter
 import pytest
 from strip_ansi import strip_ansi
+
+from debug import CONFIG
 
 SAMPLE_DIR = "test_samples"
 
@@ -164,3 +167,33 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
     assert strip_ansi(err.strip()) == expected_err
+
+
+@pytest.mark.parametrize("style", ["github-dark", "default"])
+def test_config_get_formatter_valid_style_and_background(style: str):
+    CONFIG.style = style
+    formatter = CONFIG.get_formatter()
+    assert isinstance(formatter, Terminal256Formatter)
+    assert formatter.style.name == style
+
+
+def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
+    module = f"{SAMPLE_DIR}.string"
+
+    CONFIG.style = "github-dark"
+    with mock.patch("debug._debug.supports_color", mock.Mock(return_value=True)):
+        importlib.import_module(module)
+
+    out_1, err_1 = capsys.readouterr()
+
+    del sys.modules[module]
+
+    CONFIG.style = "bw"
+    with mock.patch("debug._debug.supports_color", mock.Mock(return_value=True)):
+        importlib.import_module(module)
+
+    out_2, err_2 = capsys.readouterr()
+
+    assert out_1 == out_2
+    assert strip_ansi(err_1.strip()) == strip_ansi(err_2.strip())
+    assert err_1.strip() != err_2.strip()
