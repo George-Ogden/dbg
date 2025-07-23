@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-import functools
 import inspect
 import os.path
 import re
@@ -15,8 +14,9 @@ from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 from pygments.token import Token
 
+type Position = tuple[str, None | tuple[int, None | int]]
 
-@functools.cache
+
 def supports_color() -> bool:
     """
     Returns True if the running system's terminal supports color, and False otherwise.
@@ -30,7 +30,13 @@ def supports_color() -> bool:
 
 @dataclass
 class DbgConfig:
-    style: str = "default"
+    style: str
+    color: bool
+
+    def __init__(self) -> None:
+        self.style = "solarized-dark"
+        self.color = supports_color()
+
     UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
 
     @property
@@ -39,7 +45,7 @@ class DbgConfig:
 
     @property
     def unknown_message(self) -> str:
-        if supports_color():
+        if self.color:
             on, off = self.formatter.style_string[str(Token.Comment.Single)]
             return on + self.UNKNOWN_MESSAGE + off
         else:
@@ -120,7 +126,9 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     return codes
 
 
-def get_position(frame: types.FrameType) -> tuple[str, None | tuple[int, None | int]]:
+def get_position(frame: None | types.FrameType) -> Position:
+    if frame is None:
+        return (CONFIG.unknown_message, None)
     filepath = frame.f_code.co_filename
     if re.match(r"<.*>", filepath):
         path = filepath
@@ -132,31 +140,34 @@ def get_position(frame: types.FrameType) -> tuple[str, None | tuple[int, None | 
     if positions is None or positions.lineno is None:
         lineno = frame.f_lineno
         return path, (lineno, None)
-    else:
-        col = positions.col_offset
-        if col is not None:
-            col += 1
-        return path, (positions.lineno, col)
+    col = positions.col_offset
+    if col is not None:
+        col += 1
+    return path, (positions.lineno, col)
 
 
-def display_position(frame: None | types.FrameType) -> str:
-    if frame is None:
-        position = CONFIG.unknown_message
+def format_position(position: Position) -> str:
+    filepath, location = position
+    if location is None:
+        return filepath
+    lineno, col = location
+    if col is None:
+        return f"{filepath}:{lineno}"
     else:
-        filepath, location = get_position(frame)
-        if location is None:
-            position = filepath
-        else:
-            lineno, col = location
-            if col is None:
-                position = f"{filepath}:{lineno}"
-            else:
-                position = f"{filepath}:{lineno}:{col}"
+        return f"{filepath}:{lineno}:{col}"
+
+
+def highlight_position(position: str) -> str:
     position = f"[{position}]"
     if supports_color():
         on, off = CONFIG.formatter.style_string[str(Token.Comment.Single)]
         position = on + position + off
     return position
+
+
+def display_position(frame: None | types.FrameType) -> str:
+    position = get_position(frame)
+    return highlight_position(format_position(position))
 
 
 T = TypeVar("T")
