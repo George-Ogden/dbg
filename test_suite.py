@@ -170,9 +170,9 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 
 
 @pytest.mark.parametrize("style", ["github-dark", "default"])
-def test_config_get_formatter_valid_style_and_background(style: str):
+def test_config_formatter_valid_style_and_background(style: str):
     CONFIG.style = style
-    formatter = CONFIG.get_formatter()
+    formatter = CONFIG.formatter
     assert isinstance(formatter, Terminal256Formatter)
     assert formatter.style.name == style
 
