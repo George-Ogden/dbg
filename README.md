@@ -20,7 +20,7 @@ The standard output displays:
 14
 ```
 
-And the standard error displays:
+And the standard error displays (in color if you run it yourself):
 
 ```
 [main.py:5] x = 4
