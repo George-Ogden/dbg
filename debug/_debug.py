@@ -82,7 +82,7 @@ def get_source(frame: types.FrameType) -> None | str:
 
 
 def highlight_code(code: str) -> str:
-    if not supports_color():
+    if not CONFIG.color:
         return code
     lexer = PythonLexer()
     formatter = CONFIG.formatter

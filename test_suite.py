@@ -180,17 +180,17 @@ def test_config_formatter_valid_style_and_background(style: str):
 def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
     module = f"{SAMPLE_DIR}.string"
 
+    CONFIG.color = True
     CONFIG.style = "github-dark"
-    with mock.patch("debug._debug.supports_color", mock.Mock(return_value=True)):
-        importlib.import_module(module)
+    importlib.import_module(module)
 
     out_1, err_1 = capsys.readouterr()
 
     del sys.modules[module]
 
+    CONFIG.color = True
     CONFIG.style = "bw"
-    with mock.patch("debug._debug.supports_color", mock.Mock(return_value=True)):
-        importlib.import_module(module)
+    importlib.import_module(module)
 
     out_2, err_2 = capsys.readouterr()
 
