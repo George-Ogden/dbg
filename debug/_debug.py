@@ -5,7 +5,7 @@ import os.path
 import re
 import sys
 import types
-from typing import Any, ClassVar, TypeVar, TypeVarTuple, Unpack, overload
+from typing import Any, ClassVar, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
 
 import black
 import libcst as cst
@@ -14,7 +14,7 @@ from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 from pygments.token import Token
 
-type Position = tuple[str, None | tuple[int, None | int]]
+Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
 
 def supports_color() -> bool:
