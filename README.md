@@ -73,3 +73,26 @@ For more examples, see `test_samples/` and `test_suite.py`.
 Getting the debug information involves introspecting the code very heavily.
 You need a Python interpreter that allows this (which you probably have by default).
 If some information is unavailable, a placeholder will be shown, such as `<unknown>`.
+
+## Advanced Features
+
+`dbg` automatically detects whether ANSI codes are supported by your terminal and uses color if available.
+This detection may occasionally fail and you can override it like this:
+
+```python
+from debug import CONFIG
+
+CONFIG.color = True # enable
+CONFIG.color = False # disable
+```
+
+Additionally, if you want to change the color scheme,
+
+```python
+from debug import CONFIG
+
+CONFIG.style = "github-dark"
+CONFIG.style = "monokai"
+```
+
+See a full list of styles at https://pygments.org/styles/.
