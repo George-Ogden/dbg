@@ -1,58 +1,20 @@
 from collections.abc import Iterable
-from dataclasses import dataclass
 import inspect
 import os.path
 import re
 import sys
 import types
-from typing import Any, ClassVar, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
+from typing import Any, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
 
 import black
 import libcst as cst
 import pygments
-from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 from pygments.token import Token
 
+from ._config import CONFIG
+
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
-
-
-def supports_color() -> bool:
-    """
-    Returns True if the running system's terminal supports color, and False otherwise.
-    Modified from from https://stackoverflow.com/a/22254892.
-    """
-    plat = sys.platform
-    supported_platform = plat != "Pocket PC" and (plat != "win32" or "ANSICON" in os.environ)
-    is_a_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
-    return supported_platform and is_a_tty
-
-
-@dataclass
-class DbgConfig:
-    style: str
-    color: bool
-
-    def __init__(self) -> None:
-        self.style = "solarized-dark"
-        self.color = supports_color()
-
-    UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
-
-    @property
-    def formatter(self) -> Terminal256Formatter:
-        return Terminal256Formatter(style=self.style, noitalic=True, nobold=True, nounderline=True)
-
-    @property
-    def unknown_message(self) -> str:
-        if self.color:
-            on, off = self.formatter.style_string[str(Token.Comment.Single)]
-            return on + self.UNKNOWN_MESSAGE + off
-        else:
-            return self.UNKNOWN_MESSAGE
-
-
-CONFIG = DbgConfig()
 
 
 def get_source(frame: types.FrameType) -> None | str:
@@ -159,7 +121,7 @@ def format_position(position: Position) -> str:
 
 def highlight_position(position: str) -> str:
     position = f"[{position}]"
-    if supports_color():
+    if CONFIG.color:
         on, off = CONFIG.formatter.style_string[str(Token.Comment.Single)]
         position = on + position + off
     return position
