@@ -8,6 +8,7 @@ from typing import ClassVar
 import warnings
 
 from pygments.formatters import Terminal256Formatter
+import pygments.styles
 from pygments.token import Token
 
 
@@ -24,15 +25,28 @@ def supports_color() -> bool:
 
 @dataclass
 class DbgConfig:
-    style: str
     color: bool
+    style: str  # type: ignore
 
     def __init__(self) -> None:
-        self.style = "solarized-dark"
+        self._style = "solarized-dark"
         self.color = supports_color()
 
     UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     SECTION: ClassVar[str] = "dbg"
+
+    @property
+    def style(self) -> str:
+        return self._style
+
+    @style.setter
+    def style(self, value: str) -> None:
+        if value in pygments.styles.get_all_styles():
+            self._style = value
+        else:
+            warnings.warn(
+                f"Invalid style {value!r}. Choose one of {list(pygments.styles.get_all_styles())}."
+            )
 
     @property
     def formatter(self) -> Terminal256Formatter:

@@ -254,3 +254,13 @@ def test_load_config_displays_warning(name: str, warning_message: str) -> None:
     warning_regex = re.escape(warning_message.replace("$", filename_msg))
     with pytest.warns(match=warning_regex):
         config.use_config(filename)
+
+
+def test_invalid_style_warns() -> None:
+    config = DbgConfig()
+    config.style = "monokai"
+
+    with pytest.warns(match=r"Invalid style 'invalid'\. Choose one of .*\."):
+        config.style = "invalid"
+
+    assert "monokai" == config.style
