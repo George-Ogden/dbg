@@ -1,5 +1,6 @@
 import importlib
 import os
+import re
 import sys
 import textwrap
 from typing import Any
@@ -209,9 +210,12 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
         ("monokai", dict(style="monokai", color=True)),
         ("extra_section", dict(style="default", color=False)),
         ("unused_field", dict(style="default")),
-        ("quotes", dict(style='"algol"')),
+        ("quotes", dict(style="algol")),
+        ("syntax_error", dict()),
+        ("location_error", dict()),
     ],
 )
+@pytest.mark.filterwarnings("ignore")
 def test_load_config(name: str, settings: dict[str, Any]) -> None:
     config = DbgConfig()
     filename = os.path.join(TEST_DATA_DIR, name + ".conf")
@@ -221,3 +225,32 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
     for k, v in settings.items():
         setattr(expected_config, k, v)
     assert expected_config == config
+
+
+@pytest.mark.parametrize(
+    "name, warning_message",
+    [
+        (
+            "extra_section",
+            "Extra section [extra] found in $. "
+            "Please, use no sections or one section called [dbg].",
+        ),
+        ("unused_field", "Unused field 'extra' found in $"),
+        (
+            "quotes",
+            'Quotes used around "algol" in $. '
+            "They will be ignored, but please remove to silence this warning.",
+        ),
+        ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
+        ("syntax_error", "Unable to load config from $. (ParsingError)"),
+        ("location_error", "Unable to load config from $. (FileNotFoundError)"),
+    ],
+)
+def test_load_config_displays_warning(name: str, warning_message: str) -> None:
+    config = DbgConfig()
+    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
+
+    filename_msg = f"'{os.path.abspath(filename)}'"
+    warning_regex = re.escape(warning_message.replace("$", filename_msg))
+    with pytest.warns(match=warning_regex):
+        config.use_config(filename)

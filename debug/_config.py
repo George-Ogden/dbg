@@ -2,8 +2,10 @@ import configparser
 from dataclasses import dataclass
 import inspect
 import os.path
+import re
 import sys
 from typing import ClassVar
+import warnings
 
 from pygments.formatters import Terminal256Formatter
 from pygments.token import Token
@@ -45,27 +47,55 @@ class DbgConfig:
             return self.UNKNOWN_MESSAGE
 
     def use_config(self, filepath: str) -> None:
+        filepath = os.path.abspath(filepath)
+        config = configparser.ConfigParser()
         try:
-            config = configparser.ConfigParser(allow_unnamed_section=True)
-        except TypeError:
-            config = configparser.ConfigParser()
-        try:
-            config.read(filepath)
-        except configparser.MissingSectionHeaderError:
             with open(filepath) as f:
-                config_string = f"[{self.SECTION}]\n" + f.read()
-                config.read_string(config_string)
+                config_string = f.read()
+        except OSError as e:
+            warnings.warn(f"Unable to load config from '{filepath}'. ({type(e).__name__})")
+            return
+        try:
+            config.read_string(config_string)
+        except configparser.MissingSectionHeaderError:
+            config_string = f"[{self.SECTION}]\n" + config_string
+        try:
+            config.read_string(config_string)
+        except configparser.Error as e:
+            warnings.warn(f"Unable to load config from '{filepath}'. ({type(e).__name__})")
+            return
         annotations = inspect.get_annotations(type(self))
+        if len(config.sections()) > 1:
+            for section in config.sections():
+                if section != self.SECTION:
+                    warnings.warn(
+                        f"Extra section [{section}] found in '{filepath}'. "
+                        "Please, use no sections or one section called [dbg]."
+                    )
+        elif self.SECTION not in config.sections():
+            for section in config.sections():
+                warnings.warn(
+                    f"Wrong section [{section}] used in '{filepath}'. "
+                    "Please, use [dbg] or no sections."
+                )
         for section_name in config.sections():
             section = config[section_name]
             for key in section.keys():
                 value_type = annotations.get(key, None)
                 if value_type is None:
+                    warnings.warn(f"Unused field '{key}' found in '{filepath}'.")
                     continue
                 elif value_type is bool:
                     value = section.getboolean(key)
                 else:
                     value = section[key]
+                    match = re.match(r"^('(.*)'|\"(.*)\")$", value)
+                    if match:
+                        warnings.warn(
+                            f"Quotes used around {value} in '{filepath}'. "
+                            "They will be ignored, but please remove to silence this warning."
+                        )
+                        value = (match.group(2) or "") + (match.group(3) or "")
 
                 setattr(self, key, value)
 
