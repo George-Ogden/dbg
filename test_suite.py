@@ -2,6 +2,7 @@ import importlib
 import os
 import sys
 import textwrap
+from typing import Any
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
@@ -10,8 +11,10 @@ import pytest
 from strip_ansi import strip_ansi
 
 from debug import CONFIG
+from debug._config import DbgConfig
 
 SAMPLE_DIR = "test_samples"
+TEST_DATA_DIR = "test_data"
 
 
 @pytest.fixture(autouse=True)
@@ -197,3 +200,24 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
     assert out_1 == out_2
     assert strip_ansi(err_1.strip()) == strip_ansi(err_2.strip())
     assert err_1.strip() != err_2.strip()
+
+
+@pytest.mark.parametrize(
+    "name, settings",
+    [
+        ("disabled", dict(color=False)),
+        ("monokai", dict(style="monokai", color=True)),
+        ("extra_section", dict(style="default", color=False)),
+        ("unused_field", dict(style="default")),
+        ("quotes", dict(style='"algol"')),
+    ],
+)
+def test_load_config(name: str, settings: dict[str, Any]) -> None:
+    config = DbgConfig()
+    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
+    config.use_config(filename)
+
+    expected_config = DbgConfig()
+    for k, v in settings.items():
+        setattr(expected_config, k, v)
+    assert expected_config == config

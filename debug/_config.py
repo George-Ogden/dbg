@@ -1,4 +1,6 @@
+import configparser
 from dataclasses import dataclass
+import inspect
 import os.path
 import sys
 from typing import ClassVar
@@ -28,6 +30,7 @@ class DbgConfig:
         self.color = supports_color()
 
     UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
+    SECTION: ClassVar[str] = "dbg"
 
     @property
     def formatter(self) -> Terminal256Formatter:
@@ -40,6 +43,31 @@ class DbgConfig:
             return on + self.UNKNOWN_MESSAGE + off
         else:
             return self.UNKNOWN_MESSAGE
+
+    def use_config(self, filepath: str) -> None:
+        try:
+            config = configparser.ConfigParser(allow_unnamed_section=True)
+        except TypeError:
+            config = configparser.ConfigParser()
+        try:
+            config.read(filepath)
+        except configparser.MissingSectionHeaderError:
+            with open(filepath) as f:
+                config_string = f"[{self.SECTION}]\n" + f.read()
+                config.read_string(config_string)
+        annotations = inspect.get_annotations(type(self))
+        for section_name in config.sections():
+            section = config[section_name]
+            for key in section.keys():
+                value_type = annotations.get(key, None)
+                if value_type is None:
+                    continue
+                elif value_type is bool:
+                    value = section.getboolean(key)
+                else:
+                    value = section[key]
+
+                setattr(self, key, value)
 
 
 CONFIG = DbgConfig()
