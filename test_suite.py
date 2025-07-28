@@ -213,6 +213,7 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
         ("quotes", dict(style="algol")),
         ("syntax_error", dict()),
         ("location_error", dict()),
+        ("empty", dict()),
     ],
 )
 @pytest.mark.filterwarnings("ignore")
