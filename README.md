@@ -96,3 +96,15 @@ CONFIG.style = "monokai"
 ```
 
 See a full list of styles at https://pygments.org/styles/.
+
+### Persistent Config
+
+You can also change the settings by placing a `debug/dbg.conf` in your user config folder or a `dbg.conf` file in your local directory (higher precedence).
+
+```ini
+[dbg]
+color = yes # always show color
+style = github-dark # change the style
+```
+
+That means that your favorite theme is always loaded or you can disable color if it is misdetected.
