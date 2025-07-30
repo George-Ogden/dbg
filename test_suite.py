@@ -304,4 +304,31 @@ def test_loads_default_config() -> None:
         importlib.reload(sys.modules["debug"])
         from debug import CONFIG
 
-        assert CONFIG.style == "fruity"
+    assert CONFIG.style == "fruity"
+
+
+def test_loads_default_config_over_user_config() -> None:
+    user_dir = tempfile.mkdtemp()
+    user_config_filename = os.path.join(user_dir, "debug", "dbg.conf")
+    os.mkdir(os.path.dirname(user_config_filename))
+    with open(user_config_filename, "w") as f:
+        f.write("style = fruity")
+
+    current_dir = tempfile.mkdtemp()
+    local_config_filename = os.path.join(current_dir, "dbg.conf")
+    with open(local_config_filename, "w") as f:
+        f.write("style = vim")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(user_dir, appname)
+
+    with (
+        mock.patch("platformdirs.user_config_dir", user_config_dir),
+        mock.patch("os.getcwd", mock.Mock(return_value=current_dir)),
+    ):
+        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["debug._debug"])
+        importlib.reload(sys.modules["debug"])
+        from debug import CONFIG
+
+    assert CONFIG.style == "vim"

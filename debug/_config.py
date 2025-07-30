@@ -37,6 +37,7 @@ class DbgConfig:
     FILENAME: ClassVar[str] = "dbg.conf"
     SECTION: ClassVar[str] = "dbg"
     USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), FILENAME)
+    LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), FILENAME)
 
     @property
     def style(self) -> str:
@@ -130,3 +131,5 @@ if not os.path.exists(CONFIG.USER_FILENAME):
         ...
 
 CONFIG.use_config(CONFIG.USER_FILENAME)
+if os.path.exists(CONFIG.LOCAL_FILENAME):
+    CONFIG.use_config(CONFIG.LOCAL_FILENAME)
