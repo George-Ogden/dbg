@@ -7,6 +7,7 @@ import sys
 from typing import ClassVar
 import warnings
 
+import platformdirs
 from pygments.formatters import Terminal256Formatter
 import pygments.styles
 from pygments.token import Token
@@ -33,7 +34,9 @@ class DbgConfig:
         self.color = supports_color()
 
     UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
+    FILENAME: ClassVar[str] = "dbg.conf"
     SECTION: ClassVar[str] = "dbg"
+    USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), FILENAME)
 
     @property
     def style(self) -> str:
@@ -115,3 +118,15 @@ class DbgConfig:
 
 
 CONFIG = DbgConfig()
+if not os.path.exists(CONFIG.USER_FILENAME):
+    os.makedirs(os.path.dirname(CONFIG.USER_FILENAME), exist_ok=True)
+    try:
+        with (
+            open(CONFIG.USER_FILENAME, "x") as config_file,
+            open(os.path.join(os.path.dirname(__file__), "default.conf")) as default_file,
+        ):
+            config_file.write(default_file.read())
+    except OSError:
+        ...
+
+CONFIG.use_config(CONFIG.USER_FILENAME)

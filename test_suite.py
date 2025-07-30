@@ -1,7 +1,9 @@
+import filecmp
 import importlib
 import os
 import re
 import sys
+import tempfile
 import textwrap
 from typing import Any
 from unittest import mock
@@ -266,3 +268,40 @@ def test_invalid_style_warns() -> None:
         config.style = "invalid"
 
     assert "monokai" == config.style
+
+
+def test_creates_default_config() -> None:
+    temp_dir = tempfile.mkdtemp()
+    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(temp_dir, appname)
+
+    with mock.patch("platformdirs.user_config_dir", user_config_dir):
+        importlib.reload(sys.modules["debug._config"])
+        from debug import dbg
+
+        _ = dbg
+
+    assert os.path.exists(config_filename)
+    assert os.path.getsize(config_filename) > 0
+    assert filecmp.cmp(config_filename, "debug/default.conf")
+
+
+def test_loads_default_config() -> None:
+    temp_dir = tempfile.mkdtemp()
+    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
+    os.mkdir(os.path.dirname(config_filename))
+    with open(config_filename, "w") as f:
+        f.write("style = fruity")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(temp_dir, appname)
+
+    with mock.patch("platformdirs.user_config_dir", user_config_dir):
+        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["debug._debug"])
+        importlib.reload(sys.modules["debug"])
+        from debug import CONFIG
+
+        assert CONFIG.style == "fruity"
