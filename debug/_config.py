@@ -33,11 +33,11 @@ class DbgConfig:
         self._style = "solarized-dark"
         self.color = supports_color()
 
-    UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
-    FILENAME: ClassVar[str] = "dbg.conf"
-    SECTION: ClassVar[str] = "dbg"
-    USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), FILENAME)
-    LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), FILENAME)
+    _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
+    _FILENAME: ClassVar[str] = "dbg.conf"
+    _SECTION: ClassVar[str] = "dbg"
+    _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
+    _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
     @property
     def style(self) -> str:
@@ -53,18 +53,18 @@ class DbgConfig:
             )
 
     @property
-    def formatter(self) -> Terminal256Formatter:
+    def _formatter(self) -> Terminal256Formatter:
         return Terminal256Formatter(style=self.style, noitalic=True, nobold=True, nounderline=True)
 
     @property
-    def unknown_message(self) -> str:
+    def _unknown_message(self) -> str:
         if self.color:
-            on, off = self.formatter.style_string[str(Token.Comment.Single)]
-            return on + self.UNKNOWN_MESSAGE + off
+            on, off = self._formatter.style_string[str(Token.Comment.Single)]
+            return on + self._UNKNOWN_MESSAGE + off
         else:
-            return self.UNKNOWN_MESSAGE
+            return self._UNKNOWN_MESSAGE
 
-    def use_config(self, filepath: str) -> None:
+    def _use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)
         config = configparser.ConfigParser()
         try:
@@ -76,7 +76,7 @@ class DbgConfig:
         try:
             config.read_string(config_string)
         except configparser.MissingSectionHeaderError:
-            config_string = f"[{self.SECTION}]\n" + config_string
+            config_string = f"[{self._SECTION}]\n" + config_string
         try:
             config.read_string(config_string)
         except configparser.Error as e:
@@ -85,12 +85,12 @@ class DbgConfig:
         annotations = inspect.get_annotations(type(self))
         if len(config.sections()) > 1:
             for section in config.sections():
-                if section != self.SECTION:
+                if section != self._SECTION:
                     warnings.warn(
                         f"Extra section [{section}] found in '{filepath}'. "
                         "Please, use no sections or one section called [dbg]."
                     )
-        elif self.SECTION not in config.sections():
+        elif self._SECTION not in config.sections():
             for section in config.sections():
                 warnings.warn(
                     f"Wrong section [{section}] used in '{filepath}'. "
@@ -119,17 +119,17 @@ class DbgConfig:
 
 
 CONFIG = DbgConfig()
-if not os.path.exists(CONFIG.USER_FILENAME):
-    os.makedirs(os.path.dirname(CONFIG.USER_FILENAME), exist_ok=True)
+if not os.path.exists(CONFIG._USER_FILENAME):
+    os.makedirs(os.path.dirname(CONFIG._USER_FILENAME), exist_ok=True)
     try:
         with (
-            open(CONFIG.USER_FILENAME, "x") as config_file,
+            open(CONFIG._USER_FILENAME, "x") as config_file,
             open(os.path.join(os.path.dirname(__file__), "default.conf")) as default_file,
         ):
             config_file.write(default_file.read())
     except OSError:
         ...
 
-CONFIG.use_config(CONFIG.USER_FILENAME)
-if os.path.exists(CONFIG.LOCAL_FILENAME):
-    CONFIG.use_config(CONFIG.LOCAL_FILENAME)
+CONFIG._use_config(CONFIG._USER_FILENAME)
+if os.path.exists(CONFIG._LOCAL_FILENAME):
+    CONFIG._use_config(CONFIG._LOCAL_FILENAME)

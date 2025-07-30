@@ -47,7 +47,7 @@ def highlight_code(code: str) -> str:
     if not CONFIG.color:
         return code
     lexer = PythonLexer()
-    formatter = CONFIG.formatter
+    formatter = CONFIG._formatter
     code = pygments.highlight(code, lexer, formatter).strip()
     return code
 
@@ -80,17 +80,17 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     else:
         source = get_source(frame)
     if source is None:
-        return [CONFIG.unknown_message] * num_codes
+        return [CONFIG._unknown_message] * num_codes
     source_segments = get_source_segments(source)
     if source_segments is None:
-        return [CONFIG.unknown_message] * num_codes
+        return [CONFIG._unknown_message] * num_codes
     codes = [highlight_code(source_segment) for source_segment in (source_segments)]
     return codes
 
 
 def get_position(frame: None | types.FrameType) -> Position:
     if frame is None:
-        return (CONFIG.unknown_message, None)
+        return (CONFIG._unknown_message, None)
     filepath = frame.f_code.co_filename
     if re.match(r"<.*>", filepath):
         path = filepath
@@ -122,7 +122,7 @@ def format_position(position: Position) -> str:
 def highlight_position(position: str) -> str:
     position = f"[{position}]"
     if CONFIG.color:
-        on, off = CONFIG.formatter.style_string[str(Token.Comment.Single)]
+        on, off = CONFIG._formatter.style_string[str(Token.Comment.Single)]
         position = on + position + off
     return position
 

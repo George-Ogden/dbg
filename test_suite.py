@@ -178,7 +178,7 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 @pytest.mark.parametrize("style", ["github-dark", "default"])
 def test_config_formatter_valid_style_and_background(style: str):
     CONFIG.style = style
-    formatter = CONFIG.formatter
+    formatter = CONFIG._formatter
     assert isinstance(formatter, Terminal256Formatter)
     assert formatter.style.name == style
 
@@ -223,7 +223,7 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
 def test_load_config(name: str, settings: dict[str, Any]) -> None:
     config = DbgConfig()
     filename = os.path.join(TEST_DATA_DIR, name + ".conf")
-    config.use_config(filename)
+    config._use_config(filename)
 
     expected_config = DbgConfig()
     for k, v in settings.items():
@@ -257,7 +257,7 @@ def test_load_config_displays_warning(name: str, warning_message: str) -> None:
     filename_msg = f"'{os.path.abspath(filename)}'"
     warning_regex = re.escape(warning_message.replace("$", filename_msg))
     with pytest.warns(match=warning_regex):
-        config.use_config(filename)
+        config._use_config(filename)
 
 
 def test_invalid_style_warns() -> None:
