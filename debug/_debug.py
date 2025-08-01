@@ -3,6 +3,7 @@ import inspect
 import os.path
 import re
 import sys
+import textwrap
 import types
 from typing import Any, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
 
@@ -53,9 +54,14 @@ def highlight_code(code: str) -> str:
 
 
 def format_code(code: str) -> str:
-    return black.format_str(
-        code, mode=black.FileMode(string_normalization=False, line_length=len(code))
-    )
+    black_formatted_code = black.format_str(
+        f"({code.strip()})",
+        mode=black.FileMode(string_normalization=False, line_length=len(code) + 2),
+    ).strip()
+    match = re.match(r"^\((.*)\)$", black_formatted_code, flags=re.MULTILINE | re.DOTALL)
+    if match is None:
+        return black_formatted_code
+    return textwrap.dedent(match.group(1)).strip()
 
 
 def display_code(code: str) -> str:
@@ -63,7 +69,6 @@ def display_code(code: str) -> str:
 
 
 def get_source_segments(source: str) -> None | Iterable[str]:
-    source = format_code(source)
     tree = cst.parse_expression(source)
     module = cst.Module([])
     if not isinstance(tree, cst.Call):
@@ -84,7 +89,7 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     source_segments = get_source_segments(source)
     if source_segments is None:
         return [CONFIG._unknown_message] * num_codes
-    codes = [highlight_code(source_segment) for source_segment in (source_segments)]
+    codes = [highlight_code(format_code(source_segment)) for source_segment in (source_segments)]
     return codes
 
 
