@@ -1,7 +1,11 @@
+import filecmp
 import importlib
 import os
+import re
 import sys
+import tempfile
 import textwrap
+from typing import Any
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
@@ -10,8 +14,10 @@ import pytest
 from strip_ansi import strip_ansi
 
 from debug import CONFIG
+from debug._config import DbgConfig
 
 SAMPLE_DIR = "test_samples"
+TEST_DATA_DIR = "test_data"
 
 
 @pytest.fixture(autouse=True)
@@ -172,7 +178,7 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 @pytest.mark.parametrize("style", ["github-dark", "default"])
 def test_config_formatter_valid_style_and_background(style: str):
     CONFIG.style = style
-    formatter = CONFIG.formatter
+    formatter = CONFIG._formatter
     assert isinstance(formatter, Terminal256Formatter)
     assert formatter.style.name == style
 
@@ -197,3 +203,132 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
     assert out_1 == out_2
     assert strip_ansi(err_1.strip()) == strip_ansi(err_2.strip())
     assert err_1.strip() != err_2.strip()
+
+
+@pytest.mark.parametrize(
+    "name, settings",
+    [
+        ("disabled", dict(color=False)),
+        ("monokai", dict(style="monokai", color=True)),
+        ("extra_section", dict(style="default", color=False)),
+        ("unused_field", dict(style="default")),
+        ("quotes", dict(style="algol")),
+        ("syntax_error", dict()),
+        ("location_error", dict()),
+        ("empty", dict()),
+        ("../debug/default", dict()),
+    ],
+)
+@pytest.mark.filterwarnings("ignore")
+def test_load_config(name: str, settings: dict[str, Any]) -> None:
+    config = DbgConfig()
+    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
+    config._use_config(filename)
+
+    expected_config = DbgConfig()
+    for k, v in settings.items():
+        setattr(expected_config, k, v)
+    assert expected_config == config
+
+
+@pytest.mark.parametrize(
+    "name, warning_message",
+    [
+        (
+            "extra_section",
+            "Extra section [extra] found in $. "
+            "Please, use no sections or one section called [dbg].",
+        ),
+        ("unused_field", "Unused field 'extra' found in $"),
+        (
+            "quotes",
+            'Quotes used around "algol" in $. '
+            "They will be ignored, but please remove to silence this warning.",
+        ),
+        ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
+        ("syntax_error", "Unable to load config from $. (ParsingError)"),
+        ("location_error", "Unable to load config from $. (FileNotFoundError)"),
+    ],
+)
+def test_load_config_displays_warning(name: str, warning_message: str) -> None:
+    config = DbgConfig()
+    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
+
+    filename_msg = f"'{os.path.abspath(filename)}'"
+    warning_regex = re.escape(warning_message.replace("$", filename_msg))
+    with pytest.warns(match=warning_regex):
+        config._use_config(filename)
+
+
+def test_invalid_style_warns() -> None:
+    config = DbgConfig()
+    config.style = "monokai"
+
+    with pytest.warns(match=r"Invalid style 'invalid'\. Choose one of .*\."):
+        config.style = "invalid"
+
+    assert "monokai" == config.style
+
+
+def test_creates_default_config() -> None:
+    temp_dir = tempfile.mkdtemp()
+    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(temp_dir, appname)
+
+    with mock.patch("platformdirs.user_config_dir", user_config_dir):
+        importlib.reload(sys.modules["debug._config"])
+        from debug import dbg
+
+        _ = dbg
+
+    assert os.path.exists(config_filename)
+    assert os.path.getsize(config_filename) > 0
+    assert filecmp.cmp(config_filename, "debug/default.conf")
+
+
+def test_loads_default_config() -> None:
+    temp_dir = tempfile.mkdtemp()
+    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
+    os.mkdir(os.path.dirname(config_filename))
+    with open(config_filename, "w") as f:
+        f.write("style = fruity")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(temp_dir, appname)
+
+    with mock.patch("platformdirs.user_config_dir", user_config_dir):
+        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["debug._debug"])
+        importlib.reload(sys.modules["debug"])
+        from debug import CONFIG
+
+    assert CONFIG.style == "fruity"
+
+
+def test_loads_default_config_over_user_config() -> None:
+    user_dir = tempfile.mkdtemp()
+    user_config_filename = os.path.join(user_dir, "debug", "dbg.conf")
+    os.mkdir(os.path.dirname(user_config_filename))
+    with open(user_config_filename, "w") as f:
+        f.write("style = fruity")
+
+    current_dir = tempfile.mkdtemp()
+    local_config_filename = os.path.join(current_dir, "dbg.conf")
+    with open(local_config_filename, "w") as f:
+        f.write("style = vim")
+
+    def user_config_dir(appname: str) -> str:
+        return os.path.join(user_dir, appname)
+
+    with (
+        mock.patch("platformdirs.user_config_dir", user_config_dir),
+        mock.patch("os.getcwd", mock.Mock(return_value=current_dir)),
+    ):
+        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["debug._debug"])
+        importlib.reload(sys.modules["debug"])
+        from debug import CONFIG
+
+    assert CONFIG.style == "vim"
