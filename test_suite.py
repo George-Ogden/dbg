@@ -92,6 +92,22 @@ def reset_modules() -> None:
             """,
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
+        (
+            "lists",
+            """
+                [8, 9, 10]
+                [8, 9, 10]
+            """,
+            """
+                [lists.py:3:7] [8, 9, 10] = [8, 9, 10]
+                [lists.py:7:7] [
+                        8,
+                        9,
+                        10,
+                    ]
+                 = [8, 9, 10]
+            """,
+        ),
     ],
 )
 def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
