@@ -1,6 +1,6 @@
 [project]
 name = "debug"
-version = "0.6.0"
+version = "0.6.1"
 dynamic = ["dependencies"]
 
 [build-system]
