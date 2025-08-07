@@ -30,16 +30,20 @@ def get_source(frame: types.FrameType) -> None | str:
     lineno = traceback.lineno - offset
     if positions.lineno is None or positions.end_lineno is None:
         return None
-    if positions.lineno == positions.end_lineno:
-        source = lines[lineno][positions.col_offset : positions.end_col_offset]
-    else:
-        source = lines[lineno][positions.col_offset :]
-        end_lineno = positions.end_lineno - offset
-        lineno += 1
-        while lineno < end_lineno:
-            source += lines[lineno]
+    try:
+        if positions.lineno == positions.end_lineno:
+            source = lines[lineno][positions.col_offset : positions.end_col_offset]
+        else:
+            source = lines[lineno][positions.col_offset :]
+            end_lineno = positions.end_lineno - offset
             lineno += 1
-        source += lines[lineno][: positions.end_col_offset]
+            while lineno < end_lineno:
+                source += lines[lineno]
+                lineno += 1
+            source += lines[lineno][: positions.end_col_offset]
+    except IndexError:
+        # Edge case caused by `inspect` bug.
+        return None
     return source
 
 

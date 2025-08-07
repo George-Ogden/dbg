@@ -92,9 +92,16 @@ def reset_modules() -> None:
             """,
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
+        (
+            "generator",
+            "None",
+            ["[generator.py:7:44] True = True", "[generator.py:7:44] <unknown> = True"],
+        ),
     ],
 )
-def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+def test_samples(
+    name: str, expected_out: str, expected_err: str | list[str], capsys: CaptureFixture
+) -> None:
     cwd = os.getcwd()
 
     module = f"{SAMPLE_DIR}.{name}"
@@ -102,11 +109,13 @@ def test_samples(name: str, expected_out: str, expected_err, capsys: CaptureFixt
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
-    expected_err = textwrap.dedent(expected_err).strip()
+    if not isinstance(expected_err, list):
+        expected_err = [expected_err]
+    expected_err = [textwrap.dedent(possible_err).strip() for possible_err in expected_err]
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert strip_ansi(err.strip()) == expected_err
+    assert strip_ansi(err.strip()) in expected_err
 
 
 @pytest.mark.parametrize(
