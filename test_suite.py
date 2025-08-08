@@ -15,6 +15,7 @@ from strip_ansi import strip_ansi
 
 from debug import CONFIG
 from debug._config import DbgConfig
+from debug._format import Formatter, FormatterConfig
 
 SAMPLE_DIR = "test_samples"
 TEST_DATA_DIR = "test_data"
@@ -356,3 +357,158 @@ def test_loads_default_config_over_user_config() -> None:
         from debug import CONFIG
 
     assert CONFIG.style == "vim"
+
+
+class MultilineObject:
+    def __init__(self, *, width: int, lines: int) -> None:
+        self._string = "\n".join([chr(i) * width for i in range(ord("A"), ord("A") + lines)])
+
+    def __repr__(self) -> str:
+        return self._string
+
+
+@pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        (10, None, "10"),
+        (None, None, "None"),
+        ("hello", None, "'hello'"),
+        ("hello", 2, "'hello'"),
+        (["a", 10, None, 5.0], 20, "['a', 10, None, 5.0]"),
+        (
+            ["a", 10, None, 5.0],
+            19,
+            """
+            [
+                'a',
+                10,
+                None,
+                5.0,
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            24,
+            """
+            [[], [[]], [], [[], []]]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            23,
+            """
+            [
+                [],
+                [[]],
+                [],
+                [[], []],
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            13,
+            """
+            [
+                [],
+                [[]],
+                [],
+                [[], []],
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            12,
+            """
+            [
+                [],
+                [[]],
+                [],
+                [
+                    [],
+                    [],
+                ],
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            9,
+            """
+            [
+                [],
+                [[]],
+                [],
+                [
+                    [],
+                    [],
+                ],
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            8,
+            """
+            [
+                [],
+                [
+                    [],
+                ],
+                [],
+                [
+                    [],
+                    [],
+                ],
+            ]
+            """,
+        ),
+        (
+            [[], [[]], [], [[], []]],
+            1,
+            """
+            [
+                [],
+                [
+                    [],
+                ],
+                [],
+                [
+                    [],
+                    [],
+                ],
+            ]
+            """,
+        ),
+        (
+            [MultilineObject(width=1, lines=2)],
+            None,
+            """
+            [
+                A
+                B,
+            ]
+            """,
+        ),
+        (
+            [[], [MultilineObject(width=1, lines=2)]],
+            None,
+            """
+            [
+                [],
+                [
+                    A
+                    B,
+                ],
+            ]
+            """,
+        ),
+    ],
+)
+def test_format(obj: Any, width: int | None, expected: str) -> None:
+    config = FormatterConfig(width=width, indent=4)
+    formatter = Formatter(config)
+    string = formatter.format(obj)
+    assert textwrap.dedent(expected).strip() == string
