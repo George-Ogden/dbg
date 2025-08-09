@@ -540,6 +540,65 @@ class MultilineObject:
             ]
             """,
         ),
+        (
+            set(),
+            None,
+            "{}",
+        ),
+        (
+            (),
+            None,
+            "()",
+        ),
+        (
+            (100,),
+            None,
+            "(100,)",
+        ),
+        (
+            (100,),
+            6,
+            "(100,)",
+        ),
+        (
+            (100,),
+            5,
+            """
+            (
+                100,
+            )
+            """,
+        ),
+        (
+            ("a", "b"),
+            None,
+            "('a', 'b')",
+        ),
+        (
+            ("a", "b"),
+            10,
+            "('a', 'b')",
+        ),
+        (
+            ("a", "b"),
+            9,
+            """
+            (
+                'a',
+                'b',
+            )
+            """,
+        ),
+        (
+            (MultilineObject(width=2, lines=2),),
+            None,
+            """
+            (
+                AA
+                BB,
+            )
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

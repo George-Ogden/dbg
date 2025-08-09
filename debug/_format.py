@@ -90,6 +90,24 @@ class SetFormat(SequenceFormat):
         return "{", "}"
 
 
+class TupleFormat(SequenceFormat):
+    def __init__(self, objs: list[FormattedObj]) -> None:
+        super().__init__(objs)
+        if len(self._objs) == 1:
+            self._length = self.add(self._length, 1)
+
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        return "(", ")"
+
+    def _flat_format(self, config: FormatterConfig) -> str:
+        if len(self._objs) == 1:
+            open, close = self.parentheses
+            [obj] = self._objs
+            return f"{open}{obj._format(None, config)},{close}"
+        return super()._flat_format(config)
+
+
 class ItemFormat(FormattedObj):
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
@@ -130,12 +148,13 @@ class Formatter:
         return str(self._formatted_object(obj)._format(self._config.width, self._config))
 
     def _formatted_object(self, obj: Any) -> FormattedObj:
-        match obj:
-            case list():
+        sequence_formatters = [
+            (list, ListFormat),
+            (set, SetFormat),
+            (tuple, TupleFormat),
+        ]
+        for sequence_cls, formatter_cls in sequence_formatters:
+            if isinstance(obj, sequence_cls):
                 objs = obj
-                return ListFormat([self._formatted_object(obj) for obj in objs])
-            case set():
-                objs = obj
-                return SetFormat([self._formatted_object(obj) for obj in objs])
-            case _:
-                return ItemFormat(obj)
+                return formatter_cls([self._formatted_object(obj) for obj in objs])
+        return ItemFormat(obj)
