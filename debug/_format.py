@@ -33,7 +33,7 @@ class FormattedObj(abc.ABC):
         return a + b
 
 
-class ListFormat(FormattedObj):
+class SequenceFormat(FormattedObj, abc.ABC):
     def __init__(self, objs: list[FormattedObj]) -> None:
         self._objs = objs
         self._length = self.add(FormattedObj.total_length(objs), 2)
@@ -55,21 +55,39 @@ class ListFormat(FormattedObj):
 
     def _flat_format(self, config: FormatterConfig) -> str:
         """Return a formatted list in one line."""
-        return f"[{', '.join(obj._format(None, config) for obj in self._objs)}]"
+        open, close = self.parentheses
+        return f"{open}{', '.join(obj._format(None, config) for obj in self._objs)}{close}"
 
     def _nested_format(self, width: None | int, config: FormatterConfig) -> str:
         """Return a formatted list in one line."""
         inner_width = None
         if width is not None:
             inner_width = width - config.indent - 1
+        open, close = self.parentheses
         return (
-            "[\n"
+            f"{open}\n"
             + textwrap.indent(
                 "\n".join(f"{obj._format(inner_width, config)}," for obj in self._objs),
                 prefix=" " * config.indent,
             )
-            + "\n]"
+            + f"\n{close}"
         )
+
+    @property
+    @abc.abstractmethod
+    def parentheses(self) -> tuple[str, str]: ...
+
+
+class ListFormat(SequenceFormat):
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        return "[", "]"
+
+
+class SetFormat(SequenceFormat):
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        return "{", "}"
 
 
 class ItemFormat(FormattedObj):
@@ -116,5 +134,8 @@ class Formatter:
             case list():
                 objs = obj
                 return ListFormat([self._formatted_object(obj) for obj in objs])
+            case set():
+                objs = obj
+                return SetFormat([self._formatted_object(obj) for obj in objs])
             case _:
                 return ItemFormat(obj)

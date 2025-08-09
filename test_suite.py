@@ -253,7 +253,7 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
     expected_config = DbgConfig()
     for k, v in settings.items():
         setattr(expected_config, k, v)
-    assert expected_config == config
+    assert config == expected_config
 
 
 @pytest.mark.parametrize(
@@ -292,7 +292,7 @@ def test_invalid_style_warns() -> None:
     with pytest.warns(match=r"Invalid style 'invalid'\. Choose one of .*\."):
         config.style = "invalid"
 
-    assert "monokai" == config.style
+    assert config.style == "monokai"
 
 
 def test_creates_default_config() -> None:
@@ -505,10 +505,52 @@ class MultilineObject:
             ]
             """,
         ),
+        (
+            {"a", "b"},
+            10,
+            ["{'a', 'b'}", "{'b', 'a'}"],
+        ),
+        (
+            {"a", "b"},
+            9,
+            [
+                """
+                {
+                    'a',
+                    'b',
+                }
+                """,
+                """
+                {
+                    'b',
+                    'a',
+                }
+                """,
+            ],
+        ),
+        (
+            [{MultilineObject(width=3, lines=2)}],
+            None,
+            """
+            [
+                {
+                    AAA
+                    BBB,
+                },
+            ]
+            """,
+        ),
     ],
 )
-def test_format(obj: Any, width: int | None, expected: str) -> None:
+def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     config = FormatterConfig(width=width, indent=4)
     formatter = Formatter(config)
     string = formatter.format(obj)
-    assert textwrap.dedent(expected).strip() == string
+    if not isinstance(expected, list):
+        expected = [expected]
+    expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
