@@ -599,10 +599,20 @@ class MultilineObject:
             )
             """,
         ),
+        (
+            {},
+            None,
+            "{}",
+        ),
+        (
+            set(),
+            1,
+            "{}",
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
-    config = FormatterConfig(width=width, indent=4)
+    config = FormatterConfig(_terminal_width=width, _indent_width=4)
     formatter = Formatter(config)
     string = formatter.format(obj)
     if not isinstance(expected, list):

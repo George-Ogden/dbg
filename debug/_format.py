@@ -6,18 +6,18 @@ from dataclasses import dataclass, field
 import os
 import sys
 import textwrap
-from typing import Any
+from typing import Any, ClassVar, Self
 
 
-class FormattedObj(abc.ABC):
+class ObjFormat(abc.ABC):
     @abc.abstractmethod
     def length(self) -> int | None: ...
 
     @abc.abstractmethod
-    def _format(self, width: None | int, config: FormatterConfig) -> str: ...
+    def _format(self, used_width: int, config: FormatterConfig) -> str: ...
 
     @classmethod
-    def total_length(cls, objs: Iterable[FormattedObj]) -> int | None:
+    def total_length(cls, objs: Iterable[ObjFormat]) -> int | None:
         total_length = 0
         for obj in objs:
             length = obj.length()
@@ -33,21 +33,24 @@ class FormattedObj(abc.ABC):
         return a + b
 
 
-class SequenceFormat(FormattedObj, abc.ABC):
-    def __init__(self, objs: list[FormattedObj]) -> None:
+class SequenceFormat(ObjFormat, abc.ABC):
+    def __init__(self, objs: list[ObjFormat]) -> None:
         self._objs = objs
-        self._length = self.add(FormattedObj.total_length(objs), 2)
+        self._length = self.add(ObjFormat.total_length(objs), 2)
         if len(self._objs) > 0:
             self._length = self.add(self._length, (len(self._objs) - 1) * 2)
 
     def length(self) -> int | None:
         return self._length
 
-    def _format(self, width: None | int, config: FormatterConfig) -> str:
+    def _format(self, used_width: int, config: FormatterConfig) -> str:
         length = self.length()
-        if len(self._objs) == 0 or (length is not None and (width is None or length <= width)):
+        if len(self._objs) == 0 or (
+            length is not None
+            and (config._terminal_width is None or length <= config._terminal_width - used_width)
+        ):
             return self._flat_format(config)
-        return self._nested_format(width, config)
+        return self._nested_format(used_width, config)
 
     @property
     def multiline(self) -> bool:
@@ -56,19 +59,22 @@ class SequenceFormat(FormattedObj, abc.ABC):
     def _flat_format(self, config: FormatterConfig) -> str:
         """Return a formatted list in one line."""
         open, close = self.parentheses
-        return f"{open}{', '.join(obj._format(None, config) for obj in self._objs)}{close}"
+        config = config.flatten()
+        return (
+            open
+            + ", ".join(obj._format(len(open) + len(close), config) for obj in self._objs)
+            + close
+        )
 
-    def _nested_format(self, width: None | int, config: FormatterConfig) -> str:
+    def _nested_format(self, used_width: int, config: FormatterConfig) -> str:
         """Return a formatted list in one line."""
-        inner_width = None
-        if width is not None:
-            inner_width = width - config.indent - 1
         open, close = self.parentheses
+        config = config.indent()
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(f"{obj._format(inner_width, config)}," for obj in self._objs),
-                prefix=" " * config.indent,
+                "\n".join(f"{obj._format(1, config)}," for obj in self._objs),
+                prefix=" " * config._indent_width,
             )
             + f"\n{close}"
         )
@@ -91,7 +97,7 @@ class SetFormat(SequenceFormat):
 
 
 class TupleFormat(SequenceFormat):
-    def __init__(self, objs: list[FormattedObj]) -> None:
+    def __init__(self, objs: list[ObjFormat]) -> None:
         super().__init__(objs)
         if len(self._objs) == 1:
             self._length = self.add(self._length, 1)
@@ -104,11 +110,11 @@ class TupleFormat(SequenceFormat):
         if len(self._objs) == 1:
             open, close = self.parentheses
             [obj] = self._objs
-            return f"{open}{obj._format(None, config)},{close}"
+            return f"{open}{obj._format(1 + len(open) + len(close), config)},{close}"
         return super()._flat_format(config)
 
 
-class ItemFormat(FormattedObj):
+class ItemFormat(ObjFormat):
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
 
@@ -117,7 +123,7 @@ class ItemFormat(FormattedObj):
             return None
         return len(self.repr)
 
-    def _format(self, width: None | int, config: FormatterConfig) -> str:
+    def _format(self, used_width: int, config: FormatterConfig) -> str:
         return self.repr
 
     @property
@@ -136,24 +142,34 @@ class FormatterConfig:
         else:
             return width
 
-    indent: int = 2
-    width: None | int = field(default_factory=_get_terminal_width)
+    _indent_width: int = 2
+    _terminal_width: None | int = field(default_factory=_get_terminal_width)
+
+    def indent(self) -> Self:
+        return type(self)(
+            _indent_width=self._indent_width,
+            _terminal_width=ObjFormat.add(self._terminal_width, -self._indent_width),
+        )
+
+    def flatten(self) -> Self:
+        return type(self)(_indent_width=self._indent_width, _terminal_width=None)
 
 
 class Formatter:
+    SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
+        (list, ListFormat),
+        (set, SetFormat),
+        (tuple, TupleFormat),
+    ]
+
     def __init__(self, config: FormatterConfig) -> None:
         self._config = config
 
     def format(self, obj: Any) -> str:
-        return str(self._formatted_object(obj)._format(self._config.width, self._config))
+        return str(self._formatted_object(obj)._format(0, self._config))
 
-    def _formatted_object(self, obj: Any) -> FormattedObj:
-        sequence_formatters = [
-            (list, ListFormat),
-            (set, SetFormat),
-            (tuple, TupleFormat),
-        ]
-        for sequence_cls, formatter_cls in sequence_formatters:
+    def _formatted_object(self, obj: Any) -> ObjFormat:
+        for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
                 objs = obj
                 return formatter_cls([self._formatted_object(obj) for obj in objs])
