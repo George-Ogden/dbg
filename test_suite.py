@@ -389,6 +389,8 @@ recursive_multi_object_list.append(recursive_multi_object_dict)
 recursive_multi_object_dict[0] = recursive_multi_object_list
 recursive_multi_object_dict[1] = []
 
+partial_recursive_object = (recursive_list, recursive_list)
+
 
 @pytest.mark.parametrize(
     "obj, width, expected",
@@ -986,6 +988,7 @@ recursive_multi_object_dict[1] = []
             }
             """,
         ),
+        (partial_recursive_object, None, "([[...]], [[...]])"),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

@@ -227,14 +227,17 @@ class Formatter:
             if id(obj) in visited:
                 return DictFormat(None)
             visited.add(id(obj))
-            return DictFormat(
+            format = DictFormat(
                 [
                     PairFormat(
-                        self._formatted_object(k, visited), self._formatted_object(v, visited)
+                        self._formatted_object(k, visited),
+                        self._formatted_object(v, visited),
                     )
                     for k, v in obj.items()
                 ]
             )
+            visited.remove(id(obj))
+            return format
 
         for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
@@ -242,5 +245,7 @@ class Formatter:
                     return formatter_cls(None)
                 visited.add(id(obj))
                 objs = obj
-                return formatter_cls([self._formatted_object(obj, visited) for obj in objs])
+                format = formatter_cls([self._formatted_object(obj, visited) for obj in objs])
+                visited.remove(id(obj))
+                return format
         return ItemFormat(obj)
