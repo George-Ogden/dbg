@@ -372,6 +372,24 @@ class MultilineObject:
         return self._string
 
 
+recursive_list = []
+recursive_list.append(recursive_list)
+
+recursive_tree = []
+recursive_tree.append(recursive_tree)
+recursive_tree.append(recursive_tree)
+
+recursive_dict = {}
+recursive_dict[dict] = recursive_dict
+recursive_dict[list] = recursive_list
+
+recursive_multi_object_dict = {}
+recursive_multi_object_list = []
+recursive_multi_object_list.append(recursive_multi_object_dict)
+recursive_multi_object_dict[0] = recursive_multi_object_list
+recursive_multi_object_dict[1] = []
+
+
 @pytest.mark.parametrize(
     "obj, width, expected",
     [
@@ -912,6 +930,59 @@ class MultilineObject:
                 CC: A
                     BBBBB
                     C,
+            }
+            """,
+        ),
+        (recursive_list, 7, "[[...]]"),
+        (
+            recursive_list,
+            6,
+            """
+            [
+                [...],
+            ]
+            """,
+        ),
+        (
+            recursive_list,
+            1,
+            """
+            [
+                [...],
+            ]
+            """,
+        ),
+        (recursive_tree, 14, "[[...], [...]]"),
+        (
+            recursive_tree,
+            13,
+            """
+            [
+                [...],
+                [...],
+            ]
+            """,
+        ),
+        (recursive_dict, 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
+        (
+            recursive_dict,
+            47,
+            """
+            {
+                <class 'dict'>: {...},
+                <class 'list'>: [[...]],
+            }
+            """,
+        ),
+        (recursive_multi_object_list, None, "[{0: [...], 1: []}]"),
+        (recursive_multi_object_dict, 19, "{0: [{...}], 1: []}"),
+        (
+            recursive_multi_object_dict,
+            18,
+            """
+            {
+                0: [{...}],
+                1: [],
             }
             """,
         ),

@@ -47,46 +47,54 @@ class ObjFormat(abc.ABC):
 
 
 class SequenceFormat(ObjFormat, abc.ABC):
-    def __init__(self, objs: list[ObjFormat]) -> None:
+    def __init__(self, objs: list[ObjFormat] | None) -> None:
         self._objs = objs
-        self._length = self.add(ObjFormat.total_length(objs), 2)
-        if len(self._objs) > 0:
-            self._length = self.add(self._length, (len(self._objs) - 1) * 2)
+        if self._objs is None:
+            self._length = 5
+        else:
+            self._length = self.add(ObjFormat.total_length(self._objs), 2)
+            if len(self._objs) > 0:
+                self._length = self.add(self._length, (len(self._objs) - 1) * 2)
 
     def length(self) -> int | None:
         return self._length
 
     def _format(self, used_width: int, config: FormatterConfig) -> str:
+        if self._objs is None:
+            return self._empty_format(config)
         length = self.length()
         if len(self._objs) == 0 or (
             length is not None
             and (config._terminal_width is None or length <= config._terminal_width - used_width)
         ):
-            return self._flat_format(config)
-        return self._nested_format(used_width, config)
+            return self._flat_format(self._objs, config)
+        return self._nested_format(self._objs, used_width, config)
 
     @property
     def multiline(self) -> bool:
         return False
 
-    def _flat_format(self, config: FormatterConfig) -> str:
-        """Return a formatted list in one line."""
+    def _empty_format(self, config: FormatterConfig) -> str:
+        """Return a formatted sequence that is recursive."""
+        open, close = self.parentheses
+        return open + "..." + close
+
+    def _flat_format(self, objs: list[ObjFormat], config: FormatterConfig) -> str:
+        """Return a formatted sequence in one line."""
         open, close = self.parentheses
         config = config.flatten()
-        return (
-            open
-            + ", ".join(obj._format(len(open) + len(close), config) for obj in self._objs)
-            + close
-        )
+        return open + ", ".join(obj._format(len(open) + len(close), config) for obj in objs) + close
 
-    def _nested_format(self, used_width: int, config: FormatterConfig) -> str:
-        """Return a formatted list in one line."""
+    def _nested_format(
+        self, objs: list[ObjFormat], used_width: int, config: FormatterConfig
+    ) -> str:
+        """Return a formatted sequence across multiple lines."""
         open, close = self.parentheses
         config = config.indent()
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(f"{obj._format(1, config)}," for obj in self._objs),
+                "\n".join(f"{obj._format(1, config)}," for obj in objs),
                 prefix=config.get_indent(),
             )
             + f"\n{close}"
@@ -112,19 +120,19 @@ class SetFormat(SequenceFormat):
 class TupleFormat(SequenceFormat):
     def __init__(self, objs: list[ObjFormat]) -> None:
         super().__init__(objs)
-        if len(self._objs) == 1:
+        if self._objs is not None and len(self._objs) == 1:
             self._length = self.add(self._length, 1)
 
     @property
     def parentheses(self) -> tuple[str, str]:
         return "(", ")"
 
-    def _flat_format(self, config: FormatterConfig) -> str:
-        if len(self._objs) == 1:
+    def _flat_format(self, objs: list[ObjFormat], config: FormatterConfig) -> str:
+        if len(objs) == 1:
             open, close = self.parentheses
-            [obj] = self._objs
+            [obj] = objs
             return f"{open}{obj._format(1 + len(open) + len(close), config)},{close}"
-        return super()._flat_format(config)
+        return super()._flat_format(objs, config)
 
 
 class PairFormat(ObjFormat):
@@ -212,19 +220,27 @@ class Formatter:
         self._config = config
 
     def format(self, obj: Any) -> str:
-        return str(self._formatted_object(obj)._format(0, self._config))
+        return str(self._formatted_object(obj, set())._format(0, self._config))
 
-    def _formatted_object(self, obj: Any) -> ObjFormat:
+    def _formatted_object(self, obj: Any, visited: set[int]) -> ObjFormat:
         if isinstance(obj, dict):
+            if id(obj) in visited:
+                return DictFormat(None)
+            visited.add(id(obj))
             return DictFormat(
                 [
-                    PairFormat(self._formatted_object(k), self._formatted_object(v))
+                    PairFormat(
+                        self._formatted_object(k, visited), self._formatted_object(v, visited)
+                    )
                     for k, v in obj.items()
                 ]
             )
 
         for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
+                if id(obj) in visited:
+                    return formatter_cls(None)
+                visited.add(id(obj))
                 objs = obj
-                return formatter_cls([self._formatted_object(obj) for obj in objs])
+                return formatter_cls([self._formatted_object(obj, visited) for obj in objs])
         return ItemFormat(obj)
