@@ -6,7 +6,20 @@ from dataclasses import dataclass, field
 import os
 import sys
 import textwrap
-from typing import Any, ClassVar, Self
+from typing import Any, Callable, ClassVar, Self
+
+
+def not_first() -> Callable[..., bool]:
+    _first_time_call = True
+
+    def fn(*_) -> bool:
+        nonlocal _first_time_call
+
+        res = not _first_time_call
+        _first_time_call = False
+        return res
+
+    return fn
 
 
 class ObjFormat(abc.ABC):
@@ -74,7 +87,7 @@ class SequenceFormat(ObjFormat, abc.ABC):
             f"{open}\n"
             + textwrap.indent(
                 "\n".join(f"{obj._format(1, config)}," for obj in self._objs),
-                prefix=" " * config._indent_width,
+                prefix=config.get_indent(),
             )
             + f"\n{close}"
         )
@@ -112,6 +125,36 @@ class TupleFormat(SequenceFormat):
             [obj] = self._objs
             return f"{open}{obj._format(1 + len(open) + len(close), config)},{close}"
         return super()._flat_format(config)
+
+
+class PairFormat(ObjFormat):
+    def __init__(self, key: ObjFormat, value: ObjFormat) -> None:
+        self._key = key
+        self._value = value
+        self._length = self.add(self.add(self._key.length(), self._value.length()), 2)
+
+    def _format(self, used_width: int, config: FormatterConfig) -> str:
+        key_format = self._key._format(1, config) + ":"
+        indent_width = 1 + len(key_format.splitlines()[-1])
+        config = FormatterConfig(
+            config._indent_width,
+            self.add(config._terminal_width, -indent_width),
+        )
+        value_format = " " + self._value._format(1, config)
+        if isinstance(self._value, ItemFormat) and self._value.length() is None:
+            value_format = textwrap.indent(
+                value_format, prefix=" " * indent_width, predicate=not_first()
+            )
+        return key_format + value_format
+
+    def length(self) -> int | None:
+        return self._length
+
+
+class DictFormat(SequenceFormat):
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        return "{", "}"
 
 
 class ItemFormat(ObjFormat):
@@ -154,6 +197,9 @@ class FormatterConfig:
     def flatten(self) -> Self:
         return type(self)(_indent_width=self._indent_width, _terminal_width=None)
 
+    def get_indent(self) -> str:
+        return " " * self._indent_width
+
 
 class Formatter:
     SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
@@ -169,6 +215,14 @@ class Formatter:
         return str(self._formatted_object(obj)._format(0, self._config))
 
     def _formatted_object(self, obj: Any) -> ObjFormat:
+        if isinstance(obj, dict):
+            return DictFormat(
+                [
+                    PairFormat(self._formatted_object(k), self._formatted_object(v))
+                    for k, v in obj.items()
+                ]
+            )
+
         for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
                 objs = obj

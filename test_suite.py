@@ -360,8 +360,13 @@ def test_loads_default_config_over_user_config() -> None:
 
 
 class MultilineObject:
-    def __init__(self, *, width: int, lines: int) -> None:
-        self._string = "\n".join([chr(i) * width for i in range(ord("A"), ord("A") + lines)])
+    def __init__(self, lengths: list[int]) -> None:
+        self._string = "\n".join(
+            [
+                chr(i) * length
+                for i, length in zip(range(ord("A"), ord("A") + len(lengths)), lengths, strict=True)
+            ]
+        )
 
     def __repr__(self) -> str:
         return self._string
@@ -483,7 +488,7 @@ class MultilineObject:
             """,
         ),
         (
-            [MultilineObject(width=1, lines=2)],
+            [MultilineObject([1, 1])],
             None,
             """
             [
@@ -493,7 +498,7 @@ class MultilineObject:
             """,
         ),
         (
-            [[], [MultilineObject(width=1, lines=2)]],
+            [[], [MultilineObject([1, 1])]],
             None,
             """
             [
@@ -529,13 +534,13 @@ class MultilineObject:
             ],
         ),
         (
-            [{MultilineObject(width=3, lines=2)}],
+            [{MultilineObject([3, 2])}],
             None,
             """
             [
                 {
                     AAA
-                    BBB,
+                    BB,
                 },
             ]
             """,
@@ -590,7 +595,7 @@ class MultilineObject:
             """,
         ),
         (
-            (MultilineObject(width=2, lines=2),),
+            (MultilineObject([2, 2]),),
             None,
             """
             (
@@ -608,6 +613,307 @@ class MultilineObject:
             set(),
             1,
             "{}",
+        ),
+        (
+            {},
+            1,
+            "{}",
+        ),
+        (
+            {"a": 50, "b": 5},
+            None,
+            "{'a': 50, 'b': 5}",
+        ),
+        (
+            {"a": 50, "b": 5},
+            17,
+            "{'a': 50, 'b': 5}",
+        ),
+        (
+            {"a": 50, "b": 5},
+            16,
+            """
+            {
+                'a': 50,
+                'b': 5,
+            }
+            """,
+        ),
+        ({0: 1}, None, "{0: 1}"),
+        (
+            {"a": MultilineObject([3, 1, 3])},
+            None,
+            """
+            {
+                'a': AAA
+                     B
+                     CCC,
+            }
+            """,
+        ),
+        (
+            {"a": MultilineObject([3, 3]), "aa": MultilineObject([2, 1])},
+            None,
+            """
+            {
+                'a': AAA
+                     BBB,
+                'aa': AA
+                      B,
+            }
+            """,
+        ),
+        (
+            {"a" * 5: [100, 200]},
+            20,
+            """
+            {
+                'aaaaa': [
+                    100,
+                    200,
+                ],
+            }
+            """,
+        ),
+        (
+            {MultilineObject([3, 3]): "a", MultilineObject([1, 1]): "aa"},
+            None,
+            """
+            {
+                AAA
+                BBB: 'a',
+                A
+                B: 'aa',
+            }
+            """,
+        ),
+        (
+            {MultilineObject([3, 3]): MultilineObject([2, 2, 2])},
+            None,
+            """
+            {
+                AAA
+                BBB: AA
+                     BB
+                     CC,
+            }
+            """,
+        ),
+        (
+            {(MultilineObject([3, 3]),): [MultilineObject([2, 2, 2])]},
+            None,
+            """
+            {
+                (
+                    AAA
+                    BBB,
+                ): [
+                    AA
+                    BB
+                    CC,
+                ],
+            }
+            """,
+        ),
+        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, None, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
+        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, 37, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            36,
+            """
+            {
+                1: {'a': {}},
+                2: {'b': {}, 'c': []},
+            }
+            """,
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            26,
+            """
+            {
+                1: {'a': {}},
+                2: {'b': {}, 'c': []},
+            }
+            """,
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            25,
+            """
+            {
+                1: {'a': {}},
+                2: {
+                    'b': {},
+                    'c': [],
+                },
+            }
+            """,
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            17,
+            """
+            {
+                1: {'a': {}},
+                2: {
+                    'b': {},
+                    'c': [],
+                },
+            }
+            """,
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            16,
+            """
+            {
+                1: {
+                    'a': {},
+                },
+                2: {
+                    'b': {},
+                    'c': [],
+                },
+            }
+            """,
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            1,
+            """
+            {
+                1: {
+                    'a': {},
+                },
+                2: {
+                    'b': {},
+                    'c': [],
+                },
+            }
+            """,
+        ),
+        (
+            {
+                1: {"a": MultilineObject([2, 2])},
+                2: {"b": MultilineObject([2, 2]), "c": MultilineObject([2, 2])},
+            },
+            None,
+            """
+            {
+                1: {
+                    'a': AA
+                         BB,
+                },
+                2: {
+                    'b': AA
+                         BB,
+                    'c': AA
+                         BB,
+                },
+            }
+            """,
+        ),
+        (
+            {
+                1: {"a": MultilineObject([2, 2])},
+                2: {"b": MultilineObject([2, 2]), "c": MultilineObject([2, 2])},
+            },
+            16,
+            """
+            {
+                1: {
+                    'a': AA
+                         BB,
+                },
+                2: {
+                    'b': AA
+                         BB,
+                    'c': AA
+                         BB,
+                },
+            }
+            """,
+        ),
+        (
+            {
+                1: {MultilineObject([2, 2]): "a"},
+                2: {MultilineObject([2, 2]): "b", MultilineObject([1, 1]): "c"},
+            },
+            None,
+            """
+            {
+                1: {
+                    AA
+                    BB: 'a',
+                },
+                2: {
+                    AA
+                    BB: 'b',
+                    A
+                    B: 'c',
+                },
+            }
+            """,
+        ),
+        ({"A" * 5: "B" * 5}, None, "{'AAAAA': 'BBBBB'}"),
+        ({"A" * 5: "B" * 5}, 18, "{'AAAAA': 'BBBBB'}"),
+        (
+            {"A" * 5: "B" * 5},
+            17,
+            """
+            {
+                'AAAAA': 'BBBBB',
+            }
+            """,
+        ),
+        (
+            {"A" * 5: "B" * 5},
+            1,
+            """
+            {
+                'AAAAA': 'BBBBB',
+            }
+            """,
+        ),
+        (
+            {MultilineObject([2, 3, 3]): MultilineObject([1, 5, 1])},
+            14,
+            """
+            {
+                AA
+                BBB
+                CCC: A
+                     BBBBB
+                     C,
+            }
+            """,
+        ),
+        (
+            {MultilineObject([2, 3, 3]): MultilineObject([1, 5, 1])},
+            1,
+            """
+            {
+                AA
+                BBB
+                CCC: A
+                     BBBBB
+                     C,
+            }
+            """,
+        ),
+        (
+            {MultilineObject([2, 3, 2]): MultilineObject([1, 5, 1])},
+            1,
+            """
+            {
+                AA
+                BBB
+                CC: A
+                    BBBBB
+                    C,
+            }
+            """,
         ),
     ],
 )
