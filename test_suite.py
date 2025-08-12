@@ -398,7 +398,7 @@ partial_recursive_object = (recursive_list, recursive_list)
         (10, None, "10"),
         (None, None, "None"),
         ("hello", None, "'hello'"),
-        ("hello", 2, "'hello'"),
+        ("hello", 7, "'hello'"),
         (["a", 10, None, 5.0], 20, "['a', 10, None, 5.0]"),
         (
             ["a", 10, None, 5.0],
@@ -994,10 +994,99 @@ partial_recursive_object = (recursive_list, recursive_list)
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     config = FormatterConfig(_terminal_width=width, _indent_width=4)
     formatter = Formatter(config)
-    string = formatter.format(obj)
+    string = formatter.format(obj, initial_width=0)
     if not isinstance(expected, list):
         expected = [expected]
     expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, initial_width, width, expected",
+    [
+        (True, 2, None, "*_True"),
+        (2.5, 3, None, "**_2.5"),
+        (["aaa", "bbb"], 6, 20, "*****_['aaa', 'bbb']"),
+        (
+            ["aaa", "bbb"],
+            7,
+            20,
+            """
+            ******_[
+                'aaa',
+                'bbb',
+            ]
+            """,
+        ),
+        (
+            MultilineObject([1, 1, 1]),
+            4,
+            None,
+            """
+            ***_A
+                B
+                C
+            """,
+        ),
+        (
+            MultilineObject([4, 4, 4]),
+            4,
+            8,
+            """
+            ***_AAAA
+                BBBB
+                CCCC
+            """,
+        ),
+        (
+            MultilineObject([4, 4, 4]),
+            4,
+            7,
+            """
+            ***_[ENTER]
+            AAAA
+            BBBB
+            CCCC
+            """,
+        ),
+        (
+            MultilineObject([4, 4, 4]),
+            4,
+            5,
+            """
+            ***_[ENTER]
+            AAAA
+            BBBB
+            CCCC
+            """,
+        ),
+        (
+            MultilineObject([4, 4, 4]),
+            4,
+            4,
+            """
+            ***_
+            AAAA
+            BBBB
+            CCCC
+            """,
+        ),
+    ],
+)
+def test_format_offset(
+    obj: Any, initial_width: int, width: int | None, expected: list | str
+) -> None:
+    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    formatter = Formatter(config)
+    string = (initial_width - 1) * "*" + "_" + formatter.format(obj, initial_width=initial_width)
+    if not isinstance(expected, list):
+        expected = [expected]
+    assert initial_width > 1
+    expected = [textwrap.dedent(output).strip().replace("[ENTER]", "⏎") for output in expected]
     if len(expected) == 1:
         [expected] = expected
         assert string == expected

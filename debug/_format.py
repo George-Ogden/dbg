@@ -219,10 +219,21 @@ class Formatter:
     def __init__(self, config: FormatterConfig) -> None:
         self._config = config
 
-    def format(self, obj: Any) -> str:
-        return str(self._formatted_object(obj, set())._format(0, self._config))
+    def format(self, obj: Any, *, initial_width: int) -> str:
+        formatted_obj = self._formatted_obj(obj, set())
+        text = formatted_obj._format(initial_width, self._config)
+        terminal_width = self._config._terminal_width
+        if isinstance(formatted_obj, ItemFormat):
+            max_len = max(map(len, text.splitlines()))
+            if terminal_width is not None and max_len + initial_width > terminal_width:
+                text = "\n" + text
+                if initial_width + 1 <= terminal_width:
+                    text = "\u23ce" + text
+            else:
+                text = textwrap.indent(text, " " * initial_width, predicate=not_first())
+        return text
 
-    def _formatted_object(self, obj: Any, visited: set[int]) -> ObjFormat:
+    def _formatted_obj(self, obj: Any, visited: set[int]) -> ObjFormat:
         if isinstance(obj, dict):
             if id(obj) in visited:
                 return DictFormat(None)
@@ -230,8 +241,8 @@ class Formatter:
             format = DictFormat(
                 [
                     PairFormat(
-                        self._formatted_object(k, visited),
-                        self._formatted_object(v, visited),
+                        self._formatted_obj(k, visited),
+                        self._formatted_obj(v, visited),
                     )
                     for k, v in obj.items()
                 ]
@@ -245,7 +256,7 @@ class Formatter:
                     return formatter_cls(None)
                 visited.add(id(obj))
                 objs = obj
-                format = formatter_cls([self._formatted_object(obj, visited) for obj in objs])
+                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs])
                 visited.remove(id(obj))
                 return format
         return ItemFormat(obj)
