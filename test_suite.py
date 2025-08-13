@@ -105,6 +105,7 @@ def reset_modules() -> None:
             [8, 9, 10]
             [A
             B, 'A\\nB']
+            [1, 2, 3]
             """,
             """
             [lists.py:3:7] [8, 9, 10] = [8, 9, 10]
@@ -118,6 +119,7 @@ def reset_modules() -> None:
                 B,
                 'A\\nB',
             ]
+            [lists.py:17:7] [1, 2, 3] = [1, 2, 3]
             """,
         ),
         ("colored_repr", "[0]", "[colored_repr.py:8:7] ColoredRepr() = [0]"),

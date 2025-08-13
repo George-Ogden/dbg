@@ -13,3 +13,5 @@ class MultilineObject:
         return "A\nB"
 
 print(dbg([MultilineObject(), "A\nB"]))
+
+print(dbg([1,2,3]))
