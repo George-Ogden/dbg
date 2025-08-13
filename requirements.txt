@@ -2,3 +2,5 @@ black
 libcst==1.8.2
 platformdirs
 pygments
+strip-ansi
+wcwidth

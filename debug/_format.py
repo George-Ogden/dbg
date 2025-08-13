@@ -7,6 +7,10 @@ import os
 import sys
 import textwrap
 from typing import Any, Callable, ClassVar, Self
+import unicodedata
+
+from strip_ansi import strip_ansi
+from wcwidth import wcswidth
 
 
 def not_first() -> Callable[..., bool]:
@@ -44,6 +48,18 @@ class ObjFormat(abc.ABC):
         if a is None or b is None:
             return None
         return a + b
+
+    @classmethod
+    def clean_string(cls, string: str) -> str:
+        return "".join(
+            char
+            for char in strip_ansi(string)
+            if unicodedata.category(char)[0] != "C" and wcswidth(char) != -1
+        )
+
+    @classmethod
+    def len(cls, string: str) -> int:
+        return wcswidth(cls.clean_string(string))
 
 
 class SequenceFormat(ObjFormat, abc.ABC):
@@ -172,7 +188,7 @@ class ItemFormat(ObjFormat):
     def length(self) -> int | None:
         if self.multiline:
             return None
-        return len(self.repr)
+        return self.len(self.repr)
 
     def _format(self, used_width: int, config: FormatterConfig) -> str:
         return self.repr
@@ -224,7 +240,7 @@ class Formatter:
         text = formatted_obj._format(initial_width, self._config)
         terminal_width = self._config._terminal_width
         if isinstance(formatted_obj, ItemFormat):
-            max_len = max(map(len, text.splitlines()))
+            max_len = max(map(ObjFormat.len, text.splitlines()))
             if terminal_width is not None and max_len + initial_width > terminal_width:
                 text = "\n" + text
                 if initial_width + 1 <= terminal_width:

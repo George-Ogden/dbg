@@ -9,6 +9,7 @@ from typing import Any
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
+from colorama import Fore
 from pygments.formatters import Terminal256Formatter
 import pytest
 from strip_ansi import strip_ansi
@@ -365,6 +366,24 @@ class MultilineObject:
             [
                 chr(i) * length
                 for i, length in zip(range(ord("A"), ord("A") + len(lengths)), lengths, strict=True)
+            ]
+        )
+
+    def __repr__(self) -> str:
+        return self._string
+
+
+class ColoredMultilineObject:
+    def __init__(self, lengths: list[int]) -> None:
+        RESET = "\033[39m"
+        self._string = "\n".join(
+            [
+                f"{color}{chr(i) * length}{RESET}"
+                for i, length, color in zip(
+                    range(ord("A"), ord("A") + len(lengths)),
+                    lengths,
+                    [Fore.RED, Fore.BLUE, Fore.GREEN],
+                )
             ]
         )
 
@@ -989,6 +1008,50 @@ partial_recursive_object = (recursive_list, recursive_list)
             """,
         ),
         (partial_recursive_object, None, "([[...]], [[...]])"),
+        (
+            ColoredMultilineObject([2, 2, 2]),
+            None,
+            """
+            \x1b[31mAA\x1b[39m
+            \x1b[34mBB\x1b[39m
+            \x1b[32mCC\x1b[39m
+            """,
+        ),
+        (
+            [ColoredMultilineObject([3]), ColoredMultilineObject([4])],
+            None,
+            "[\x1b[31mAAA\x1b[39m, \x1b[31mAAAA\x1b[39m]",
+        ),
+        (
+            [ColoredMultilineObject([3]), ColoredMultilineObject([4])],
+            11,
+            "[\x1b[31mAAA\x1b[39m, \x1b[31mAAAA\x1b[39m]",
+        ),
+        (
+            [ColoredMultilineObject([3]), ColoredMultilineObject([4])],
+            10,
+            """
+            [
+                \x1b[31mAAA\x1b[39m,
+                \x1b[31mAAAA\x1b[39m,
+            ]
+            """,
+        ),
+        (
+            (ColoredMultilineObject([4]), ColoredMultilineObject([3])),
+            11,
+            "(\x1b[31mAAAA\x1b[39m, \x1b[31mAAA\x1b[39m)",
+        ),
+        (
+            (ColoredMultilineObject([5]), ColoredMultilineObject([2])),
+            10,
+            """
+            (
+                \x1b[31mAAAAA\x1b[39m,
+                \x1b[31mAA\x1b[39m,
+            )
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
@@ -1073,6 +1136,48 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
             AAAA
             BBBB
             CCCC
+            """,
+        ),
+        (
+            ColoredMultilineObject([2, 2, 2]),
+            2,
+            None,
+            """
+            *_\x1b[31mAA\x1b[39m
+              \x1b[34mBB\x1b[39m
+              \x1b[32mCC\x1b[39m
+            """,
+        ),
+        (
+            ColoredMultilineObject([2, 2, 2]),
+            2,
+            4,
+            """
+            *_\x1b[31mAA\x1b[39m
+              \x1b[34mBB\x1b[39m
+              \x1b[32mCC\x1b[39m
+            """,
+        ),
+        (
+            ColoredMultilineObject([2, 2, 2]),
+            3,
+            4,
+            """
+            **_[ENTER]
+            \x1b[31mAA\x1b[39m
+            \x1b[34mBB\x1b[39m
+            \x1b[32mCC\x1b[39m
+            """,
+        ),
+        (
+            ColoredMultilineObject([2, 2, 2]),
+            4,
+            4,
+            """
+            ***_
+            \x1b[31mAA\x1b[39m
+            \x1b[34mBB\x1b[39m
+            \x1b[32mCC\x1b[39m
             """,
         ),
     ],
