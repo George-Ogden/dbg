@@ -4,13 +4,22 @@ import abc
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import os
+import re
 import sys
 import textwrap
 from typing import Any, Callable, ClassVar, Self
 import unicodedata
 
-from strip_ansi import strip_ansi
 from wcwidth import wcswidth
+
+from ._code import highlight_code
+from ._config import DbgConfig
+
+ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def strip_ansi(text: str) -> str:
+    return ANSI_PATTERN.sub("", text)
 
 
 def not_first() -> Callable[..., bool]:
@@ -31,7 +40,16 @@ class ObjFormat(abc.ABC):
     def length(self) -> int | None: ...
 
     @abc.abstractmethod
-    def _format(self, used_width: int, config: FormatterConfig) -> str: ...
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str: ...
+
+    def _highlight_code(self, highlight: bool, text: str) -> str:
+        if highlight and self._highlight:
+            return highlight_code(text)
+        return text
+
+    @property
+    @abc.abstractmethod
+    def _highlight(self) -> bool: ...
 
     @classmethod
     def total_length(cls, objs: Iterable[ObjFormat]) -> int | None:
@@ -75,7 +93,7 @@ class SequenceFormat(ObjFormat, abc.ABC):
     def length(self) -> int | None:
         return self._length
 
-    def _format(self, used_width: int, config: FormatterConfig) -> str:
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         if self._objs is None:
             return self._empty_format(config)
         length = self.length()
@@ -83,8 +101,8 @@ class SequenceFormat(ObjFormat, abc.ABC):
             length is not None
             and (config._terminal_width is None or length <= config._terminal_width - used_width)
         ):
-            return self._flat_format(self._objs, config)
-        return self._nested_format(self._objs, used_width, config)
+            return self._highlight_code(highlight, self._flat_format(self._objs, config))
+        return self._highlight_code(highlight, self._nested_format(self._objs, used_width, config))
 
     @property
     def multiline(self) -> bool:
@@ -99,7 +117,13 @@ class SequenceFormat(ObjFormat, abc.ABC):
         """Return a formatted sequence in one line."""
         open, close = self.parentheses
         config = config.flatten()
-        return open + ", ".join(obj._format(len(open) + len(close), config) for obj in objs) + close
+        return (
+            open
+            + ", ".join(
+                obj._format(len(open) + len(close), not self._highlight, config) for obj in objs
+            )
+            + close
+        )
 
     def _nested_format(
         self, objs: list[ObjFormat], used_width: int, config: FormatterConfig
@@ -110,7 +134,7 @@ class SequenceFormat(ObjFormat, abc.ABC):
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(f"{obj._format(1, config)}," for obj in objs),
+                "\n".join(f"{obj._format(1, not self._highlight, config)}," for obj in objs),
                 prefix=config.get_indent(),
             )
             + f"\n{close}"
@@ -119,6 +143,12 @@ class SequenceFormat(ObjFormat, abc.ABC):
     @property
     @abc.abstractmethod
     def parentheses(self) -> tuple[str, str]: ...
+
+    @property
+    def _highlight(self) -> bool:
+        if self._objs is None:
+            return True
+        return all(obj._highlight for obj in self._objs)
 
 
 class ListFormat(SequenceFormat):
@@ -147,7 +177,11 @@ class TupleFormat(SequenceFormat):
         if len(objs) == 1:
             open, close = self.parentheses
             [obj] = objs
-            return f"{open}{obj._format(1 + len(open) + len(close), config)},{close}"
+            return (
+                open
+                + f"{obj._format(1 + len(open) + len(close), not self._highlight, config)},"
+                + close
+            )
         return super()._flat_format(objs, config)
 
 
@@ -157,22 +191,26 @@ class PairFormat(ObjFormat):
         self._value = value
         self._length = self.add(self.add(self._key.length(), self._value.length()), 2)
 
-    def _format(self, used_width: int, config: FormatterConfig) -> str:
-        key_format = self._key._format(1, config) + ":"
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        key_format = self._key._format(1, not self._highlight, config) + ":"
         indent_width = 1 + len(key_format.splitlines()[-1])
         config = FormatterConfig(
             config._indent_width,
             self.add(config._terminal_width, -indent_width),
         )
-        value_format = " " + self._value._format(1, config)
+        value_format = " " + self._value._format(1, not self._highlight, config)
         if isinstance(self._value, ItemFormat) and self._value.length() is None:
             value_format = textwrap.indent(
                 value_format, prefix=" " * indent_width, predicate=not_first()
             )
-        return key_format + value_format
+        return self._highlight_code(highlight, key_format + value_format)
 
     def length(self) -> int | None:
         return self._length
+
+    @property
+    def _highlight(self) -> bool:
+        return self._key._highlight and self._value._highlight
 
 
 class DictFormat(SequenceFormat):
@@ -190,12 +228,16 @@ class ItemFormat(ObjFormat):
             return None
         return self.len(self.repr)
 
-    def _format(self, used_width: int, config: FormatterConfig) -> str:
-        return self.repr
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        return self._highlight_code(highlight, self.repr)
 
     @property
     def multiline(self) -> bool:
         return "\n" in self.repr
+
+    @property
+    def _highlight(self) -> bool:
+        return strip_ansi(self.repr) == self.repr
 
 
 @dataclass
@@ -224,6 +266,10 @@ class FormatterConfig:
     def get_indent(self) -> str:
         return " " * self._indent_width
 
+    @classmethod
+    def _from_config(cls, config: DbgConfig) -> Self:
+        return cls(_indent_width=config.indent)
+
 
 class Formatter:
     SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
@@ -237,7 +283,7 @@ class Formatter:
 
     def format(self, obj: Any, *, initial_width: int) -> str:
         formatted_obj = self._formatted_obj(obj, set())
-        text = formatted_obj._format(initial_width, self._config)
+        text = formatted_obj._format(initial_width, highlight=True, config=self._config)
         terminal_width = self._config._terminal_width
         if isinstance(formatted_obj, ItemFormat):
             max_len = max(map(ObjFormat.len, text.splitlines()))

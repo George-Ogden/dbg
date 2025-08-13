@@ -12,8 +12,6 @@ from pygments.formatters import Terminal256Formatter
 import pygments.styles
 from pygments.token import Token
 
-from ._format import FormatterConfig
-
 
 def supports_color() -> bool:
     """
@@ -122,10 +120,6 @@ class DbgConfig:
                         value = (match.group(2) or "") + (match.group(3) or "")
 
                 setattr(self, key, value)
-
-    @property
-    def _formatter_config(self) -> FormatterConfig:
-        return FormatterConfig(_indent_width=self.indent)
 
 
 CONFIG = DbgConfig()

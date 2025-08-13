@@ -12,11 +12,10 @@ from _pytest.capture import CaptureFixture
 from colorama import Fore
 from pygments.formatters import Terminal256Formatter
 import pytest
-from strip_ansi import strip_ansi
 
 from debug import CONFIG
 from debug._config import DbgConfig
-from debug._format import Formatter, FormatterConfig
+from debug._format import ANSI_PATTERN, Formatter, FormatterConfig, strip_ansi
 
 SAMPLE_DIR = "test_samples"
 TEST_DATA_DIR = "test_data"
@@ -121,6 +120,7 @@ def reset_modules() -> None:
             ]
             """,
         ),
+        ("colored_repr", "[0]", "[colored_repr.py:8:7] ColoredRepr() = [0]"),
     ],
 )
 def test_samples(
@@ -139,7 +139,7 @@ def test_samples(
     expected_err = [textwrap.dedent(possible_err).strip() for possible_err in expected_err]
 
     out, err = capsys.readouterr()
-    assert out.strip() == expected_out
+    assert strip_ansi(out.strip()) == expected_out
     err = strip_ansi(err.strip())
     if len(expected_err) == 1:
         [expected_err] = expected_err
@@ -242,6 +242,26 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
     assert out_1 == out_2
     assert strip_ansi(err_1.strip()) == strip_ansi(err_2.strip())
     assert err_1.strip() != err_2.strip()
+
+
+def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
+    cwd = os.getcwd()
+
+    module = f"{SAMPLE_DIR}.colored_repr"
+    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
+        from debug import CONFIG
+
+        CONFIG.color = True
+        CONFIG.style = "solarized-dark"
+        importlib.import_module(module)
+
+    expected_out = "\x1b[40m\x1b[97m[0]\x1b[0m"
+    expected_err = "[colored_repr.py:8:7] ColoredRepr() = \x1b[40m\x1b[97m[0]\x1b[0m"
+
+    out, err = capsys.readouterr()
+    assert out.strip() == expected_out
+    assert strip_ansi(err.strip().split(" = ")[0]) == expected_err.split(" = ")[0]
+    assert err.strip().split(" = ")[1] == expected_err.split(" = ")[1]
 
 
 @pytest.mark.parametrize(
@@ -1072,6 +1092,8 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     config = FormatterConfig(_terminal_width=width, _indent_width=4)
     formatter = Formatter(config)
     string = formatter.format(obj, initial_width=0)
+    if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
+        string = strip_ansi(string)
     if not isinstance(expected, list):
         expected = [expected]
     expected = [textwrap.dedent(output).strip() for output in expected]
@@ -1202,6 +1224,8 @@ def test_format_offset(
     config = FormatterConfig(_terminal_width=width, _indent_width=4)
     formatter = Formatter(config)
     string = (initial_width - 1) * "*" + "_" + formatter.format(obj, initial_width=initial_width)
+    if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
+        string = strip_ansi(string)
     if not isinstance(expected, list):
         expected = [expected]
     assert initial_width > 1
