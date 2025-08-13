@@ -12,6 +12,8 @@ from pygments.formatters import Terminal256Formatter
 import pygments.styles
 from pygments.token import Token
 
+from ._format import FormatterConfig
+
 
 def supports_color() -> bool:
     """
@@ -27,11 +29,13 @@ def supports_color() -> bool:
 @dataclass
 class DbgConfig:
     color: bool
+    indent: int
     style: str  # type: ignore
 
     def __init__(self) -> None:
         self._style = "solarized-dark"
         self.color = supports_color()
+        self.indent = 2
 
     _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     _FILENAME: ClassVar[str] = "dbg.conf"
@@ -105,6 +109,8 @@ class DbgConfig:
                     continue
                 elif value_type is bool:
                     value = section.getboolean(key)
+                elif value_type is int:
+                    value = section.getint(key)
                 else:
                     value = section[key]
                     match = re.match(r"^('(.*)'|\"(.*)\")$", value)
@@ -116,6 +122,10 @@ class DbgConfig:
                         value = (match.group(2) or "") + (match.group(3) or "")
 
                 setattr(self, key, value)
+
+    @property
+    def _formatter_config(self) -> FormatterConfig:
+        return FormatterConfig(_indent_width=self.indent)
 
 
 CONFIG = DbgConfig()

@@ -102,16 +102,23 @@ def reset_modules() -> None:
         (
             "lists",
             """
-                [8, 9, 10]
-                [8, 9, 10]
+            [8, 9, 10]
+            [8, 9, 10]
+            [A
+            B, 'A\\nB']
             """,
             """
-                [lists.py:3:7] [8, 9, 10] = [8, 9, 10]
-                [lists.py:7:7] [
-                    8,
-                    9,
-                    10,
-                ] = [8, 9, 10]
+            [lists.py:3:7] [8, 9, 10] = [8, 9, 10]
+            [lists.py:7:7] [
+                8,
+                9,
+                10,
+            ] = [8, 9, 10]
+            [lists.py:15:7] [MultilineObject(), "A\\nB"] = [
+                A
+                B,
+                'A\\nB',
+            ]
             """,
         ),
     ],
@@ -124,6 +131,7 @@ def test_samples(
     module = f"{SAMPLE_DIR}.{name}"
     with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
         importlib.import_module(module)
+        CONFIG.indent = 4
 
     expected_out = textwrap.dedent(expected_out).strip()
     if not isinstance(expected_err, list):
@@ -132,7 +140,12 @@ def test_samples(
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert strip_ansi(err.strip()) in expected_err
+    err = strip_ansi(err.strip())
+    if len(expected_err) == 1:
+        [expected_err] = expected_err
+        assert err == expected_err
+    else:
+        assert err in expected_err
 
 
 @pytest.mark.parametrize(
@@ -243,6 +256,7 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
         ("location_error", dict()),
         ("empty", dict()),
         ("../debug/default", dict()),
+        ("wide_indent", dict(indent=4)),
     ],
 )
 @pytest.mark.filterwarnings("ignore")

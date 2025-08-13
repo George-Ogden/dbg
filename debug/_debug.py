@@ -14,6 +14,7 @@ from pygments.lexers import PythonLexer
 from pygments.token import Token
 
 from ._config import CONFIG
+from ._format import Formatter, ObjFormat
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
@@ -59,7 +60,7 @@ def highlight_code(code: str) -> str:
 
 def format_code(code: str) -> str:
     black_formatted_code = black.format_str(
-        f"({code.strip()})",
+        f"({' '.join(code.strip().splitlines())})",
         mode=black.FileMode(string_normalization=False, line_length=len(code) + 2),
     ).strip()
     match = re.match(r"^\((.*)\)$", black_formatted_code, flags=re.MULTILINE | re.DOTALL)
@@ -93,7 +94,7 @@ def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]
     source_segments = get_source_segments(source)
     if source_segments is None:
         return [CONFIG._unknown_message] * num_codes
-    codes = [highlight_code(format_code(source_segment)) for source_segment in (source_segments)]
+    codes = [display_code(source_segment) for source_segment in (source_segments)]
     return codes
 
 
@@ -168,8 +169,18 @@ def dbg(*values: Any) -> Any:
             print(position, file=sys.stderr)
         else:
             codes = display_codes(frame, num_codes=num_args)
+            formatter_config = CONFIG._formatter_config
+            formatter = Formatter(formatter_config)
             for code, value in zip(codes, values, strict=True):
-                print(f"{position} {code} = {highlight_code(repr(value))}", file=sys.stderr)
+                prefix = f"{position} {code} = "
+                *_, last_line = prefix.rsplit("\n", maxsplit=1)
+                print(
+                    prefix
+                    + highlight_code(
+                        formatter.format(value, initial_width=ObjFormat.len(last_line))
+                    ),
+                    file=sys.stderr,
+                )
     finally:
         del frame
     if len(values) == 1:
