@@ -27,11 +27,13 @@ def supports_color() -> bool:
 @dataclass
 class DbgConfig:
     color: bool
+    indent: int
     style: str  # type: ignore
 
     def __init__(self) -> None:
         self._style = "solarized-dark"
         self.color = supports_color()
+        self.indent = 2
 
     _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     _FILENAME: ClassVar[str] = "dbg.conf"
@@ -105,6 +107,8 @@ class DbgConfig:
                     continue
                 elif value_type is bool:
                     value = section.getboolean(key)
+                elif value_type is int:
+                    value = section.getint(key)
                 else:
                     value = section[key]
                     match = re.match(r"^('(.*)'|\"(.*)\")$", value)

@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 import inspect
 import os.path
 import re
@@ -6,90 +5,13 @@ import sys
 import types
 from typing import Any, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
 
-import black
-import libcst as cst
-import pygments
-from pygments.lexers import PythonLexer
 from pygments.token import Token
 
+from ._code import display_codes
 from ._config import CONFIG
+from ._format import Formatter, FormatterConfig, ObjFormat
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
-
-
-def get_source(frame: types.FrameType) -> None | str:
-    try:
-        lines, offset = inspect.getsourcelines(frame)
-        offset = max(offset, 1)
-    except OSError:
-        return None
-    traceback = inspect.getframeinfo(frame, context=0)
-    positions = traceback.positions
-    if positions is None:
-        return None
-    lineno = traceback.lineno - offset
-    if positions.lineno is None or positions.end_lineno is None:
-        return None
-    try:
-        if positions.lineno == positions.end_lineno:
-            source = lines[lineno][positions.col_offset : positions.end_col_offset]
-        else:
-            source = lines[lineno][positions.col_offset :]
-            end_lineno = positions.end_lineno - offset
-            lineno += 1
-            while lineno < end_lineno:
-                source += lines[lineno]
-                lineno += 1
-            source += lines[lineno][: positions.end_col_offset]
-    except IndexError:
-        # Edge case caused by `inspect` bug.
-        return None
-    return source
-
-
-def highlight_code(code: str) -> str:
-    if not CONFIG.color:
-        return code
-    lexer = PythonLexer()
-    formatter = CONFIG._formatter
-    code = pygments.highlight(code, lexer, formatter).strip()
-    return code
-
-
-def format_code(code: str) -> str:
-    return black.format_str(
-        code, mode=black.FileMode(string_normalization=False, line_length=len(code))
-    )
-
-
-def display_code(code: str) -> str:
-    return highlight_code(format_code(code))
-
-
-def get_source_segments(source: str) -> None | Iterable[str]:
-    source = format_code(source)
-    tree = cst.parse_expression(source)
-    module = cst.Module([])
-    if not isinstance(tree, cst.Call):
-        return None
-    args = [
-        module.code_for_node(arg.with_changes(comma=cst.MaybeSentinel.DEFAULT)) for arg in tree.args
-    ]
-    return args
-
-
-def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]:
-    if frame is None:
-        source = None
-    else:
-        source = get_source(frame)
-    if source is None:
-        return [CONFIG._unknown_message] * num_codes
-    source_segments = get_source_segments(source)
-    if source_segments is None:
-        return [CONFIG._unknown_message] * num_codes
-    codes = [highlight_code(source_segment) for source_segment in (source_segments)]
-    return codes
 
 
 def get_position(frame: None | types.FrameType) -> Position:
@@ -163,8 +85,15 @@ def dbg(*values: Any) -> Any:
             print(position, file=sys.stderr)
         else:
             codes = display_codes(frame, num_codes=num_args)
+            formatter_config = FormatterConfig._from_config(CONFIG)
+            formatter = Formatter(formatter_config)
             for code, value in zip(codes, values, strict=True):
-                print(f"{position} {code} = {highlight_code(repr(value))}", file=sys.stderr)
+                prefix = f"{position} {code} = "
+                *_, last_line = prefix.rsplit("\n", maxsplit=1)
+                print(
+                    prefix + formatter.format(value, initial_width=ObjFormat.len(last_line)),
+                    file=sys.stderr,
+                )
     finally:
         del frame
     if len(values) == 1:
