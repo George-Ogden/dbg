@@ -102,7 +102,7 @@ See a full list of styles at https://pygments.org/styles/.
 
 And if you want the pretty-printing to use a different indent width (default = 2):
 
-```
+```python
 from debug import CONFIG
 
 CONFIG.indent = 4
