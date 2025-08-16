@@ -29,3 +29,6 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.data-files]
 "debug" = ["debug/default.conf"]
+
+[tool.setuptools.package-data]
+"debug" = ["py.typed"]
