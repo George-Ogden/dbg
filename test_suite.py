@@ -139,7 +139,9 @@ def test_samples(
     expected_out = textwrap.dedent(expected_out).strip()
     if not isinstance(expected_err, list):
         expected_err = [expected_err]
-    expected_err = [textwrap.dedent(possible_err).strip() for possible_err in expected_err]
+    expected_err = [
+        textwrap.dedent(possible_err).strip() for possible_err in expected_err
+    ]
 
     out, err = capsys.readouterr()
     assert strip_ansi(out.strip()) == expected_out
@@ -166,7 +168,9 @@ def test_samples(
         ("no_arguments", "()", "[<string>:3:7]"),
     ],
 )
-def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+def test_run_from_exec(
+    name: str, expected_out: str, expected_err, capsys: CaptureFixture
+) -> None:
     filepath = os.path.join(SAMPLE_DIR, *name.split("."))
     filepath += ".py"
     with open(filepath) as f:
@@ -199,7 +203,9 @@ def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: Captu
         ("no_arguments", "()", "[<unknown>]"),
     ],
 )
-def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+def test_with_no_frames(
+    name: str, expected_out: str, expected_err, capsys: CaptureFixture
+) -> None:
     cwd = os.getcwd()
 
     module = f"{SAMPLE_DIR}.{name}"
@@ -308,7 +314,10 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
             'Quotes used around "algol" in $. '
             "They will be ignored, but please remove to silence this warning.",
         ),
-        ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
+        (
+            "wrong_section",
+            "Wrong section [debugging] used in $. Please, use [dbg] or no sections.",
+        ),
         ("syntax_error", "Unable to load config from $. (ParsingError)"),
         ("location_error", "Unable to load config from $. (FileNotFoundError)"),
     ],
@@ -402,7 +411,9 @@ class MultilineObject:
         self._string = "\n".join(
             [
                 chr(i) * length
-                for i, length in zip(range(ord("A"), ord("A") + len(lengths)), lengths, strict=True)
+                for i, length in zip(
+                    range(ord("A"), ord("A") + len(lengths)), lengths, strict=True
+                )
             ]
         )
 
@@ -791,8 +802,16 @@ partial_recursive_object = (recursive_list, recursive_list)
             }
             """,
         ),
-        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, None, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
-        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, 37, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            None,
+            "{1: {'a': {}}, 2: {'b': {}, 'c': []}}",
+        ),
+        (
+            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            37,
+            "{1: {'a': {}}, 2: {'b': {}, 'c': []}}",
+        ),
         (
             {1: {"a": {}}, 2: {"b": {}, "c": []}},
             36,
@@ -1284,13 +1303,19 @@ def test_format_offset(
 ) -> None:
     config = FormatterConfig(_terminal_width=width, _indent_width=4)
     formatter = Formatter(config)
-    string = (initial_width - 1) * "*" + "_" + formatter.format(obj, initial_width=initial_width)
+    string = (
+        (initial_width - 1) * "*"
+        + "_"
+        + formatter.format(obj, initial_width=initial_width)
+    )
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
     if not isinstance(expected, list):
         expected = [expected]
     assert initial_width > 1
-    expected = [textwrap.dedent(output).strip().replace("[ENTER]", "⏎") for output in expected]
+    expected = [
+        textwrap.dedent(output).strip().replace("[ENTER]", "⏎") for output in expected
+    ]
     if len(expected) == 1:
         [expected] = expected
         assert string == expected

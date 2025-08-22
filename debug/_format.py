@@ -41,7 +41,9 @@ class ObjFormat(abc.ABC):
     def length(self) -> int | None: ...
 
     @abc.abstractmethod
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str: ...
+    def _format(
+        self, used_width: int, highlight: bool, config: FormatterConfig
+    ) -> str: ...
 
     def _highlight_code(self, highlight: bool, text: str) -> str:
         if highlight and self._highlight:
@@ -100,10 +102,17 @@ class SequenceFormat(ObjFormat, abc.ABC):
         length = self.length()
         if len(self._objs) == 0 or (
             length is not None
-            and (config._terminal_width is None or length <= config._terminal_width - used_width)
+            and (
+                config._terminal_width is None
+                or length <= config._terminal_width - used_width
+            )
         ):
-            return self._highlight_code(highlight, self._flat_format(self._objs, config))
-        return self._highlight_code(highlight, self._nested_format(self._objs, used_width, config))
+            return self._highlight_code(
+                highlight, self._flat_format(self._objs, config)
+            )
+        return self._highlight_code(
+            highlight, self._nested_format(self._objs, used_width, config)
+        )
 
     @property
     def multiline(self) -> bool:
@@ -121,7 +130,8 @@ class SequenceFormat(ObjFormat, abc.ABC):
         return (
             open
             + ", ".join(
-                obj._format(len(open) + len(close), not self._highlight, config) for obj in objs
+                obj._format(len(open) + len(close), not self._highlight, config)
+                for obj in objs
             )
             + close
         )
@@ -135,7 +145,9 @@ class SequenceFormat(ObjFormat, abc.ABC):
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(f"{obj._format(1, not self._highlight, config)}," for obj in objs),
+                "\n".join(
+                    f"{obj._format(1, not self._highlight, config)}," for obj in objs
+                ),
                 prefix=config.get_indent(),
             )
             + f"\n{close}"
@@ -240,14 +252,16 @@ class DefaultDictFormat(ObjFormat):
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         factory_repr = repr(self._default_factory)
         factory_formatted = self._highlight_code(highlight, factory_repr)
-        
+
         # Calculate remaining width for dict formatting
         prefix = "defaultdict(" + factory_repr + ", "
         suffix = ")"
         dict_used_width = used_width + ObjFormat.len(prefix)
-        
-        dict_formatted = self._dict_format._format(dict_used_width, not highlight, config)
-        
+
+        dict_formatted = self._dict_format._format(
+            dict_used_width, not highlight, config
+        )
+
         return f"defaultdict({factory_formatted}, {dict_formatted})"
 
     @property
@@ -371,7 +385,9 @@ class Formatter:
                     return formatter_cls(None)
                 visited.add(id(obj))
                 objs = obj
-                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs])
+                format = formatter_cls(
+                    [self._formatted_obj(obj, visited) for obj in objs]
+                )
                 visited.remove(id(obj))
                 return format
         return ItemFormat(obj)
