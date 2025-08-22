@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  build-and-test:
+  lint-and-test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -28,6 +28,11 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements-dev.txt
+
+      - name: Setup and run pre-commit
+        run: |
+          pre-commit install
+          pre-commit run -a
 
       - name: Run Python Tests
         run: |
