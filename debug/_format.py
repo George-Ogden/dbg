@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import os
@@ -219,6 +220,41 @@ class DictFormat(SequenceFormat):
         return "{", "}"
 
 
+class DefaultDictFormat(ObjFormat):
+    def __init__(self, default_factory: Any, dict_format: DictFormat) -> None:
+        self._default_factory = default_factory
+        self._dict_format = dict_format
+        # Calculate length: "defaultdict(" + factory_repr + ", " + dict_content + ")"
+        factory_repr = repr(self._default_factory)
+        factory_length = ObjFormat.len(factory_repr)
+        dict_length = self._dict_format.length()
+        if dict_length is not None:
+            # Length = "defaultdict(" + factory + ", " + dict + ")"
+            self._length = factory_length + dict_length + len("defaultdict(, )")
+        else:
+            self._length = None
+
+    def length(self) -> int | None:
+        return self._length
+
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        factory_repr = repr(self._default_factory)
+        factory_formatted = self._highlight_code(highlight, factory_repr)
+        
+        # Calculate remaining width for dict formatting
+        prefix = "defaultdict(" + factory_repr + ", "
+        suffix = ")"
+        dict_used_width = used_width + ObjFormat.len(prefix)
+        
+        dict_formatted = self._dict_format._format(dict_used_width, not highlight, config)
+        
+        return f"defaultdict({factory_formatted}, {dict_formatted})"
+
+    @property
+    def _highlight(self) -> bool:
+        return self._dict_format._highlight
+
+
 class ItemFormat(ObjFormat):
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
@@ -296,6 +332,23 @@ class Formatter:
         return text
 
     def _formatted_obj(self, obj: Any, visited: set[int]) -> ObjFormat:
+        if isinstance(obj, defaultdict):
+            if id(obj) in visited:
+                return DefaultDictFormat(obj.default_factory, DictFormat(None))
+            visited.add(id(obj))
+            dict_format = DictFormat(
+                [
+                    PairFormat(
+                        self._formatted_obj(k, visited),
+                        self._formatted_obj(v, visited),
+                    )
+                    for k, v in obj.items()
+                ]
+            )
+            format = DefaultDictFormat(obj.default_factory, dict_format)
+            visited.remove(id(obj))
+            return format
+
         if isinstance(obj, dict):
             if id(obj) in visited:
                 return DictFormat(None)

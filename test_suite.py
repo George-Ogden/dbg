@@ -5,6 +5,7 @@ import re
 import sys
 import tempfile
 import textwrap
+from collections import defaultdict
 from typing import Any
 from unittest import mock
 
@@ -1086,6 +1087,64 @@ partial_recursive_object = (recursive_list, recursive_list)
                 \x1b[31mAAAAA\x1b[39m,
                 \x1b[31mAA\x1b[39m,
             )
+            """,
+        ),
+        # defaultdict tests
+        (
+            defaultdict(list),
+            None,
+            "defaultdict(<class 'list'>, {})",
+        ),
+        (
+            defaultdict(int, {"a": 5, "b": 10}),
+            None,
+            "defaultdict(<class 'int'>, {'a': 5, 'b': 10})",
+        ),
+        (
+            defaultdict(list, {5: [10]}),
+            None,
+            "defaultdict(<class 'list'>, {5: [10]})",
+        ),
+        (
+            defaultdict(set, {"key": {1, 2, 3}}),
+            50,
+            [
+                "defaultdict(<class 'set'>, {'key': {1, 2, 3}})",
+                "defaultdict(<class 'set'>, {'key': {2, 1, 3}})",
+                "defaultdict(<class 'set'>, {'key': {3, 1, 2}})",
+                "defaultdict(<class 'set'>, {'key': {1, 3, 2}})",
+                "defaultdict(<class 'set'>, {'key': {2, 3, 1}})",
+                "defaultdict(<class 'set'>, {'key': {3, 2, 1}})",
+            ],
+        ),
+        (
+            defaultdict(list, {"a": [1, 2, 3, 4, 5], "b": [10, 20, 30]}),
+            50,
+            """
+            defaultdict(<class 'list'>, {
+                'a': [1, 2, 3, 4, 5],
+                'b': [10, 20, 30],
+            })
+            """,
+        ),
+        (
+            defaultdict(list, {"a": [1, 2, 3, 4, 5], "b": [10, 20, 30]}),
+            20,
+            """
+            defaultdict(<class 'list'>, {
+                'a': [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ],
+                'b': [
+                    10,
+                    20,
+                    30,
+                ],
+            })
             """,
         ),
     ],
