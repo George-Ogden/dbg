@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import Counter, defaultdict
 import filecmp
 import importlib
 import os
@@ -1143,6 +1143,69 @@ partial_recursive_object = (recursive_list, recursive_list)
                     'c',
                     'd',
                 ],
+            })
+            """,
+        ),
+        (Counter(), None, "Counter()"),
+        (Counter("aaabbc"), None, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (Counter("aaabbc"), 33, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (Counter("cbbaaa"), 33, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (
+            Counter("aaabbc"),
+            32,
+            """
+            Counter({
+                'a': 3,
+                'b': 2,
+                'c': 1,
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            None,
+            "Counter({3: ['a', 'b', 'c'], 4: ('a', 'b', 'c')})",
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            49,
+            "Counter({3: ['a', 'b', 'c'], 4: ('a', 'b', 'c')})",
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            48,
+            """
+            Counter({
+                3: ['a', 'b', 'c'],
+                4: ('a', 'b', 'c'),
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            23,
+            """
+            Counter({
+                3: ['a', 'b', 'c'],
+                4: ('a', 'b', 'c'),
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            22,
+            """
+            Counter({
+                3: [
+                    'a',
+                    'b',
+                    'c',
+                ],
+                4: (
+                    'a',
+                    'b',
+                    'c',
+                ),
             })
             """,
         ),

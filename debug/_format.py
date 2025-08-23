@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import os
@@ -247,6 +247,14 @@ class DefaultDictFormat(DictFormat):
         return f"{type(self._obj).__name__}({self._obj.default_factory}, {{", "})"
 
 
+class CounterFormat(DictFormat):
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        if self._objs is not None and len(self._objs) == 0:
+            return "Counter(", ")"
+        return "Counter({", "})"
+
+
 class ItemFormat(ObjFormat):
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
@@ -301,6 +309,7 @@ class FormatterConfig:
 
 class Formatter:
     MAPPING_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
+        (Counter, CounterFormat),
         (defaultdict, DefaultDictFormat),
         (dict, DictFormat),
     ]
@@ -334,13 +343,21 @@ class Formatter:
                 if id(obj) in visited:
                     return formatter_cls(None, obj)
                 visited.add(id(obj))
+                items = None
+                if isinstance(obj, Counter):
+                    try:
+                        items = obj.most_common()
+                    except TypeError:
+                        ...
+                if items is None:
+                    items = obj.items()
                 format = formatter_cls(
                     [
                         PairFormat(
                             self._formatted_obj(k, visited),
                             self._formatted_obj(v, visited),
                         )
-                        for k, v in obj.items()
+                        for k, v in items
                     ],
                     obj,
                 )
