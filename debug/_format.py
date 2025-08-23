@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import os
@@ -83,17 +84,23 @@ class ObjFormat(abc.ABC):
 
 
 class SequenceFormat(ObjFormat, abc.ABC):
-    def __init__(self, objs: list[ObjFormat] | None) -> None:
+    def __init__(self, objs: list[ObjFormat] | None, obj: Any) -> None:
         self._objs = objs
+        self._obj = obj
         if self._objs is None:
-            self._length = 5
+            self._length = 3 + self._paren_length
         else:
-            self._length = self.add(ObjFormat.total_length(self._objs), 2)
+            self._length = self.add(ObjFormat.total_length(self._objs), self._paren_length)
             if len(self._objs) > 0:
                 self._length = self.add(self._length, (len(self._objs) - 1) * 2)
 
     def length(self) -> int | None:
         return self._length
+
+    @property
+    def _paren_length(self) -> int:
+        open, close = self.parentheses
+        return len(open) + len(close)
 
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         if self._objs is None:
@@ -162,8 +169,8 @@ class ListFormat(SequenceFormat):
 class SetFormat(SequenceFormat):
     _EMPTY_REPR: ClassVar[str] = "set()"
 
-    def __init__(self, objs: list[ObjFormat] | None) -> None:
-        super().__init__(objs)
+    def __init__(self, objs, obj):
+        super().__init__(objs, obj)
         if self._objs is not None and len(self._objs) == 0:
             self._length = len(self._EMPTY_REPR)
 
@@ -179,8 +186,8 @@ class SetFormat(SequenceFormat):
 
 
 class TupleFormat(SequenceFormat):
-    def __init__(self, objs: list[ObjFormat]) -> None:
-        super().__init__(objs)
+    def __init__(self, objs, obj):
+        super().__init__(objs, obj)
         if self._objs is not None and len(self._objs) == 1:
             self._length = self.add(self._length, 1)
 
@@ -232,6 +239,12 @@ class DictFormat(SequenceFormat):
     @property
     def parentheses(self) -> tuple[str, str]:
         return "{", "}"
+
+
+class DefaultDictFormat(DictFormat):
+    @property
+    def parentheses(self) -> tuple[str, str]:
+        return f"{type(self._obj).__name__}({self._obj.default_factory}, {{", "})"
 
 
 class ItemFormat(ObjFormat):
@@ -287,6 +300,10 @@ class FormatterConfig:
 
 
 class Formatter:
+    MAPPING_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
+        (defaultdict, DefaultDictFormat),
+        (dict, DictFormat),
+    ]
     SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
         (list, ListFormat),
         (set, SetFormat),
@@ -312,29 +329,31 @@ class Formatter:
 
     def _formatted_obj(self, obj: Any, visited: set[int]) -> ObjFormat:
         format: ObjFormat
-        if isinstance(obj, dict):
-            if id(obj) in visited:
-                return DictFormat(None)
-            visited.add(id(obj))
-            format = DictFormat(
-                [
-                    PairFormat(
-                        self._formatted_obj(k, visited),
-                        self._formatted_obj(v, visited),
-                    )
-                    for k, v in obj.items()
-                ]
-            )
-            visited.remove(id(obj))
-            return format
+        for mapping_cls, formatter_cls in self.MAPPING_FORMATTERS:
+            if isinstance(obj, mapping_cls):
+                if id(obj) in visited:
+                    return formatter_cls(None, obj)
+                visited.add(id(obj))
+                format = formatter_cls(
+                    [
+                        PairFormat(
+                            self._formatted_obj(k, visited),
+                            self._formatted_obj(v, visited),
+                        )
+                        for k, v in obj.items()
+                    ],
+                    obj,
+                )
+                visited.remove(id(obj))
+                return format
 
         for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
                 if id(obj) in visited:
-                    return formatter_cls(None)
+                    return formatter_cls(None, obj)
                 visited.add(id(obj))
                 objs = obj
-                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs])
+                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs], obj)
                 visited.remove(id(obj))
                 return format
         return ItemFormat(obj)

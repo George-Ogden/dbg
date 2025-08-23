@@ -1,3 +1,4 @@
+from collections import defaultdict
 import filecmp
 import importlib
 import os
@@ -1098,6 +1099,51 @@ partial_recursive_object = (recursive_list, recursive_list)
                 \x1b[31mAAAAA\x1b[39m,
                 \x1b[31mAA\x1b[39m,
             )
+            """,
+        ),
+        (defaultdict(list), None, "defaultdict(<class 'list'>, {})"),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            None,
+            "defaultdict(<class 'list'>, {0: [1], 'a': ['b', 'c']})",
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            54,
+            "defaultdict(<class 'list'>, {0: [1], 'a': ['b', 'c']})",
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            53,
+            """
+            defaultdict(<class 'list'>, {
+                0: [1],
+                'a': ['b', 'c'],
+            })
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c", "d"]}),
+            25,
+            """
+            defaultdict(<class 'list'>, {
+                0: [1],
+                'a': ['b', 'c', 'd'],
+            })
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c", "d"]}),
+            24,
+            """
+            defaultdict(<class 'list'>, {
+                0: [1],
+                'a': [
+                    'b',
+                    'c',
+                    'd',
+                ],
+            })
             """,
         ),
     ],
