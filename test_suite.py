@@ -623,7 +623,19 @@ partial_recursive_object = (recursive_list, recursive_list)
         (
             set(),
             None,
-            "{}",
+            "set()",
+        ),
+        ([set(), set()], None, "[set(), set()]"),
+        ([set(), set()], 14, "[set(), set()]"),
+        (
+            [set(), set()],
+            13,
+            """
+            [
+                set(),
+                set(),
+            ]
+            """,
         ),
         (
             (),
@@ -687,7 +699,7 @@ partial_recursive_object = (recursive_list, recursive_list)
         (
             set(),
             1,
-            "{}",
+            "set()",
         ),
         (
             {},

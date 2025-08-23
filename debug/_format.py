@@ -158,9 +158,22 @@ class ListFormat(SequenceFormat):
 
 
 class SetFormat(SequenceFormat):
+    _EMPTY_REPR: ClassVar[str] = "set()"
+
+    def __init__(self, objs: list[ObjFormat] | None) -> None:
+        super().__init__(objs)
+        if self._objs is not None and len(self._objs) == 0:
+            self._length = len(self._EMPTY_REPR)
+
     @property
     def parentheses(self) -> tuple[str, str]:
         return "{", "}"
+
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        if self._objs is not None and len(self._objs) == 0:
+            return self._EMPTY_REPR
+        else:
+            return super()._format(used_width, highlight, config)
 
 
 class TupleFormat(SequenceFormat):
