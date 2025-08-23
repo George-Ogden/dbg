@@ -36,6 +36,8 @@ def not_first() -> Callable[..., bool]:
 
 
 class ObjFormat(abc.ABC):
+    _length: int | None
+
     @abc.abstractmethod
     def length(self) -> int | None: ...
 
@@ -309,6 +311,7 @@ class Formatter:
         return text
 
     def _formatted_obj(self, obj: Any, visited: set[int]) -> ObjFormat:
+        format: ObjFormat
         if isinstance(obj, dict):
             if id(obj) in visited:
                 return DictFormat(None)
