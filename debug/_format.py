@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 from collections import defaultdict
 from collections.abc import Iterable
+import dataclasses
 from dataclasses import dataclass, field
 import os
 import re
@@ -85,15 +86,25 @@ class BaseFormat(abc.ABC):
 
     @classmethod
     def _from(cls, obj: Any, visited: set[int]) -> BaseFormat:
+        if dataclasses.is_dataclass(obj):
+            visited.add(id(obj))
+            dataclass_subformat = [
+                AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
+                for field in dataclasses.fields(obj)
+                if field.repr
+            ]
+            visited.remove(id(obj))
+            return DataclassFormat(type(obj), RoundSequenceFormat(dataclass_subformat, None))
+
         format: BaseFormat
         if isinstance(obj, defaultdict):
             visited.add(id(obj))
-            subformat = RoundSequenceFormat(
+            defaultdict_subformat = RoundSequenceFormat(
                 [cls._from(obj.default_factory, visited), cls._from(dict(obj.items()), visited)],
                 None,
             )
             visited.remove(id(obj))
-            return NamedObjectFormat(type(obj), subformat)
+            return NamedObjectFormat(type(obj), defaultdict_subformat)
 
         obj_type: type[Any] | None
         if isinstance(obj, dict):
@@ -324,6 +335,37 @@ DictFormatT = TypeVar("DictFormatT", bound=PairFormat)
 
 
 class DictFormat(CurlySequenceFormat[PairFormat]): ...
+
+
+class AttrFormat(BaseFormat):
+    def __init__(self, attr: str, value: BaseFormat) -> None:
+        self._attr = attr
+        self._value = value
+        self._length = self.add(1 + len(self._attr), self._value.length())
+
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        attr_format = self._attr + "="
+        indent_width = len(attr_format)
+        config = FormatterConfig(
+            config._indent_width,
+            self.add(config._terminal_width, -indent_width),
+        )
+        value_format = self._value._format(1, not self._highlight, config)
+        if isinstance(self._value, ItemFormat) and self._value.length() is None:
+            value_format = textwrap.indent(
+                value_format, prefix=" " * indent_width, predicate=not_first()
+            )
+        return self._highlight_code(highlight, attr_format + value_format)
+
+    def length(self) -> int | None:
+        return self._length
+
+    @property
+    def _highlight(self) -> bool:
+        return self._value._highlight
+
+
+class DataclassFormat(NamedObjectFormat): ...
 
 
 class ItemFormat(BaseFormat):
