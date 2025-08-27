@@ -428,24 +428,27 @@ class ColoredMultilineObject:
         return self._string
 
 
-recursive_list = []
+recursive_list: list[Any] = []
 recursive_list.append(recursive_list)
 
-recursive_tree = []
+recursive_tree: list[Any] = []
 recursive_tree.append(recursive_tree)
 recursive_tree.append(recursive_tree)
 
-recursive_dict = {}
+recursive_dict: dict[Any, Any] = {}
 recursive_dict[dict] = recursive_dict
 recursive_dict[list] = recursive_list
 
-recursive_multi_object_dict = {}
+recursive_multi_object_dict: dict[Any, Any] = {}
 recursive_multi_object_list = []
 recursive_multi_object_list.append(recursive_multi_object_dict)
 recursive_multi_object_dict[0] = recursive_multi_object_list
 recursive_multi_object_dict[1] = []
 
 partial_recursive_object = (recursive_list, recursive_list)
+
+
+class ListSubclass(list): ...
 
 
 @pytest.mark.parametrize(
@@ -1235,6 +1238,24 @@ partial_recursive_object = (recursive_list, recursive_list)
                     'c',
                 ),
             })
+            """,
+        ),
+        (ListSubclass(), None, "ListSubclass()"),
+        (ListSubclass(), 0, "ListSubclass()"),
+        (ListSubclass([]), None, "ListSubclass()"),
+        (ListSubclass([]), 0, "ListSubclass()"),
+        (ListSubclass([1]), None, "ListSubclass([1])"),
+        (ListSubclass([1, (), set()]), None, "ListSubclass([1, (), set()])"),
+        (ListSubclass([1, (), set()]), 28, "ListSubclass([1, (), set()])"),
+        (
+            ListSubclass([1, (), set()]),
+            27,
+            """
+            ListSubclass([
+                1,
+                (),
+                set(),
+            ])
             """,
         ),
     ],
