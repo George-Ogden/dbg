@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import abc
+from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import os
 import re
 import sys
 import textwrap
-from typing import Any, Callable, ClassVar, Self
+from typing import Any, Callable, ClassVar, Generic, Self, TypeVar
 import unicodedata
 
 from wcwidth import wcswidth
@@ -35,7 +36,10 @@ def not_first() -> Callable[..., bool]:
     return fn
 
 
-class ObjFormat(abc.ABC):
+class BaseFormat(abc.ABC):
+    SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]]
+    _length: int | None
+
     @abc.abstractmethod
     def length(self) -> int | None: ...
 
@@ -52,7 +56,7 @@ class ObjFormat(abc.ABC):
     def _highlight(self) -> bool: ...
 
     @classmethod
-    def total_length(cls, objs: Iterable[ObjFormat]) -> int | None:
+    def total_length(cls, objs: Iterable[BaseFormat]) -> int | None:
         total_length = 0
         for obj in objs:
             length = obj.length()
@@ -79,19 +83,100 @@ class ObjFormat(abc.ABC):
     def len(cls, string: str) -> int:
         return wcswidth(cls.clean_string(string))
 
+    @classmethod
+    def _from(cls, obj: Any, visited: set[int]) -> BaseFormat:
+        format: BaseFormat
+        if isinstance(obj, defaultdict):
+            visited.add(id(obj))
+            subformat = RoundSequenceFormat(
+                [cls._from(obj.default_factory, visited), cls._from(dict(obj.items()), visited)],
+                None,
+            )
+            visited.remove(id(obj))
+            return NamedObjectFormat(type(obj), subformat)
 
-class SequenceFormat(ObjFormat, abc.ABC):
-    def __init__(self, objs: list[ObjFormat] | None) -> None:
+        obj_type: type[Any] | None
+        if isinstance(obj, dict):
+            if type(obj) is dict:
+                obj_type = None
+            else:
+                obj_type = type(obj)
+            if id(obj) in visited:
+                return DictFormat(None, obj_type)
+            visited.add(id(obj))
+            items = None
+            try:
+                items = obj.most_common()  # type: ignore
+            except (TypeError, AttributeError):
+                ...
+            if items is None:
+                items = obj.items()
+            format = DictFormat(
+                [
+                    PairFormat(
+                        cls._from(k, visited),
+                        cls._from(v, visited),
+                    )
+                    for k, v in items
+                ],
+                obj_type,
+            )
+            visited.remove(id(obj))
+            return format
+
+        for sequence_cls, formatter_cls in cls.SEQUENCE_FORMATTERS:
+            if isinstance(obj, sequence_cls):
+                if type(obj) is set and len(obj) == 0:
+                    obj_type = set
+                elif type(obj) is sequence_cls:
+                    obj_type = None
+                else:
+                    obj_type = type(obj)
+                if id(obj) in visited:
+                    return formatter_cls(None, obj_type)
+                visited.add(id(obj))
+                objs = obj
+                kwargs: dict[str, Any] = {}
+                if type(obj) is tuple and len(obj) == 1:
+                    kwargs |= dict(extra_trailing_comma=True)
+                format = formatter_cls(
+                    [cls._from(obj, visited) for obj in objs], obj_type, **kwargs
+                )
+                visited.remove(id(obj))
+                return format
+        return ItemFormat(obj)
+
+
+SequenceFormatT = TypeVar("SequenceFormatT", bound=BaseFormat)
+
+
+class SequenceFormat(BaseFormat, abc.ABC, Generic[SequenceFormatT]):
+    def __init__(
+        self,
+        objs: list[SequenceFormatT] | None,
+        type: None | type[Any],
+        *,
+        extra_trailing_comma: bool = False,
+    ) -> None:
         self._objs = objs
+        self._type = type
         if self._objs is None:
-            self._length = 5
+            self._length = 3 + self._paren_length
         else:
-            self._length = self.add(ObjFormat.total_length(self._objs), 2)
+            self._length = self.add(BaseFormat.total_length(self._objs), self._paren_length)
             if len(self._objs) > 0:
                 self._length = self.add(self._length, (len(self._objs) - 1) * 2)
+        self._extra_trailing_comma = extra_trailing_comma
+        if self._extra_trailing_comma:
+            self._length = self.add(self._length, 1)
 
     def length(self) -> int | None:
         return self._length
+
+    @property
+    def _paren_length(self) -> int:
+        open, close = self.parentheses
+        return len(open) + len(close)
 
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         if self._objs is None:
@@ -105,6 +190,18 @@ class SequenceFormat(ObjFormat, abc.ABC):
         return self._highlight_code(highlight, self._nested_format(self._objs, used_width, config))
 
     @property
+    def parentheses(self) -> tuple[str, str]:
+        open, close = self._parentheses
+        if self._type is not None:
+            if self._objs is not None and len(self._objs) > 0:
+                open = f"{self._type.__name__}({open}"
+                close = f"{close})"
+            else:
+                open = f"{self._type.__name__}("
+                close = ")"
+        return open, close
+
+    @property
     def multiline(self) -> bool:
         return False
 
@@ -113,7 +210,7 @@ class SequenceFormat(ObjFormat, abc.ABC):
         open, close = self.parentheses
         return open + "..." + close
 
-    def _flat_format(self, objs: list[ObjFormat], config: FormatterConfig) -> str:
+    def _flat_format(self, objs: list[SequenceFormatT], config: FormatterConfig) -> str:
         """Return a formatted sequence in one line."""
         open, close = self.parentheses
         config = config.flatten()
@@ -122,11 +219,12 @@ class SequenceFormat(ObjFormat, abc.ABC):
             + ", ".join(
                 obj._format(len(open) + len(close), not self._highlight, config) for obj in objs
             )
+            + ("," if self._extra_trailing_comma else "")
             + close
         )
 
     def _nested_format(
-        self, objs: list[ObjFormat], used_width: int, config: FormatterConfig
+        self, objs: list[SequenceFormatT], used_width: int, config: FormatterConfig
     ) -> str:
         """Return a formatted sequence across multiple lines."""
         open, close = self.parentheses
@@ -142,7 +240,7 @@ class SequenceFormat(ObjFormat, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def parentheses(self) -> tuple[str, str]: ...
+    def _parentheses(self) -> tuple[str, str]: ...
 
     @property
     def _highlight(self) -> bool:
@@ -151,55 +249,51 @@ class SequenceFormat(ObjFormat, abc.ABC):
         return all(obj._highlight for obj in self._objs)
 
 
-class ListFormat(SequenceFormat):
+SquareSequenceFormatT = TypeVar("SquareSequenceFormatT", bound=BaseFormat)
+
+
+class SquareSequenceFormat(SequenceFormat[SquareSequenceFormatT]):
     @property
-    def parentheses(self) -> tuple[str, str]:
+    def _parentheses(self) -> tuple[str, str]:
         return "[", "]"
 
 
-class SetFormat(SequenceFormat):
-    _EMPTY_REPR: ClassVar[str] = "set()"
+CurlySequenceFormatT = TypeVar("CurlySequenceFormatT", bound=BaseFormat)
 
-    def __init__(self, objs: list[ObjFormat] | None) -> None:
-        super().__init__(objs)
-        if self._objs is not None and len(self._objs) == 0:
-            self._length = len(self._EMPTY_REPR)
 
+class CurlySequenceFormat(SequenceFormat[CurlySequenceFormatT]):
     @property
-    def parentheses(self) -> tuple[str, str]:
+    def _parentheses(self) -> tuple[str, str]:
         return "{", "}"
 
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
-        if self._objs is not None and len(self._objs) == 0:
-            return self._EMPTY_REPR
-        else:
-            return super()._format(used_width, highlight, config)
+
+RoundSequenceFormatT = TypeVar("RoundSequenceFormatT", bound=BaseFormat)
 
 
-class TupleFormat(SequenceFormat):
-    def __init__(self, objs: list[ObjFormat]) -> None:
-        super().__init__(objs)
-        if self._objs is not None and len(self._objs) == 1:
-            self._length = self.add(self._length, 1)
-
+class RoundSequenceFormat(SequenceFormat[RoundSequenceFormatT]):
     @property
-    def parentheses(self) -> tuple[str, str]:
+    def _parentheses(self) -> tuple[str, str]:
         return "(", ")"
 
-    def _flat_format(self, objs: list[ObjFormat], config: FormatterConfig) -> str:
-        if len(objs) == 1:
-            open, close = self.parentheses
-            [obj] = objs
-            return (
-                open
-                + f"{obj._format(1 + len(open) + len(close), not self._highlight, config)},"
-                + close
-            )
-        return super()._flat_format(objs, config)
+
+class NamedObjectFormat(BaseFormat):
+    def __init__(self, type: type[Any], subformat: BaseFormat) -> None:
+        self._name = type.__name__
+        self._subformat = subformat
+
+    def length(self) -> int | None:
+        return self.add(len(self._name), self._subformat.length())
+
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        return self._name + self._subformat._format(used_width + len(self._name), highlight, config)
+
+    @property
+    def _highlight(self) -> bool:
+        return self._subformat._highlight
 
 
-class PairFormat(ObjFormat):
-    def __init__(self, key: ObjFormat, value: ObjFormat) -> None:
+class PairFormat(BaseFormat):
+    def __init__(self, key: BaseFormat, value: BaseFormat) -> None:
         self._key = key
         self._value = value
         self._length = self.add(self.add(self._key.length(), self._value.length()), 2)
@@ -226,13 +320,13 @@ class PairFormat(ObjFormat):
         return self._key._highlight and self._value._highlight
 
 
-class DictFormat(SequenceFormat):
-    @property
-    def parentheses(self) -> tuple[str, str]:
-        return "{", "}"
+DictFormatT = TypeVar("DictFormatT", bound=PairFormat)
 
 
-class ItemFormat(ObjFormat):
+class DictFormat(CurlySequenceFormat[PairFormat]): ...
+
+
+class ItemFormat(BaseFormat):
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
 
@@ -270,7 +364,7 @@ class FormatterConfig:
     def indent(self) -> Self:
         return type(self)(
             _indent_width=self._indent_width,
-            _terminal_width=ObjFormat.add(self._terminal_width, -self._indent_width),
+            _terminal_width=BaseFormat.add(self._terminal_width, -self._indent_width),
         )
 
     def flatten(self) -> Self:
@@ -284,22 +378,23 @@ class FormatterConfig:
         return cls(_indent_width=config.indent)
 
 
-class Formatter:
-    SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
-        (list, ListFormat),
-        (set, SetFormat),
-        (tuple, TupleFormat),
-    ]
+BaseFormat.SEQUENCE_FORMATTERS = [
+    (list, SquareSequenceFormat),
+    (set, CurlySequenceFormat),
+    (tuple, RoundSequenceFormat),
+]
 
+
+class Formatter:
     def __init__(self, config: FormatterConfig) -> None:
         self._config = config
 
     def format(self, obj: Any, *, initial_width: int) -> str:
-        formatted_obj = self._formatted_obj(obj, set())
+        formatted_obj = BaseFormat._from(obj, set())
         text = formatted_obj._format(initial_width, highlight=True, config=self._config)
         terminal_width = self._config._terminal_width
         if isinstance(formatted_obj, ItemFormat):
-            max_len = max(map(ObjFormat.len, text.splitlines()))
+            max_len = max(map(BaseFormat.len, text.splitlines()))
             if terminal_width is not None and max_len + initial_width > terminal_width:
                 text = "\n" + text
                 if initial_width + 1 <= terminal_width:
@@ -307,31 +402,3 @@ class Formatter:
             else:
                 text = textwrap.indent(text, " " * initial_width, predicate=not_first())
         return text
-
-    def _formatted_obj(self, obj: Any, visited: set[int]) -> ObjFormat:
-        if isinstance(obj, dict):
-            if id(obj) in visited:
-                return DictFormat(None)
-            visited.add(id(obj))
-            format = DictFormat(
-                [
-                    PairFormat(
-                        self._formatted_obj(k, visited),
-                        self._formatted_obj(v, visited),
-                    )
-                    for k, v in obj.items()
-                ]
-            )
-            visited.remove(id(obj))
-            return format
-
-        for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
-            if isinstance(obj, sequence_cls):
-                if id(obj) in visited:
-                    return formatter_cls(None)
-                visited.add(id(obj))
-                objs = obj
-                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs])
-                visited.remove(id(obj))
-                return format
-        return ItemFormat(obj)

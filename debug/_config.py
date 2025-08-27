@@ -4,7 +4,7 @@ import inspect
 import os.path
 import re
 import sys
-from typing import ClassVar
+from typing import Any, ClassVar
 import warnings
 
 import platformdirs
@@ -86,22 +86,23 @@ class DbgConfig:
             return
         annotations = inspect.get_annotations(type(self))
         if len(config.sections()) > 1:
-            for section in config.sections():
-                if section != self._SECTION:
+            for section_name in config.sections():
+                if section_name != self._SECTION:
                     warnings.warn(
-                        f"Extra section [{section}] found in '{filepath}'. "
+                        f"Extra section [{section_name}] found in '{filepath}'. "
                         "Please, use no sections or one section called [dbg]."
                     )
         elif self._SECTION not in config.sections():
-            for section in config.sections():
+            for section_name in config.sections():
                 warnings.warn(
-                    f"Wrong section [{section}] used in '{filepath}'. "
+                    f"Wrong section [{section_name}] used in '{filepath}'. "
                     "Please, use [dbg] or no sections."
                 )
         for section_name in config.sections():
             section = config[section_name]
             for key in section.keys():
                 value_type = annotations.get(key, None)
+                value: Any
                 if value_type is None:
                     warnings.warn(f"Unused field '{key}' found in '{filepath}'.")
                     continue

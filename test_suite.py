@@ -1,3 +1,4 @@
+from collections import Counter, defaultdict
 import filecmp
 import importlib
 import os
@@ -427,24 +428,27 @@ class ColoredMultilineObject:
         return self._string
 
 
-recursive_list = []
+recursive_list: list[Any] = []
 recursive_list.append(recursive_list)
 
-recursive_tree = []
+recursive_tree: list[Any] = []
 recursive_tree.append(recursive_tree)
 recursive_tree.append(recursive_tree)
 
-recursive_dict = {}
+recursive_dict: dict[Any, Any] = {}
 recursive_dict[dict] = recursive_dict
 recursive_dict[list] = recursive_list
 
-recursive_multi_object_dict = {}
+recursive_multi_object_dict: dict[Any, Any] = {}
 recursive_multi_object_list = []
 recursive_multi_object_list.append(recursive_multi_object_dict)
 recursive_multi_object_dict[0] = recursive_multi_object_list
 recursive_multi_object_dict[1] = []
 
 partial_recursive_object = (recursive_list, recursive_list)
+
+
+class ListSubclass(list): ...
 
 
 @pytest.mark.parametrize(
@@ -1098,6 +1102,160 @@ partial_recursive_object = (recursive_list, recursive_list)
                 \x1b[31mAAAAA\x1b[39m,
                 \x1b[31mAA\x1b[39m,
             )
+            """,
+        ),
+        (defaultdict(list), None, "defaultdict(<class 'list'>, {})"),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            None,
+            "defaultdict(<class 'list'>, {0: [1], 'a': ['b', 'c']})",
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            54,
+            "defaultdict(<class 'list'>, {0: [1], 'a': ['b', 'c']})",
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            53,
+            """
+            defaultdict(
+                <class 'list'>,
+                {0: [1], 'a': ['b', 'c']},
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            30,
+            """
+            defaultdict(
+                <class 'list'>,
+                {0: [1], 'a': ['b', 'c']},
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            29,
+            """
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': ['b', 'c'],
+                },
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            24,
+            """
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': ['b', 'c'],
+                },
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            23,
+            """
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': [
+                        'b',
+                        'c',
+                    ],
+                },
+            )
+            """,
+        ),
+        (Counter(), None, "Counter()"),
+        (Counter("aaabbc"), None, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (Counter("aaabbc"), 33, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (Counter("cbbaaa"), 33, "Counter({'a': 3, 'b': 2, 'c': 1})"),
+        (
+            Counter("aaabbc"),
+            32,
+            """
+            Counter({
+                'a': 3,
+                'b': 2,
+                'c': 1,
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            None,
+            "Counter({3: ['a', 'b', 'c'], 4: ('a', 'b', 'c')})",
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            49,
+            "Counter({3: ['a', 'b', 'c'], 4: ('a', 'b', 'c')})",
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            48,
+            """
+            Counter({
+                3: ['a', 'b', 'c'],
+                4: ('a', 'b', 'c'),
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            23,
+            """
+            Counter({
+                3: ['a', 'b', 'c'],
+                4: ('a', 'b', 'c'),
+            })
+            """,
+        ),
+        (
+            Counter({3: ["a", "b", "c"], 4: ("a", "b", "c")}),
+            22,
+            """
+            Counter({
+                3: [
+                    'a',
+                    'b',
+                    'c',
+                ],
+                4: (
+                    'a',
+                    'b',
+                    'c',
+                ),
+            })
+            """,
+        ),
+        (ListSubclass(), None, "ListSubclass()"),
+        (ListSubclass(), 0, "ListSubclass()"),
+        (ListSubclass([]), None, "ListSubclass()"),
+        (ListSubclass([]), 0, "ListSubclass()"),
+        (ListSubclass([1]), None, "ListSubclass([1])"),
+        (ListSubclass([1, (), set()]), None, "ListSubclass([1, (), set()])"),
+        (ListSubclass([1, (), set()]), 28, "ListSubclass([1, (), set()])"),
+        (
+            ListSubclass([1, (), set()]),
+            27,
+            """
+            ListSubclass([
+                1,
+                (),
+                set(),
+            ])
             """,
         ),
     ],
