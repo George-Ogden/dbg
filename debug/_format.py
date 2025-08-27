@@ -8,7 +8,7 @@ import os
 import re
 import sys
 import textwrap
-from typing import Any, Callable, ClassVar, Self
+from typing import Any, Callable, ClassVar, Generic, Self, TypeVar
 import unicodedata
 
 from wcwidth import wcswidth
@@ -147,10 +147,13 @@ class BaseFormat(abc.ABC):
         return ItemFormat(obj)
 
 
-class SequenceFormat[T: BaseFormat](BaseFormat, abc.ABC):
+SequenceFormatT = TypeVar("SequenceFormatT", bound=BaseFormat)
+
+
+class SequenceFormat(BaseFormat, abc.ABC, Generic[SequenceFormatT]):
     def __init__(
         self,
-        objs: list[T] | None,
+        objs: list[SequenceFormatT] | None,
         type: None | type[Any],
         *,
         extra_trailing_comma: bool = False,
@@ -207,7 +210,7 @@ class SequenceFormat[T: BaseFormat](BaseFormat, abc.ABC):
         open, close = self.parentheses
         return open + "..." + close
 
-    def _flat_format(self, objs: list[T], config: FormatterConfig) -> str:
+    def _flat_format(self, objs: list[SequenceFormatT], config: FormatterConfig) -> str:
         """Return a formatted sequence in one line."""
         open, close = self.parentheses
         config = config.flatten()
@@ -220,7 +223,9 @@ class SequenceFormat[T: BaseFormat](BaseFormat, abc.ABC):
             + close
         )
 
-    def _nested_format(self, objs: list[T], used_width: int, config: FormatterConfig) -> str:
+    def _nested_format(
+        self, objs: list[SequenceFormatT], used_width: int, config: FormatterConfig
+    ) -> str:
         """Return a formatted sequence across multiple lines."""
         open, close = self.parentheses
         config = config.indent()
@@ -244,19 +249,28 @@ class SequenceFormat[T: BaseFormat](BaseFormat, abc.ABC):
         return all(obj._highlight for obj in self._objs)
 
 
-class SquareSequenceFormat[T: BaseFormat](SequenceFormat[T]):
+SquareSequenceFormatT = TypeVar("SquareSequenceFormatT", bound=BaseFormat)
+
+
+class SquareSequenceFormat(SequenceFormat[SquareSequenceFormatT]):
     @property
     def _parentheses(self) -> tuple[str, str]:
         return "[", "]"
 
 
-class CurlySequenceFormat[T: BaseFormat](SequenceFormat[T]):
+CurlySequenceFormatT = TypeVar("CurlySequenceFormatT", bound=BaseFormat)
+
+
+class CurlySequenceFormat(SequenceFormat[CurlySequenceFormatT]):
     @property
     def _parentheses(self) -> tuple[str, str]:
         return "{", "}"
 
 
-class RoundSequenceFormat[T: BaseFormat](SequenceFormat[T]):
+RoundSequenceFormatT = TypeVar("RoundSequenceFormatT", bound=BaseFormat)
+
+
+class RoundSequenceFormat(SequenceFormat[RoundSequenceFormatT]):
     @property
     def _parentheses(self) -> tuple[str, str]:
         return "(", ")"
@@ -306,7 +320,10 @@ class PairFormat(BaseFormat):
         return self._key._highlight and self._value._highlight
 
 
-class DictFormat[T: PairFormat](CurlySequenceFormat[T]): ...
+DictFormatT = TypeVar("DictFormatT", bound=PairFormat)
+
+
+class DictFormat(CurlySequenceFormat[PairFormat]): ...
 
 
 class ItemFormat(BaseFormat):
