@@ -37,6 +37,8 @@ def not_first() -> Callable[..., bool]:
 
 
 class BaseFormat(abc.ABC):
+    MAPPING_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]]
+    SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]]
     _length: int | None
 
     @abc.abstractmethod
@@ -81,6 +83,46 @@ class BaseFormat(abc.ABC):
     @classmethod
     def len(cls, string: str) -> int:
         return wcswidth(cls.clean_string(string))
+
+    @classmethod
+    def _from(self, obj: Any, visited: set[int]) -> BaseFormat:
+        format: BaseFormat
+        for mapping_cls, formatter_cls in self.MAPPING_FORMATTERS:
+            if isinstance(obj, mapping_cls):
+                if id(obj) in visited:
+                    return formatter_cls(None, obj)
+                visited.add(id(obj))
+                items = None
+                if isinstance(obj, Counter):
+                    try:
+                        items = obj.most_common()
+                    except TypeError:
+                        ...
+                if items is None:
+                    items = obj.items()
+                format = formatter_cls(
+                    [
+                        PairFormat(
+                            self._from(k, visited),
+                            self._from(v, visited),
+                        )
+                        for k, v in items
+                    ],
+                    obj,
+                )
+                visited.remove(id(obj))
+                return format
+
+        for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
+            if isinstance(obj, sequence_cls):
+                if id(obj) in visited:
+                    return formatter_cls(None, obj)
+                visited.add(id(obj))
+                objs = obj
+                format = formatter_cls([self._from(obj, visited) for obj in objs], obj)
+                visited.remove(id(obj))
+                return format
+        return ItemFormat(obj)
 
 
 class SequenceFormat(BaseFormat, abc.ABC):
@@ -300,23 +342,24 @@ class FormatterConfig:
         return cls(_indent_width=config.indent)
 
 
-class Formatter:
-    MAPPING_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
-        (Counter, CounterFormat),
-        (defaultdict, DefaultDictFormat),
-        (dict, DictFormat),
-    ]
-    SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]] = [
-        (list, SquareSequenceFormat),
-        (set, CurlySequenceFormat),
-        (tuple, RoundSequenceFormat),
-    ]
+BaseFormat.MAPPING_FORMATTERS = [
+    (Counter, CounterFormat),
+    (defaultdict, DefaultDictFormat),
+    (dict, DictFormat),
+]
+BaseFormat.SEQUENCE_FORMATTERS = [
+    (list, SquareSequenceFormat),
+    (set, CurlySequenceFormat),
+    (tuple, RoundSequenceFormat),
+]
 
+
+class Formatter:
     def __init__(self, config: FormatterConfig) -> None:
         self._config = config
 
     def format(self, obj: Any, *, initial_width: int) -> str:
-        formatted_obj = self._formatted_obj(obj, set())
+        formatted_obj = BaseFormat._from(obj, set())
         text = formatted_obj._format(initial_width, highlight=True, config=self._config)
         terminal_width = self._config._terminal_width
         if isinstance(formatted_obj, ItemFormat):
@@ -328,42 +371,3 @@ class Formatter:
             else:
                 text = textwrap.indent(text, " " * initial_width, predicate=not_first())
         return text
-
-    def _formatted_obj(self, obj: Any, visited: set[int]) -> BaseFormat:
-        format: BaseFormat
-        for mapping_cls, formatter_cls in self.MAPPING_FORMATTERS:
-            if isinstance(obj, mapping_cls):
-                if id(obj) in visited:
-                    return formatter_cls(None, obj)
-                visited.add(id(obj))
-                items = None
-                if isinstance(obj, Counter):
-                    try:
-                        items = obj.most_common()
-                    except TypeError:
-                        ...
-                if items is None:
-                    items = obj.items()
-                format = formatter_cls(
-                    [
-                        PairFormat(
-                            self._formatted_obj(k, visited),
-                            self._formatted_obj(v, visited),
-                        )
-                        for k, v in items
-                    ],
-                    obj,
-                )
-                visited.remove(id(obj))
-                return format
-
-        for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
-            if isinstance(obj, sequence_cls):
-                if id(obj) in visited:
-                    return formatter_cls(None, obj)
-                visited.add(id(obj))
-                objs = obj
-                format = formatter_cls([self._formatted_obj(obj, visited) for obj in objs], obj)
-                visited.remove(id(obj))
-                return format
-        return ItemFormat(obj)
