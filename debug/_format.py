@@ -85,12 +85,19 @@ class BaseFormat(abc.ABC):
         return wcswidth(cls.clean_string(string))
 
     @classmethod
-    def _from(self, obj: Any, visited: set[int]) -> BaseFormat:
+    def _from(cls, obj: Any, visited: set[int]) -> BaseFormat:
         format: BaseFormat
-        for mapping_cls, formatter_cls in self.MAPPING_FORMATTERS:
+        if isinstance(obj, defaultdict):
+            visited.add(id(obj))
+            subformat = RoundSequenceFormat(
+                [cls._from(obj.default_factory, visited), cls._from(dict(obj.items()), visited)]
+            )
+            visited.remove(id(obj))
+            return NamedObjectFormat("defaultdict", subformat)
+        for mapping_cls, formatter_cls in cls.MAPPING_FORMATTERS:
             if isinstance(obj, mapping_cls):
                 if id(obj) in visited:
-                    return formatter_cls(None, obj)
+                    return formatter_cls(None)
                 visited.add(id(obj))
                 items = None
                 if isinstance(obj, Counter):
@@ -103,23 +110,25 @@ class BaseFormat(abc.ABC):
                 format = formatter_cls(
                     [
                         PairFormat(
-                            self._from(k, visited),
-                            self._from(v, visited),
+                            cls._from(k, visited),
+                            cls._from(v, visited),
                         )
                         for k, v in items
                     ],
-                    obj,
                 )
                 visited.remove(id(obj))
                 return format
 
-        for sequence_cls, formatter_cls in self.SEQUENCE_FORMATTERS:
+        for sequence_cls, formatter_cls in cls.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
                 if id(obj) in visited:
-                    return formatter_cls(None, obj)
+                    return formatter_cls(None)
                 visited.add(id(obj))
                 objs = obj
-                format = formatter_cls([self._from(obj, visited) for obj in objs], obj)
+                kwargs: dict[str, Any] = {}
+                if type(obj) is tuple and len(obj) == 1:
+                    kwargs |= dict(extra_trailing_comma=True)
+                format = formatter_cls([cls._from(obj, visited) for obj in objs], **kwargs)
                 visited.remove(id(obj))
                 return format
         return ItemFormat(obj)
@@ -127,10 +136,9 @@ class BaseFormat(abc.ABC):
 
 class SequenceFormat(BaseFormat, abc.ABC):
     def __init__(
-        self, objs: list[BaseFormat] | None, obj: Any, *, extra_trailing_comma: bool = False
+        self, objs: list[BaseFormat] | None, *, extra_trailing_comma: bool = False
     ) -> None:
         self._objs = objs
-        self._obj = obj
         if self._objs is None:
             self._length = 3 + self._paren_length
         else:
@@ -217,8 +225,8 @@ class SquareSequenceFormat(SequenceFormat):
 class CurlySequenceFormat(SequenceFormat):
     _EMPTY_REPR: ClassVar[str] = "set()"
 
-    def __init__(self, objs, obj) -> None:
-        super().__init__(objs, obj)
+    def __init__(self, objs) -> None:
+        super().__init__(objs)
         if self._objs is not None and len(self._objs) == 0:
             self._length = len(self._EMPTY_REPR)
 
@@ -234,12 +242,25 @@ class CurlySequenceFormat(SequenceFormat):
 
 
 class RoundSequenceFormat(SequenceFormat):
-    def __init__(self, objs, obj) -> None:
-        super().__init__(objs, obj, extra_trailing_comma=len(objs) == 1)
-
     @property
     def parentheses(self) -> tuple[str, str]:
         return "(", ")"
+
+
+class NamedObjectFormat(BaseFormat):
+    def __init__(self, name: str, subformat: BaseFormat) -> None:
+        self._name = name
+        self._subformat = subformat
+
+    def length(self) -> int | None:
+        return self.add(len(self._name), self._subformat.length())
+
+    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+        return self._name + self._subformat._format(used_width + len(self._name), highlight, config)
+
+    @property
+    def _highlight(self) -> bool:
+        return self._subformat._highlight
 
 
 class PairFormat(BaseFormat):
@@ -274,12 +295,6 @@ class DictFormat(SequenceFormat):
     @property
     def parentheses(self) -> tuple[str, str]:
         return "{", "}"
-
-
-class DefaultDictFormat(DictFormat):
-    @property
-    def parentheses(self) -> tuple[str, str]:
-        return f"{type(self._obj).__name__}({self._obj.default_factory}, {{", "})"
 
 
 class CounterFormat(DictFormat):
@@ -344,7 +359,6 @@ class FormatterConfig:
 
 BaseFormat.MAPPING_FORMATTERS = [
     (Counter, CounterFormat),
-    (defaultdict, DefaultDictFormat),
     (dict, DictFormat),
 ]
 BaseFormat.SEQUENCE_FORMATTERS = [

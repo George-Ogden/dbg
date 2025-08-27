@@ -1116,34 +1116,62 @@ partial_recursive_object = (recursive_list, recursive_list)
             defaultdict(list, {0: [1], "a": ["b", "c"]}),
             53,
             """
-            defaultdict(<class 'list'>, {
-                0: [1],
-                'a': ['b', 'c'],
-            })
+            defaultdict(
+                <class 'list'>,
+                {0: [1], 'a': ['b', 'c']},
+            )
             """,
         ),
         (
-            defaultdict(list, {0: [1], "a": ["b", "c", "d"]}),
-            25,
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            30,
             """
-            defaultdict(<class 'list'>, {
-                0: [1],
-                'a': ['b', 'c', 'd'],
-            })
+            defaultdict(
+                <class 'list'>,
+                {0: [1], 'a': ['b', 'c']},
+            )
             """,
         ),
         (
-            defaultdict(list, {0: [1], "a": ["b", "c", "d"]}),
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            29,
+            """
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': ['b', 'c'],
+                },
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
             24,
             """
-            defaultdict(<class 'list'>, {
-                0: [1],
-                'a': [
-                    'b',
-                    'c',
-                    'd',
-                ],
-            })
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': ['b', 'c'],
+                },
+            )
+            """,
+        ),
+        (
+            defaultdict(list, {0: [1], "a": ["b", "c"]}),
+            23,
+            """
+            defaultdict(
+                <class 'list'>,
+                {
+                    0: [1],
+                    'a': [
+                        'b',
+                        'c',
+                    ],
+                },
+            )
             """,
         ),
         (Counter(), None, "Counter()"),
