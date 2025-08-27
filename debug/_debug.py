@@ -9,7 +9,7 @@ from pygments.token import Token
 
 from ._code import display_codes
 from ._config import CONFIG
-from ._format import Formatter, FormatterConfig, ObjFormat
+from ._format import BaseFormat, Formatter, FormatterConfig
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
@@ -91,7 +91,7 @@ def dbg(*values: Any) -> Any:
                 prefix = f"{position} {code} = "
                 *_, last_line = prefix.rsplit("\n", maxsplit=1)
                 print(
-                    prefix + formatter.format(value, initial_width=ObjFormat.len(last_line)),
+                    prefix + formatter.format(value, initial_width=BaseFormat.len(last_line)),
                     file=sys.stderr,
                 )
     finally:
