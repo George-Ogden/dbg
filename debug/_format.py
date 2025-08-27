@@ -94,6 +94,8 @@ class BaseFormat(abc.ABC):
             )
             visited.remove(id(obj))
             return NamedObjectFormat(type(obj), subformat)
+
+        obj_type: type[Any] | None
         if isinstance(obj, dict):
             if type(obj) is dict:
                 obj_type = None
@@ -124,7 +126,9 @@ class BaseFormat(abc.ABC):
 
         for sequence_cls, formatter_cls in cls.SEQUENCE_FORMATTERS:
             if isinstance(obj, sequence_cls):
-                if type(obj) is sequence_cls:
+                if type(obj) is set and len(obj) == 0:
+                    obj_type = set
+                elif type(obj) is sequence_cls:
                     obj_type = None
                 else:
                     obj_type = type(obj)
@@ -249,22 +253,12 @@ class SquareSequenceFormat(SequenceFormat):
 
 
 class CurlySequenceFormat(SequenceFormat):
-    _EMPTY_REPR: ClassVar[str] = "set()"
-
-    def __init__(self, objs: list[BaseFormat] | None, type: None | type[Any]) -> None:
-        super().__init__(objs, type)
-        if self._objs is not None and len(self._objs) == 0:
-            self._length = len(self._EMPTY_REPR)
-
     @property
     def _parentheses(self) -> tuple[str, str]:
         return "{", "}"
 
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
-        if self._objs is not None and len(self._objs) == 0:
-            return self._EMPTY_REPR
-        else:
-            return super()._format(used_width, highlight, config)
+        return super()._format(used_width, highlight, config)
 
 
 class RoundSequenceFormat(SequenceFormat):
