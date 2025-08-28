@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 import filecmp
 import importlib
 import os
@@ -6,7 +7,7 @@ import re
 import sys
 import tempfile
 import textwrap
-from typing import Any
+from typing import Any, ClassVar, Self
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
@@ -449,6 +450,36 @@ partial_recursive_object = (recursive_list, recursive_list)
 
 
 class ListSubclass(list): ...
+
+
+@dataclass
+class DataclassNoField: ...
+
+
+@dataclass
+class DataclassOneField:
+    single_field: str
+
+
+@dataclass
+class DataclassMultipleFields:
+    field1: int
+    hidden: None = field(default=None, repr=False)
+    field2: list[int] = field(default_factory=list)
+
+
+@dataclass(repr=False)
+class DataclassNoRepr:
+    instance: ClassVar[Self]
+
+
+DataclassNoRepr.instance = DataclassNoRepr()
+
+
+@dataclass
+class DataclassCustomRepr:
+    def __repr__(self) -> str:
+        return "DataclassCustomRepr!"
 
 
 @pytest.mark.parametrize(
@@ -1257,6 +1288,68 @@ class ListSubclass(list): ...
                 set(),
             ])
             """,
+        ),
+        (DataclassNoField(), None, "DataclassNoField()"),
+        (DataclassNoField(), 0, "DataclassNoField()"),
+        (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
+        (DataclassOneField("string"), 40, "DataclassOneField(single_field='string')"),
+        (
+            DataclassOneField("string"),
+            39,
+            """
+            DataclassOneField(
+                single_field='string',
+            )
+            """,
+        ),
+        (DataclassMultipleFields(1000), None, "DataclassMultipleFields(field1=1000, field2=[])"),
+        (DataclassMultipleFields(1000), 47, "DataclassMultipleFields(field1=1000, field2=[])"),
+        (
+            DataclassMultipleFields(1000),
+            46,
+            """
+            DataclassMultipleFields(
+                field1=1000,
+                field2=[],
+            )
+            """,
+        ),
+        (
+            DataclassMultipleFields(1000, field2=[1, 2, 3, 4, 5, 6]),
+            30,
+            """
+            DataclassMultipleFields(
+                field1=1000,
+                field2=[1, 2, 3, 4, 5, 6],
+            )
+            """,
+        ),
+        (
+            DataclassMultipleFields(1000, field2=[1, 2, 3, 4, 5, 6]),
+            29,
+            """
+            DataclassMultipleFields(
+                field1=1000,
+                field2=[
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                ],
+            )
+            """,
+        ),
+        (
+            DataclassNoRepr.instance,
+            None,
+            f"<test_suite.DataclassNoRepr object at 0x{id(DataclassNoRepr.instance):0>12x}>",
+        ),
+        (
+            DataclassCustomRepr(),
+            None,
+            "DataclassCustomRepr!",
         ),
     ],
 )
