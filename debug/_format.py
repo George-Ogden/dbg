@@ -89,7 +89,7 @@ class BaseFormat(abc.ABC):
         if dataclasses.is_dataclass(obj):
             if (
                 not isinstance(obj, type)
-                and obj.__dataclass_params__.repr
+                and obj.__dataclass_params__.repr  # type: ignore
                 and hasattr(obj.__repr__, "__wrapped__")
                 and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
             ):
