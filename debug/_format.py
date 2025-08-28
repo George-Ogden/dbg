@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 import dataclasses
 from dataclasses import dataclass, field
@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import textwrap
+from types import MethodWrapperType
 from typing import Any, Callable, ClassVar, Generic, Self, TypeVar
 import unicodedata
 
@@ -39,6 +40,8 @@ def not_first() -> Callable[..., bool]:
 
 class BaseFormat(abc.ABC):
     SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]]
+    KNOWN_WRAPPED_CLASSES: ClassVar[tuple[type[Any], ...]]
+    KNOWN_EXTRA_CLASSES: ClassVar[tuple[type[Any], ...]]
     _length: int | None
 
     @abc.abstractmethod
@@ -102,6 +105,17 @@ class BaseFormat(abc.ABC):
                 visited.remove(id(obj))
                 return DataclassFormat(type(obj), RoundSequenceFormat(dataclass_subformat, None))
             else:
+                return ItemFormat(obj)
+
+        if (
+            isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)
+            and not isinstance(obj, cls.KNOWN_EXTRA_CLASSES)
+            and type(obj.__repr__) is not MethodWrapperType
+        ):
+            return ItemFormat(obj)
+
+        for extra_cls in cls.KNOWN_EXTRA_CLASSES:
+            if isinstance(obj, extra_cls) and obj.__repr__.__code__ != extra_cls.__repr__.__code__:
                 return ItemFormat(obj)
 
         format: BaseFormat
@@ -433,6 +447,10 @@ BaseFormat.SEQUENCE_FORMATTERS = [
     (set, CurlySequenceFormat),
     (tuple, RoundSequenceFormat),
 ]
+
+BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict)
+
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter,)
 
 
 class Formatter:

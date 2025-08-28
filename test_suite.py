@@ -452,6 +452,31 @@ partial_recursive_object = (recursive_list, recursive_list)
 class ListSubclass(list): ...
 
 
+class ListSubclassCustomRepr(list):
+    def __repr__(self) -> str:
+        return "ListSubclassCustomRepr!"
+
+
+class DictSubclassCustomRepr(dict):
+    def __repr__(self) -> str:
+        return "DictSubclassCustomRepr!"
+
+
+class DefaultDictSubclassCustomRepr(defaultdict):
+    def __repr__(self) -> str:
+        return "DefaultDictSubclassCustomRepr!"
+
+
+class CounterCustomRepr(Counter):
+    def __repr__(self) -> str:
+        return "CounterCustomRepr!"
+
+
+class SetSubclassCustomRepr(set):
+    def __repr__(self) -> str:
+        return repr(list(self))
+
+
 @dataclass
 class DataclassNoField: ...
 
@@ -1289,6 +1314,12 @@ class DataclassCustomRepr:
             ])
             """,
         ),
+        (SetSubclassCustomRepr(), None, "[]"),
+        (SetSubclassCustomRepr([10, 20]), None, ["[10, 20]", "[20, 10]"]),
+        (ListSubclassCustomRepr(), None, "ListSubclassCustomRepr!"),
+        (DictSubclassCustomRepr(), None, "DictSubclassCustomRepr!"),
+        (DefaultDictSubclassCustomRepr(), None, "DefaultDictSubclassCustomRepr!"),
+        (CounterCustomRepr(), None, "CounterCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
