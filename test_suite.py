@@ -452,29 +452,14 @@ partial_recursive_object = (recursive_list, recursive_list)
 class ListSubclass(list): ...
 
 
-class ListSubclassCustomRepr(list):
+def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
+    if not isinstance(bases, tuple):
+        bases = (bases,)
+
     def __repr__(self) -> str:
-        return "ListSubclassCustomRepr!"
+        return f"{name}!"
 
-
-class DictSubclassCustomRepr(dict):
-    def __repr__(self) -> str:
-        return "DictSubclassCustomRepr!"
-
-
-class DefaultDictSubclassCustomRepr(defaultdict):
-    def __repr__(self) -> str:
-        return "DefaultDictSubclassCustomRepr!"
-
-
-class CounterCustomRepr(Counter):
-    def __repr__(self) -> str:
-        return "CounterCustomRepr!"
-
-
-class SetSubclassCustomRepr(set):
-    def __repr__(self) -> str:
-        return repr(list(self))
+    return type(name, bases, dict(__repr__=__repr__))(*args)
 
 
 @dataclass
@@ -1314,12 +1299,16 @@ class DataclassCustomRepr:
             ])
             """,
         ),
-        (SetSubclassCustomRepr(), None, "[]"),
-        (SetSubclassCustomRepr([10, 20]), None, ["[10, 20]", "[20, 10]"]),
-        (ListSubclassCustomRepr(), None, "ListSubclassCustomRepr!"),
-        (DictSubclassCustomRepr(), None, "DictSubclassCustomRepr!"),
-        (DefaultDictSubclassCustomRepr(), None, "DefaultDictSubclassCustomRepr!"),
-        (CounterCustomRepr(), None, "CounterCustomRepr!"),
+        (custom_repr_cls("SetSubclassCustomRepr", set), None, "SetSubclassCustomRepr!"),
+        (custom_repr_cls("SetSubclassCustomRepr", set, [10, 20]), None, "SetSubclassCustomRepr!"),
+        (custom_repr_cls("ListSubclassCustomRepr", list), None, "ListSubclassCustomRepr!"),
+        (custom_repr_cls("DictSubclassCustomRepr", dict), None, "DictSubclassCustomRepr!"),
+        (
+            custom_repr_cls("DefaultDictSubclassCustomRepr", defaultdict),
+            None,
+            "DefaultDictSubclassCustomRepr!",
+        ),
+        (custom_repr_cls("CounterSubclassCustomRepr", Counter), None, "CounterSubclassCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1375,7 +1364,7 @@ class DataclassCustomRepr:
         (
             DataclassNoRepr.instance,
             None,
-            f"<test_suite.DataclassNoRepr object at 0x{id(DataclassNoRepr.instance):0>12x}>",
+            f"<test_suite.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
         (
             DataclassCustomRepr(),
