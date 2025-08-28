@@ -7,7 +7,7 @@ import re
 import sys
 import tempfile
 import textwrap
-from typing import Any
+from typing import Any, ClassVar, Self
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
@@ -466,6 +466,20 @@ class DataclassMultipleFields:
     field1: int
     hidden: None = field(default=None, repr=False)
     field2: list[int] = field(default_factory=list)
+
+
+@dataclass(repr=False)
+class DataclassNoRepr:
+    instance: ClassVar[Self]
+
+
+DataclassNoRepr.instance = DataclassNoRepr()
+
+
+@dataclass
+class DataclassCustomRepr:
+    def __repr__(self) -> str:
+        return "DataclassCustomRepr!"
 
 
 @pytest.mark.parametrize(
@@ -1326,6 +1340,16 @@ class DataclassMultipleFields:
                 ],
             )
             """,
+        ),
+        (
+            DataclassNoRepr.instance,
+            None,
+            f"<test_suite.DataclassNoRepr object at 0x{id(DataclassNoRepr.instance):0>12x}>",
+        ),
+        (
+            DataclassCustomRepr(),
+            None,
+            "DataclassCustomRepr!",
         ),
     ],
 )

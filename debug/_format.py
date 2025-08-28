@@ -87,14 +87,22 @@ class BaseFormat(abc.ABC):
     @classmethod
     def _from(cls, obj: Any, visited: set[int]) -> BaseFormat:
         if dataclasses.is_dataclass(obj):
-            visited.add(id(obj))
-            dataclass_subformat = [
-                AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
-                for field in dataclasses.fields(obj)
-                if field.repr
-            ]
-            visited.remove(id(obj))
-            return DataclassFormat(type(obj), RoundSequenceFormat(dataclass_subformat, None))
+            if (
+                not isinstance(obj, type)
+                and obj.__dataclass_params__.repr
+                and hasattr(obj.__repr__, "__wrapped__")
+                and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
+            ):
+                visited.add(id(obj))
+                dataclass_subformat = [
+                    AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
+                    for field in dataclasses.fields(obj)
+                    if field.repr
+                ]
+                visited.remove(id(obj))
+                return DataclassFormat(type(obj), RoundSequenceFormat(dataclass_subformat, None))
+            else:
+                return ItemFormat(obj)
 
         format: BaseFormat
         if isinstance(obj, defaultdict):
