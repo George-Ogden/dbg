@@ -161,6 +161,8 @@ class BaseFormat(abc.ABC):
             if isinstance(obj, sequence_cls):
                 if type(obj) is set and len(obj) == 0:
                     obj_type = set
+                elif type(obj) is frozenset:
+                    obj_type = frozenset
                 elif type(obj) is sequence_cls:
                     obj_type = None
                 else:
@@ -446,9 +448,10 @@ BaseFormat.SEQUENCE_FORMATTERS = [
     (list, SquareSequenceFormat),
     (set, CurlySequenceFormat),
     (tuple, RoundSequenceFormat),
+    (frozenset, CurlySequenceFormat),
 ]
 
-BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict)
+BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict, frozenset)
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (Counter,)
 

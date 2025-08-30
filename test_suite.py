@@ -1309,6 +1309,11 @@ class DataclassCustomRepr:
             "DefaultDictSubclassCustomRepr!",
         ),
         (custom_repr_cls("CounterSubclassCustomRepr", Counter), None, "CounterSubclassCustomRepr!"),
+        (
+            custom_repr_cls("FrozenSetSubclassCustomRepr", frozenset),
+            None,
+            "FrozenSetSubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1370,6 +1375,72 @@ class DataclassCustomRepr:
             DataclassCustomRepr(),
             None,
             "DataclassCustomRepr!",
+        ),
+        (frozenset(), None, "frozenset()"),
+        (frozenset([10]), None, "frozenset({10})"),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            None,
+            ["frozenset({frozenset({10, 5})})", "frozenset({frozenset({5, 10})})"],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            31,
+            ["frozenset({frozenset({10, 5})})", "frozenset({frozenset({5, 10})})"],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            30,
+            [
+                """
+                frozenset({
+                    frozenset({10, 5}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({5, 10}),
+                })
+                """,
+            ],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            23,
+            [
+                """
+                frozenset({
+                    frozenset({10, 5}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({5, 10}),
+                })
+                """,
+            ],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            22,
+            [
+                """
+                frozenset({
+                    frozenset({
+                        10,
+                        5,
+                    }),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({
+                        5,
+                        10,
+                    }),
+                })
+                """,
+            ],
         ),
     ],
 )
