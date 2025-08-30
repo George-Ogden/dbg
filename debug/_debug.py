@@ -3,7 +3,7 @@ import os.path
 import re
 import sys
 import types
-from typing import Any, TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
+from typing import TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
 
 from pygments.token import Token
 
@@ -70,7 +70,7 @@ def dbg(value: T, /) -> T: ...
 def dbg(*values: Unpack[Ts]) -> tuple[Unpack[Ts]]: ...
 
 
-def dbg(*values: Any) -> Any:
+def dbg(*values: object) -> object:
     """Write an appropriate debugging message to the stderr for each expression.
     The value is returned (one argument)
     or values are returned as a tuple (zero or multiple arguments).

@@ -28,7 +28,7 @@ def supports_color() -> bool:
 class DbgConfig:
     color: bool
     indent: int
-    style: str  # type: ignore
+    style: str
 
     def __init__(self) -> None:
         self._style = "solarized-dark"
@@ -41,7 +41,7 @@ class DbgConfig:
     _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
     _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
-    @property
+    @property  # type: ignore
     def style(self) -> str:
         return self._style
 
