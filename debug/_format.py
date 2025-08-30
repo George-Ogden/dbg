@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from collections import defaultdict
+from array import array
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 import dataclasses
 from dataclasses import dataclass, field
@@ -9,6 +10,7 @@ import os
 import re
 import sys
 import textwrap
+from types import MethodWrapperType
 from typing import Any, Callable, ClassVar, Generic, Self, TypeVar
 import unicodedata
 
@@ -39,6 +41,8 @@ def not_first() -> Callable[..., bool]:
 
 class BaseFormat(abc.ABC):
     SEQUENCE_FORMATTERS: ClassVar[list[tuple[type[Any], type[SequenceFormat]]]]
+    KNOWN_WRAPPED_CLASSES: ClassVar[tuple[type[Any], ...]]
+    KNOWN_EXTRA_CLASSES: ClassVar[tuple[type[Any], ...]]
     _length: int | None
 
     @abc.abstractmethod
@@ -104,7 +108,17 @@ class BaseFormat(abc.ABC):
             else:
                 return ItemFormat(obj)
 
-        format: BaseFormat
+        if (
+            isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)
+            and not isinstance(obj, cls.KNOWN_EXTRA_CLASSES)
+            and type(obj.__repr__) is not MethodWrapperType
+        ):
+            return ItemFormat(obj)
+
+        for extra_cls in cls.KNOWN_EXTRA_CLASSES:
+            if isinstance(obj, extra_cls) and obj.__repr__.__code__ != extra_cls.__repr__.__code__:
+                return ItemFormat(obj)
+
         if isinstance(obj, defaultdict):
             visited.add(id(obj))
             defaultdict_subformat = RoundSequenceFormat(
@@ -114,6 +128,23 @@ class BaseFormat(abc.ABC):
             visited.remove(id(obj))
             return NamedObjectFormat(type(obj), defaultdict_subformat)
 
+        if isinstance(obj, array):
+            body: Any
+            try:
+                string = obj.tounicode()
+            except ValueError:
+                body = obj.tolist()
+            else:
+                body = string
+            sub_objs = [obj.typecode]
+            if body:
+                sub_objs.append(body)
+            array_subformat = RoundSequenceFormat(
+                [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
+            )
+            return NamedObjectFormat(type(obj), array_subformat)
+
+        format: BaseFormat
         obj_type: type[Any] | None
         if isinstance(obj, dict):
             if type(obj) is dict:
@@ -147,6 +178,8 @@ class BaseFormat(abc.ABC):
             if isinstance(obj, sequence_cls):
                 if type(obj) is set and len(obj) == 0:
                     obj_type = set
+                elif type(obj) is frozenset:
+                    obj_type = frozenset
                 elif type(obj) is sequence_cls:
                     obj_type = None
                 else:
@@ -432,7 +465,12 @@ BaseFormat.SEQUENCE_FORMATTERS = [
     (list, SquareSequenceFormat),
     (set, CurlySequenceFormat),
     (tuple, RoundSequenceFormat),
+    (frozenset, CurlySequenceFormat),
 ]
+
+BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict, frozenset, array)
+
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter,)
 
 
 class Formatter:

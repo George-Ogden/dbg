@@ -1,3 +1,4 @@
+from array import array
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 import filecmp
@@ -450,6 +451,16 @@ partial_recursive_object = (recursive_list, recursive_list)
 
 
 class ListSubclass(list): ...
+
+
+def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
+    if not isinstance(bases, tuple):
+        bases = (bases,)
+
+    def __repr__(self) -> str:
+        return f"{name}!"
+
+    return type(name, bases, dict(__repr__=__repr__))(*args)
 
 
 @dataclass
@@ -1136,6 +1147,17 @@ class DataclassCustomRepr:
             """,
         ),
         (defaultdict(list), None, "defaultdict(<class 'list'>, {})"),
+        (defaultdict(list), 31, "defaultdict(<class 'list'>, {})"),
+        (
+            defaultdict(list),
+            30,
+            """
+            defaultdict(
+                <class 'list'>,
+                {},
+            )
+            """,
+        ),
         (
             defaultdict(list, {0: [1], "a": ["b", "c"]}),
             None,
@@ -1289,6 +1311,22 @@ class DataclassCustomRepr:
             ])
             """,
         ),
+        (custom_repr_cls("SetSubclassCustomRepr", set), None, "SetSubclassCustomRepr!"),
+        (custom_repr_cls("SetSubclassCustomRepr", set, [10, 20]), None, "SetSubclassCustomRepr!"),
+        (custom_repr_cls("ListSubclassCustomRepr", list), None, "ListSubclassCustomRepr!"),
+        (custom_repr_cls("DictSubclassCustomRepr", dict), None, "DictSubclassCustomRepr!"),
+        (
+            custom_repr_cls("DefaultDictSubclassCustomRepr", defaultdict),
+            None,
+            "DefaultDictSubclassCustomRepr!",
+        ),
+        (custom_repr_cls("CounterSubclassCustomRepr", Counter), None, "CounterSubclassCustomRepr!"),
+        (
+            custom_repr_cls("FrozenSetSubclassCustomRepr", frozenset),
+            None,
+            "FrozenSetSubclassCustomRepr!",
+        ),
+        (custom_repr_cls("ArraySubclassCustomRepr", array, "l"), None, "ArraySubclassCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1344,12 +1382,190 @@ class DataclassCustomRepr:
         (
             DataclassNoRepr.instance,
             None,
-            f"<test_suite.DataclassNoRepr object at 0x{id(DataclassNoRepr.instance):0>12x}>",
+            f"<test_suite.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
         (
             DataclassCustomRepr(),
             None,
             "DataclassCustomRepr!",
+        ),
+        (frozenset(), None, "frozenset()"),
+        (frozenset([10]), None, "frozenset({10})"),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            None,
+            ["frozenset({frozenset({10, 5})})", "frozenset({frozenset({5, 10})})"],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            31,
+            ["frozenset({frozenset({10, 5})})", "frozenset({frozenset({5, 10})})"],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            30,
+            [
+                """
+                frozenset({
+                    frozenset({10, 5}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({5, 10}),
+                })
+                """,
+            ],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            23,
+            [
+                """
+                frozenset({
+                    frozenset({10, 5}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({5, 10}),
+                })
+                """,
+            ],
+        ),
+        (
+            frozenset([frozenset([5, 5, 10])]),
+            22,
+            [
+                """
+                frozenset({
+                    frozenset({
+                        10,
+                        5,
+                    }),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({
+                        5,
+                        10,
+                    }),
+                })
+                """,
+            ],
+        ),
+        (array("l"), None, "array('l')"),
+        (array("i"), 10, "array('i')"),
+        (
+            array("f"),
+            9,
+            """
+            array(
+                'f',
+            )
+            """,
+        ),
+        (array("q", []), None, "array('q')"),
+        (array("l", [100]), None, "array('l', [100])"),
+        (array("u", "abracadabra"), None, "array('u', 'abracadabra')"),
+        (array("u", "abracadabra"), 25, "array('u', 'abracadabra')"),
+        (
+            array("u", "abracadabra"),
+            24,
+            """
+            array(
+                'u',
+                'abracadabra',
+            )
+            """,
+        ),
+        (
+            array("u", "abracadabra"),
+            1,
+            """
+            array(
+                'u',
+                'abracadabra',
+            )
+            """,
+        ),
+        (array("b", b"abc"), None, "array('b', [97, 98, 99])"),
+        (array("b", b"abc"), 24, "array('b', [97, 98, 99])"),
+        (
+            array("b", b"abc"),
+            23,
+            """
+            array(
+                'b',
+                [97, 98, 99],
+            )
+            """,
+        ),
+        (
+            array("b", b"abc"),
+            17,
+            """
+            array(
+                'b',
+                [97, 98, 99],
+            )
+            """,
+        ),
+        (
+            array("b", b"abc"),
+            16,
+            """
+            array(
+                'b',
+                [
+                    97,
+                    98,
+                    99,
+                ],
+            )
+            """,
+        ),
+        (array("d", [0.0, 0.5, 1.0]), None, "array('d', [0.0, 0.5, 1.0])"),
+        (array("d", [0.0, 0.5, 1.0]), 27, "array('d', [0.0, 0.5, 1.0])"),
+        (
+            array("d", [0.0, 0.5, 1.0]),
+            26,
+            """
+            array(
+                'd',
+                [0.0, 0.5, 1.0],
+            )
+            """,
+        ),
+        (
+            array("d", [0.0, 0.5, 1.0]),
+            20,
+            """
+            array(
+                'd',
+                [0.0, 0.5, 1.0],
+            )
+            """,
+        ),
+        (
+            array("d", [0.0, 0.5, 1.0]),
+            19,
+            """
+            array(
+                'd',
+                [
+                    0.0,
+                    0.5,
+                    1.0,
+                ],
+            )
+            """,
+        ),
+        (
+            type("subarray", (array,), {})("h", [-2]),
+            None,
+            "subarray('h', [-2])",
         ),
     ],
 )
