@@ -13,6 +13,7 @@ from unittest import mock
 
 from _pytest.capture import CaptureFixture
 from colorama import Fore
+from frozendict import frozendict
 from pygments.formatters import Terminal256Formatter
 import pytest
 
@@ -1455,6 +1456,11 @@ class DataclassCustomRepr:
                 """,
             ],
         ),
+        (
+            type("freezeset", (frozenset,), {})(),
+            None,
+            "freezeset()",
+        ),
         (array("l"), None, "array('l')"),
         (array("i"), 10, "array('i')"),
         (
@@ -1566,6 +1572,59 @@ class DataclassCustomRepr:
             type("subarray", (array,), {})("h", [-2]),
             None,
             "subarray('h', [-2])",
+        ),
+        (frozendict(), None, "frozendict()"),
+        (frozendict(Counter("aaabbc")), None, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
+        (frozendict(Counter("aaabbc")), 36, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
+        (
+            frozendict(Counter("aaabbc")),
+            35,
+            """
+            frozendict({
+                'a': 3,
+                'b': 2,
+                'c': 1,
+            })
+            """,
+        ),
+        (frozendict({"long": list("long")}), None, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (frozendict({"long": list("long")}), 42, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (
+            frozendict({"long": list("long")}),
+            41,
+            """
+            frozendict({
+                'long': ['l', 'o', 'n', 'g'],
+            })
+            """,
+        ),
+        (
+            frozendict({"long": list("long")}),
+            33,
+            """
+            frozendict({
+                'long': ['l', 'o', 'n', 'g'],
+            })
+            """,
+        ),
+        (
+            frozendict({"long": list("long")}),
+            32,
+            """
+            frozendict({
+                'long': [
+                    'l',
+                    'o',
+                    'n',
+                    'g',
+                ],
+            })
+            """,
+        ),
+        (
+            type("freezedict", (frozendict,), {})(),
+            None,
+            "freezedict()",
         ),
     ],
 )
