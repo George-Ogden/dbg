@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from array import array
 from collections import Counter, defaultdict
 from collections.abc import Iterable
 import dataclasses
@@ -118,7 +119,6 @@ class BaseFormat(abc.ABC):
             if isinstance(obj, extra_cls) and obj.__repr__.__code__ != extra_cls.__repr__.__code__:
                 return ItemFormat(obj)
 
-        format: BaseFormat
         if isinstance(obj, defaultdict):
             visited.add(id(obj))
             defaultdict_subformat = RoundSequenceFormat(
@@ -128,6 +128,23 @@ class BaseFormat(abc.ABC):
             visited.remove(id(obj))
             return NamedObjectFormat(type(obj), defaultdict_subformat)
 
+        if isinstance(obj, array):
+            body: Any
+            try:
+                string = obj.tounicode()
+            except ValueError:
+                body = obj.tolist()
+            else:
+                body = string
+            sub_objs = [obj.typecode]
+            if body:
+                sub_objs.append(body)
+            array_subformat = RoundSequenceFormat(
+                [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
+            )
+            return NamedObjectFormat(type(obj), array_subformat)
+
+        format: BaseFormat
         obj_type: type[Any] | None
         if isinstance(obj, dict):
             if type(obj) is dict:
@@ -451,7 +468,7 @@ BaseFormat.SEQUENCE_FORMATTERS = [
     (frozenset, CurlySequenceFormat),
 ]
 
-BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict, frozenset)
+BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict, frozenset, array)
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (Counter,)
 
