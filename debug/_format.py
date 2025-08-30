@@ -14,11 +14,16 @@ from types import MethodWrapperType
 from typing import Any, Callable, ClassVar, Generic, Self, TypeVar
 import unicodedata
 
-from frozendict import frozendict
 from wcwidth import wcswidth
 
 from ._code import highlight_code
 from ._config import DbgConfig
+
+frozendict: type[Any]
+try:
+    from frozendict import frozendict
+except (ModuleNotFoundError, ImportError):
+    frozendict = type("", (), {})
 
 ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 

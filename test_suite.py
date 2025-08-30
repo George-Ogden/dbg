@@ -1645,6 +1645,33 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
 
 
 @pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        (recursive_dict, 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
+        (
+            recursive_dict,
+            47,
+            """
+            {
+                <class 'dict'>: {...},
+                <class 'list'>: [[...]],
+            }
+            """,
+        ),
+    ],
+)
+def test_format_without_frozendict(obj: Any, width: int | None, expected: str) -> None:
+    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    formatter = Formatter(config)
+    with mock.patch.dict(sys.modules, {"frozendict": None}):
+        importlib.reload(sys.modules["debug._format"])
+        string = formatter.format(obj, initial_width=0)
+    string = strip_ansi(string)
+    expected = textwrap.dedent(expected).strip()
+    assert string == expected
+
+
+@pytest.mark.parametrize(
     "obj, initial_width, width, expected",
     [
         (True, 2, None, "*_True"),
