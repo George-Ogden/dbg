@@ -2,3 +2,5 @@
 colorama
 pre-commit
 pytest
+types-colorama
+types-pygments
