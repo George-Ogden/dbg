@@ -19,6 +19,12 @@ from wcwidth import wcswidth
 from ._code import highlight_code
 from ._config import DbgConfig
 
+frozendict: type[Any]
+try:
+    from frozendict import frozendict
+except (ModuleNotFoundError, ImportError):
+    frozendict = type("", (), {})
+
 ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
@@ -158,8 +164,6 @@ class BaseFormat(abc.ABC):
             try:
                 items = obj.most_common()  # type: ignore
             except (TypeError, AttributeError):
-                ...
-            if items is None:
                 items = obj.items()
             format = DictFormat(
                 [
@@ -178,7 +182,7 @@ class BaseFormat(abc.ABC):
             if isinstance(obj, sequence_cls):
                 if type(obj) is set and len(obj) == 0:
                     obj_type = set
-                elif type(obj) is frozenset:
+                elif type(obj) in (frozenset,):
                     obj_type = frozenset
                 elif type(obj) is sequence_cls:
                     obj_type = None
@@ -466,11 +470,21 @@ BaseFormat.SEQUENCE_FORMATTERS = [
     (set, CurlySequenceFormat),
     (tuple, RoundSequenceFormat),
     (frozenset, CurlySequenceFormat),
+    (frozendict, CurlySequenceFormat),
 ]
 
-BaseFormat.KNOWN_WRAPPED_CLASSES = (list, set, tuple, dict, defaultdict, frozenset, array)
+BaseFormat.KNOWN_WRAPPED_CLASSES = (
+    list,
+    set,
+    tuple,
+    dict,
+    defaultdict,
+    frozenset,
+    array,
+    frozendict,
+)
 
-BaseFormat.KNOWN_EXTRA_CLASSES = (Counter,)
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict)
 
 
 class Formatter:

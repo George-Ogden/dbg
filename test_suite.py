@@ -13,6 +13,7 @@ from unittest import mock
 
 from _pytest.capture import CaptureFixture
 from colorama import Fore
+from frozendict import frozendict
 from pygments.formatters import Terminal256Formatter
 import pytest
 
@@ -1455,6 +1456,11 @@ class DataclassCustomRepr:
                 """,
             ],
         ),
+        (
+            type("freezeset", (frozenset,), {})(),
+            None,
+            "freezeset()",
+        ),
         (array("l"), None, "array('l')"),
         (array("i"), 10, "array('i')"),
         (
@@ -1567,6 +1573,59 @@ class DataclassCustomRepr:
             None,
             "subarray('h', [-2])",
         ),
+        (frozendict(), None, "frozendict()"),
+        (frozendict(Counter("aaabbc")), None, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
+        (frozendict(Counter("aaabbc")), 36, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
+        (
+            frozendict(Counter("aaabbc")),
+            35,
+            """
+            frozendict({
+                'a': 3,
+                'b': 2,
+                'c': 1,
+            })
+            """,
+        ),
+        (frozendict({"long": list("long")}), None, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (frozendict({"long": list("long")}), 42, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (
+            frozendict({"long": list("long")}),
+            41,
+            """
+            frozendict({
+                'long': ['l', 'o', 'n', 'g'],
+            })
+            """,
+        ),
+        (
+            frozendict({"long": list("long")}),
+            33,
+            """
+            frozendict({
+                'long': ['l', 'o', 'n', 'g'],
+            })
+            """,
+        ),
+        (
+            frozendict({"long": list("long")}),
+            32,
+            """
+            frozendict({
+                'long': [
+                    'l',
+                    'o',
+                    'n',
+                    'g',
+                ],
+            })
+            """,
+        ),
+        (
+            type("freezedict", (frozendict,), {})(),
+            None,
+            "freezedict()",
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
@@ -1583,6 +1642,33 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
         assert string == expected
     else:
         assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        (recursive_dict, 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
+        (
+            recursive_dict,
+            47,
+            """
+            {
+                <class 'dict'>: {...},
+                <class 'list'>: [[...]],
+            }
+            """,
+        ),
+    ],
+)
+def test_format_without_frozendict(obj: Any, width: int | None, expected: str) -> None:
+    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    formatter = Formatter(config)
+    with mock.patch.dict(sys.modules, {"frozendict": None}):
+        importlib.reload(sys.modules["debug._format"])
+        string = formatter.format(obj, initial_width=0)
+    string = strip_ansi(string)
+    expected = textwrap.dedent(expected).strip()
+    assert string == expected
 
 
 @pytest.mark.parametrize(
