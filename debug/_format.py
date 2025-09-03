@@ -495,7 +495,7 @@ class Formatter:
         formatted_obj = BaseFormat._from(obj, set())
         text = formatted_obj._format(initial_width, highlight=True, config=self._config)
         terminal_width = self._config._terminal_width
-        if isinstance(formatted_obj, ItemFormat):
+        if isinstance(formatted_obj, ItemFormat) and text:
             max_len = max(map(BaseFormat.len, text.splitlines()))
             if terminal_width is not None and max_len + initial_width > terminal_width:
                 text = "\n" + text

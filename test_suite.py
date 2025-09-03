@@ -494,6 +494,11 @@ class DataclassCustomRepr:
         return "DataclassCustomRepr!"
 
 
+class EmptyRepr:
+    def __repr__(self) -> str:
+        return ""
+
+
 @pytest.mark.parametrize(
     "obj, width, expected",
     [
@@ -1626,6 +1631,8 @@ class DataclassCustomRepr:
             None,
             "freezedict()",
         ),
+        (EmptyRepr(), None, ""),
+        (EmptyRepr(), 1, ""),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

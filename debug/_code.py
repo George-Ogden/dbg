@@ -51,9 +51,9 @@ def get_source_segments(source: str) -> None | Iterable[str]:
 def get_source(frame: types.FrameType) -> None | str:
     try:
         lines, offset = inspect.getsourcelines(frame)
-        offset = max(offset, 1)
     except OSError:
         return None
+    offset = max(offset, 1)
     traceback = inspect.getframeinfo(frame, context=0)
     positions = traceback.positions
     if positions is None:
