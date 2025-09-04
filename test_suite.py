@@ -1578,7 +1578,7 @@ class EmptyRepr:
             None,
             "subarray('h', [-2])",
         ),
-        (frozendict(), None, "frozendict()"),
+        (frozendict(), None, "frozendict({})"),
         (frozendict(Counter("aaabbc")), None, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
         (frozendict(Counter("aaabbc")), 36, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
         (
@@ -1629,7 +1629,7 @@ class EmptyRepr:
         (
             type("freezedict", (frozendict,), {})(),
             None,
-            "freezedict()",
+            "freezedict({})",
         ),
         (EmptyRepr(), None, ""),
         (EmptyRepr(), 1, ""),
