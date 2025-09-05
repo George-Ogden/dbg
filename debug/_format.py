@@ -556,7 +556,9 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     defaultdict,
     frozenset,
     array,
-    frozendict,
+    KeysView,
+    ValuesView,
+    ItemsView,
 )
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict)
