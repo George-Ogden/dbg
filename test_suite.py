@@ -1691,6 +1691,19 @@ class EmptyRepr:
             ])
             """,
         ),
+        ({1: 2, 3: 4, 5: 6}.items(), None, "dict_items([(1, 2), (3, 4), (5, 6)])"),
+        ({1: 2, 3: 4, 5: 6}.items(), 36, "dict_items([(1, 2), (3, 4), (5, 6)])"),
+        (
+            {1: 2, 3: 4, 5: 6}.items(),
+            35,
+            """
+            dict_items([
+                (1, 2),
+                (3, 4),
+                (5, 6),
+            ])
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

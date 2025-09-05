@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from array import array
 from collections import Counter, defaultdict
-from collections.abc import Collection, Iterable, KeysView, ValuesView
+from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
 from dataclasses import dataclass, field
 import os
@@ -537,6 +537,12 @@ BaseFormat.SEQUENCE_MAKERS = [
     SequenceMaker(
         include_name=True,
         base_cls=ValuesView,
+        sequence_cls=SquareSequenceFormat,
+        show_braces_when_empty=True,
+    ),
+    SequenceMaker(
+        include_name=True,
+        base_cls=ItemsView,
         sequence_cls=SquareSequenceFormat,
         show_braces_when_empty=True,
     ),
