@@ -9,12 +9,10 @@ repos:
       - id: trailing-whitespace
       - id: requirements-txt-fixer
 
-  - repo: https://github.com/George-Ogden/pre-commit-hooks
-    rev: v1.1.0
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
     hooks:
-      - id: check-merge-conflict
-      - id: mypy
-        args: [-r, requirements-dev.txt]
+      - id: prettier
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.11
@@ -26,7 +24,9 @@ repos:
           - --fix
         exclude: ^test_samples
 
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0
+  - repo: https://github.com/George-Ogden/pre-commit-hooks
+    rev: v1.1.0
     hooks:
-      - id: prettier
+      - id: check-merge-conflict
+      - id: mypy
+        args: [-r, requirements-dev.txt]

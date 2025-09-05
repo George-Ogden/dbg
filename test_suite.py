@@ -1578,7 +1578,7 @@ class EmptyRepr:
             None,
             "subarray('h', [-2])",
         ),
-        (frozendict(), None, "frozendict()"),
+        (frozendict(), None, "frozendict({})"),
         (frozendict(Counter("aaabbc")), None, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
         (frozendict(Counter("aaabbc")), 36, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
         (
@@ -1629,10 +1629,81 @@ class EmptyRepr:
         (
             type("freezedict", (frozendict,), {})(),
             None,
-            "freezedict()",
+            "freezedict({})",
         ),
         (EmptyRepr(), None, ""),
         (EmptyRepr(), 1, ""),
+        (dict.fromkeys([8, 6, 4]).keys(), None, "dict_keys([8, 6, 4])"),
+        (dict.fromkeys([8, 6, 4]).keys(), 20, "dict_keys([8, 6, 4])"),
+        (
+            dict.fromkeys([8, 6, 4]).keys(),
+            19,
+            """
+            dict_keys([
+                8,
+                6,
+                4,
+            ])
+            """,
+        ),
+        (
+            dict.fromkeys([]).keys(),
+            None,
+            """
+            dict_keys([])
+            """,
+        ),
+        ({(): (), None: None}.values(), None, "dict_values([(), None])"),
+        ({(): (), None: None}.values(), 23, "dict_values([(), None])"),
+        (
+            {(): (), None: None}.values(),
+            22,
+            """
+            dict_values([
+                (),
+                None,
+            ])
+            """,
+        ),
+        (
+            {(): (), None: [1, 2, 3, 4, 5]}.values(),
+            20,
+            """
+            dict_values([
+                (),
+                [1, 2, 3, 4, 5],
+            ])
+            """,
+        ),
+        (
+            {(): (), None: [1, 2, 3, 4, 5]}.values(),
+            19,
+            """
+            dict_values([
+                (),
+                [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ],
+            ])
+            """,
+        ),
+        ({1: 2, 3: 4, 5: 6}.items(), None, "dict_items([(1, 2), (3, 4), (5, 6)])"),
+        ({1: 2, 3: 4, 5: 6}.items(), 36, "dict_items([(1, 2), (3, 4), (5, 6)])"),
+        (
+            {1: 2, 3: 4, 5: 6}.items(),
+            35,
+            """
+            dict_items([
+                (1, 2),
+                (3, 4),
+                (5, 6),
+            ])
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
