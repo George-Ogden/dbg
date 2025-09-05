@@ -2,7 +2,7 @@ default_stages: ["pre-commit", "commit-msg", "pre-push"]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
       - id: mixed-line-ending
@@ -15,7 +15,7 @@ repos:
       - id: prettier
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.11
+    rev: v0.12.12
     hooks:
       - id: ruff-format
         exclude: ^test_samples
@@ -25,7 +25,7 @@ repos:
         exclude: ^test_samples
 
   - repo: https://github.com/George-Ogden/pre-commit-hooks
-    rev: v1.1.0
+    rev: v1.2.2
     hooks:
       - id: check-merge-conflict
       - id: mypy
