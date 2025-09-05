@@ -15,9 +15,11 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Generic,
     Protocol,
     Self,
     TypeAlias,
+    TypeVar,
 )
 import unicodedata
 
@@ -374,14 +376,15 @@ class SequenceCallable(Protocol):
 
 
 SequenceInit: TypeAlias = SequenceCallable | type[SequenceFormat]
+SequenceMakerT = TypeVar("SequenceMakerT", bound=Collection)
 
 
-class SequenceMaker:
+class SequenceMaker(Generic[SequenceMakerT]):
     def __init__(
         self,
         *,
         include_name: bool,
-        base_cls: type[Collection],
+        base_cls: type[SequenceMakerT],
         sequence_cls: type[SequenceFormat],
         show_braces_when_empty: bool,
     ) -> None:
@@ -390,7 +393,7 @@ class SequenceMaker:
         self._sequence_cls = sequence_cls
         self._show_braces_when_empty = show_braces_when_empty
 
-    def formatter(self, obj: Collection, visited: Visited, **kwargs: Any) -> BaseFormat:
+    def formatter(self, obj: SequenceMakerT, visited: Visited, **kwargs: Any) -> BaseFormat:
         display_type = self.use_type(obj)
         if len(obj) == 0:
             empty_formatter = self.format_empty(display_type)
@@ -404,7 +407,7 @@ class SequenceMaker:
             visited.remove(id(obj))
         return self.sequence_init(obj)(sub_objs, display_type, **kwargs)
 
-    def sequence_init(self, obj: Collection) -> SequenceInit:
+    def sequence_init(self, obj: SequenceMakerT) -> SequenceInit:
         return self._sequence_cls
 
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
@@ -412,31 +415,34 @@ class SequenceMaker:
             return None
         return NamedObjectFormat(display_type, RoundSequenceFormat([], None))
 
-    def format_sub_objs(self, sub_objs: Iterable, visited: Visited) -> list[BaseFormat]:
+    def format_sub_objs(self, sub_objs: SequenceMakerT, visited: Visited) -> list[BaseFormat]:
         return [BaseFormat._from(sub_obj, visited) for sub_obj in sub_objs]
 
-    def use_type(self, obj: Collection) -> None | type:
+    def use_type(self, obj: SequenceMakerT) -> None | type:
         obj_type = type(obj)
         if not self._include_name and obj_type is self.base_cls:
             return None
         return obj_type
 
 
-class SetMaker(SequenceMaker):
+class SetMaker(SequenceMaker[set]):
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
         return NamedObjectFormat(display_type or self.base_cls, RoundSequenceFormat([], None))
 
 
-class TupleMaker(SequenceMaker):
-    def formatter(self, obj: Collection, visited: Visited, **kwargs: Any) -> BaseFormat:
+class TupleMaker(SequenceMaker[tuple]):
+    def formatter(self, obj: tuple, visited: Visited, **kwargs: Any) -> BaseFormat:
         if len(obj) == 1:
             kwargs = kwargs | dict(extra_trailing_comma=True)
         return super().formatter(obj, visited, **kwargs)
 
 
-class DictMaker(SequenceMaker):
-    def format_sub_objs(self, sub_objs: Iterable, visited: Visited) -> list[BaseFormat]:
-        items = sub_objs.items()  # type: ignore
+DictMakerT = TypeVar("DictMakerT", bound=dict)
+
+
+class DictMaker(Generic[DictMakerT], SequenceMaker[DictMakerT]):
+    def format_sub_objs(self, sub_objs: DictMakerT, visited: Visited) -> list[BaseFormat]:
+        items = sub_objs.items()
         return [
             PairFormat(
                 BaseFormat._from(k, visited),
@@ -446,17 +452,17 @@ class DictMaker(SequenceMaker):
         ]
 
 
-class CounterMaker(DictMaker):
-    def format_sub_objs(self, sub_objs: Iterable, visited: Visited) -> list[BaseFormat]:
+class CounterMaker(DictMaker[Counter]):
+    def format_sub_objs(self, sub_objs: Counter, visited: Visited) -> list[BaseFormat]:
         try:
-            items = sub_objs.most_common()  # type: ignore
+            items = list(sub_objs.most_common())
         except (AttributeError, TypeError):
-            items = sub_objs.items()  # type: ignore
-        return super().format_sub_objs(dict(items), visited)
+            items = list(sub_objs.items())
+        return super().format_sub_objs(dict(items), visited)  # type: ignore
 
 
-class DefaultDictMaker(DictMaker):
-    def sequence_init(self, obj: Collection) -> SequenceInit:
+class DefaultDictMaker(DictMaker[defaultdict]):
+    def sequence_init(self, obj: defaultdict) -> SequenceInit:
         def construct_default_dict(
             sub_objs: None | list[BaseFormat], display_type: type | None, **kwargs: Any
         ) -> BaseFormat:
@@ -464,7 +470,7 @@ class DefaultDictMaker(DictMaker):
             return NamedObjectFormat(
                 display_type,
                 RoundSequenceFormat(
-                    [ItemFormat(obj.default_factory), self._sequence_cls(sub_objs, None)],  # type: ignore
+                    [ItemFormat(obj.default_factory), self._sequence_cls(sub_objs, None)],
                     None,
                     **kwargs,
                 ),
