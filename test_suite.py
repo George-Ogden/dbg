@@ -1653,6 +1653,44 @@ class EmptyRepr:
             dict_keys([])
             """,
         ),
+        ({(): (), None: None}.values(), None, "dict_values([(), None])"),
+        ({(): (), None: None}.values(), 23, "dict_values([(), None])"),
+        (
+            {(): (), None: None}.values(),
+            22,
+            """
+            dict_values([
+                (),
+                None,
+            ])
+            """,
+        ),
+        (
+            {(): (), None: [1, 2, 3, 4, 5]}.values(),
+            20,
+            """
+            dict_values([
+                (),
+                [1, 2, 3, 4, 5],
+            ])
+            """,
+        ),
+        (
+            {(): (), None: [1, 2, 3, 4, 5]}.values(),
+            19,
+            """
+            dict_values([
+                (),
+                [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                ],
+            ])
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
