@@ -1633,6 +1633,26 @@ class EmptyRepr:
         ),
         (EmptyRepr(), None, ""),
         (EmptyRepr(), 1, ""),
+        (dict.fromkeys([8, 6, 4]).keys(), None, "dict_keys([8, 6, 4])"),
+        (dict.fromkeys([8, 6, 4]).keys(), 20, "dict_keys([8, 6, 4])"),
+        (
+            dict.fromkeys([8, 6, 4]).keys(),
+            19,
+            """
+            dict_keys([
+                8,
+                6,
+                4,
+            ])
+            """,
+        ),
+        (
+            dict.fromkeys([]).keys(),
+            None,
+            """
+            dict_keys([])
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
