@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from array import array
-from collections import Counter, defaultdict
+from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
 from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
 from dataclasses import dataclass, field
@@ -156,6 +156,16 @@ class BaseFormat(abc.ABC):
                 [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
             )
             return NamedObjectFormat(type(obj), array_subformat)
+
+        if isinstance(obj, ChainMap):
+            if id(obj) in visited:
+                return NamedObjectFormat(type(obj), RoundSequenceFormat(None, None))
+            visited.add(id(obj))
+            chainmap_subformat = RoundSequenceFormat(
+                [cls._from(map, visited) for map in obj.maps], None
+            )
+            visited.remove(id(obj))
+            return NamedObjectFormat(type(obj), chainmap_subformat)
 
         return ItemFormat(obj)
 
@@ -546,6 +556,24 @@ BaseFormat.SEQUENCE_MAKERS = [
         sequence_cls=SquareSequenceFormat,
         show_braces_when_empty=True,
     ),
+    SequenceMaker(
+        include_name=True,
+        base_cls=UserList,
+        sequence_cls=SquareSequenceFormat,
+        show_braces_when_empty=True,
+    ),
+    DictMaker(
+        include_name=True,
+        base_cls=UserDict,
+        sequence_cls=CurlySequenceFormat,
+        show_braces_when_empty=True,
+    ),
+    SequenceMaker(
+        include_name=True,
+        base_cls=deque,
+        sequence_cls=SquareSequenceFormat,
+        show_braces_when_empty=True,
+    ),
 ]
 
 BaseFormat.KNOWN_WRAPPED_CLASSES = (
@@ -559,9 +587,16 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     KeysView,
     ValuesView,
     ItemsView,
+    deque,
 )
 
-BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict)
+BaseFormat.KNOWN_EXTRA_CLASSES = (
+    Counter,
+    frozendict,
+    UserList,
+    UserDict,
+    ChainMap,
+)
 
 
 @dataclass

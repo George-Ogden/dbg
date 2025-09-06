@@ -1,5 +1,5 @@
 from array import array
-from collections import Counter, defaultdict
+from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -450,6 +450,9 @@ recursive_multi_object_dict[1] = []
 
 partial_recursive_object = (recursive_list, recursive_list)
 
+recursive_chainmap: ChainMap[Any, Any] = ChainMap()
+recursive_chainmap[ChainMap] = recursive_chainmap
+
 
 class ListSubclass(list): ...
 
@@ -497,6 +500,12 @@ class DataclassCustomRepr:
 class EmptyRepr:
     def __repr__(self) -> str:
         return ""
+
+
+class UserLister(UserList): ...
+
+
+class UserDicter(UserDict): ...
 
 
 @pytest.mark.parametrize(
@@ -1108,6 +1117,7 @@ class EmptyRepr:
             """,
         ),
         (partial_recursive_object, None, "([[...]], [[...]])"),
+        (recursive_chainmap, None, "ChainMap({<class 'collections.ChainMap'>: ChainMap(...)})"),
         (
             ColoredMultilineObject([2, 2, 2]),
             None,
@@ -1333,6 +1343,27 @@ class EmptyRepr:
             "FrozenSetSubclassCustomRepr!",
         ),
         (custom_repr_cls("ArraySubclassCustomRepr", array, "l"), None, "ArraySubclassCustomRepr!"),
+        (
+            custom_repr_cls("UserListSubclassCustomRepr", UserList),
+            None,
+            "UserListSubclassCustomRepr!",
+        ),
+        (
+            custom_repr_cls("UserDictSubclassCustomRepr", UserDict),
+            None,
+            "UserDictSubclassCustomRepr!",
+        ),
+        (
+            custom_repr_cls("OrderedDictSubclassCustomRepr", OrderedDict),
+            None,
+            "OrderedDictSubclassCustomRepr!",
+        ),
+        (
+            custom_repr_cls("ChainMapSubclassCustomRepr", ChainMap),
+            None,
+            "ChainMapSubclassCustomRepr!",
+        ),
+        (custom_repr_cls("DequeSubclassCustomRepr", deque), None, "DequeSubclassCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1701,6 +1732,264 @@ class EmptyRepr:
                 (1, 2),
                 (3, 4),
                 (5, 6),
+            ])
+            """,
+        ),
+        (UserLister(), None, "UserLister([])"),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            None,
+            "UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]])",
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            49,
+            "UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]])",
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            48,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [6, 7, 8, 9],
+            ])
+            """,
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            17,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [6, 7, 8, 9],
+            ])
+            """,
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            16,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [
+                    6,
+                    7,
+                    8,
+                    9,
+                ],
+            ])
+            """,
+        ),
+        (UserDicter(), None, "UserDicter({})"),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            None,
+            "UserDicter({1: [2, 3], 4: [5, 6, 7, 8]})",
+        ),
+        (UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}), 40, "UserDicter({1: [2, 3], 4: [5, 6, 7, 8]})"),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            39,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [5, 6, 7, 8],
+            })
+            """,
+        ),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            20,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [5, 6, 7, 8],
+            })
+            """,
+        ),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            19,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [
+                    5,
+                    6,
+                    7,
+                    8,
+                ],
+            })
+            """,
+        ),
+        (OrderedDict(), None, "OrderedDict()"),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            None,
+            "OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]})",
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            48,
+            "OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]})",
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            47,
+            """
+            OrderedDict({
+                0: [],
+                1: [2, 3, 4],
+                5: [6, 7, 8],
+            })
+            """,
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            17,
+            """
+            OrderedDict({
+                0: [],
+                1: [2, 3, 4],
+                5: [6, 7, 8],
+            })
+            """,
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            16,
+            """
+            OrderedDict({
+                0: [],
+                1: [
+                    2,
+                    3,
+                    4,
+                ],
+                5: [
+                    6,
+                    7,
+                    8,
+                ],
+            })
+            """,
+        ),
+        (ChainMap(), None, "ChainMap({})"),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            None,
+            "ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]})",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            48,
+            "ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]})",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            47,
+            """
+            ChainMap(
+                {0: [1, 2, 3], 4: [5, 6, 7]},
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            33,
+            """
+            ChainMap(
+                {0: [1, 2, 3], 4: [5, 6, 7]},
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            32,
+            """
+            ChainMap(
+                {
+                    0: [1, 2, 3],
+                    4: [5, 6, 7],
+                },
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            21,
+            """
+            ChainMap(
+                {
+                    0: [1, 2, 3],
+                    4: [5, 6, 7],
+                },
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            20,
+            """
+            ChainMap(
+                {
+                    0: [
+                        1,
+                        2,
+                        3,
+                    ],
+                    4: [
+                        5,
+                        6,
+                        7,
+                    ],
+                },
+                {8: [9]},
+            )""",
+        ),
+        (deque(), None, "deque([])"),
+        (deque([[1, 2], [3, 4]]), None, "deque([[1, 2], [3, 4]])"),
+        (deque([[1, 2], [3, 4]]), 23, "deque([[1, 2], [3, 4]])"),
+        (
+            deque([[1, 2], [3, 4]]),
+            22,
+            """
+            deque([
+                [1, 2],
+                [3, 4],
+            ])
+            """,
+        ),
+        (
+            deque([[1, 2], [3, 4]]),
+            11,
+            """
+            deque([
+                [1, 2],
+                [3, 4],
+            ])
+            """,
+        ),
+        (
+            deque([[1, 2], [3, 4]]),
+            10,
+            """
+            deque([
+                [
+                    1,
+                    2,
+                ],
+                [
+                    3,
+                    4,
+                ],
             ])
             """,
         ),
