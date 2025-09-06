@@ -1339,6 +1339,16 @@ class UserDicter(UserDict): ...
             "FrozenSetSubclassCustomRepr!",
         ),
         (custom_repr_cls("ArraySubclassCustomRepr", array, "l"), None, "ArraySubclassCustomRepr!"),
+        (
+            custom_repr_cls("UserListSubclassCustomRepr", UserList),
+            None,
+            "UserListSubclassCustomRepr!",
+        ),
+        (
+            custom_repr_cls("UserDictSubclassCustomRepr", UserDict),
+            None,
+            "UserDictSubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),

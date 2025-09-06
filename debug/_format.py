@@ -573,7 +573,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ItemsView,
 )
 
-BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict)
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict, UserList, UserDict)
 
 
 @dataclass
