@@ -1,5 +1,5 @@
 from array import array
-from collections import Counter, defaultdict
+from collections import Counter, UserList, defaultdict
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -497,6 +497,9 @@ class DataclassCustomRepr:
 class EmptyRepr:
     def __repr__(self) -> str:
         return ""
+
+
+class UserLister(UserList): ...
 
 
 @pytest.mark.parametrize(
@@ -1701,6 +1704,57 @@ class EmptyRepr:
                 (1, 2),
                 (3, 4),
                 (5, 6),
+            ])
+            """,
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            None,
+            "UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]])",
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            49,
+            "UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]])",
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            48,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [6, 7, 8, 9],
+            ])
+            """,
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            17,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [6, 7, 8, 9],
+            ])
+            """,
+        ),
+        (
+            UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
+            16,
+            """
+            UserLister([
+                [],
+                [1, 2],
+                [3, 4, 5],
+                [
+                    6,
+                    7,
+                    8,
+                    9,
+                ],
             ])
             """,
         ),
