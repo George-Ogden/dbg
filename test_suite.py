@@ -1,5 +1,5 @@
 from array import array
-from collections import Counter, OrderedDict, UserDict, UserList, defaultdict
+from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -449,6 +449,9 @@ recursive_multi_object_dict[0] = recursive_multi_object_list
 recursive_multi_object_dict[1] = []
 
 partial_recursive_object = (recursive_list, recursive_list)
+
+recursive_chainmap: ChainMap[Any, Any] = ChainMap()
+recursive_chainmap[ChainMap] = recursive_chainmap
 
 
 class ListSubclass(list): ...
@@ -1114,6 +1117,7 @@ class UserDicter(UserDict): ...
             """,
         ),
         (partial_recursive_object, None, "([[...]], [[...]])"),
+        (recursive_chainmap, None, "ChainMap({<class 'collections.ChainMap'>: ChainMap(...)})"),
         (
             ColoredMultilineObject([2, 2, 2]),
             None,
@@ -1353,6 +1357,11 @@ class UserDicter(UserDict): ...
             custom_repr_cls("OrderedDictSubclassCustomRepr", OrderedDict),
             None,
             "OrderedDictSubclassCustomRepr!",
+        ),
+        (
+            custom_repr_cls("ChainMapSubclassCustomRepr", ChainMap),
+            None,
+            "ChainMapSubclassCustomRepr!",
         ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
@@ -1870,6 +1879,79 @@ class UserDicter(UserDict): ...
                 ],
             })
             """,
+        ),
+        (ChainMap(), None, "ChainMap({})"),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            None,
+            "ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]})",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            48,
+            "ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]})",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            47,
+            """
+            ChainMap(
+                {0: [1, 2, 3], 4: [5, 6, 7]},
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            33,
+            """
+            ChainMap(
+                {0: [1, 2, 3], 4: [5, 6, 7]},
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            32,
+            """
+            ChainMap(
+                {
+                    0: [1, 2, 3],
+                    4: [5, 6, 7],
+                },
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            21,
+            """
+            ChainMap(
+                {
+                    0: [1, 2, 3],
+                    4: [5, 6, 7],
+                },
+                {8: [9]},
+            )""",
+        ),
+        (
+            ChainMap({0: [1, 2, 3], 4: [5, 6, 7]}, {8: [9]}),
+            20,
+            """
+            ChainMap(
+                {
+                    0: [
+                        1,
+                        2,
+                        3,
+                    ],
+                    4: [
+                        5,
+                        6,
+                        7,
+                    ],
+                },
+                {8: [9]},
+            )""",
         ),
     ],
 )

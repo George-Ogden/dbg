@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from array import array
-from collections import Counter, UserDict, UserList, defaultdict
+from collections import ChainMap, Counter, UserDict, UserList, defaultdict
 from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
 from dataclasses import dataclass, field
@@ -156,6 +156,16 @@ class BaseFormat(abc.ABC):
                 [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
             )
             return NamedObjectFormat(type(obj), array_subformat)
+
+        if isinstance(obj, ChainMap):
+            if id(obj) in visited:
+                return NamedObjectFormat(type(obj), RoundSequenceFormat(None, None))
+            visited.add(id(obj))
+            chainmap_subformat = RoundSequenceFormat(
+                [cls._from(map, visited) for map in obj.maps], None
+            )
+            visited.remove(id(obj))
+            return NamedObjectFormat(type(obj), chainmap_subformat)
 
         return ItemFormat(obj)
 
@@ -573,7 +583,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ItemsView,
 )
 
-BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict, UserList, UserDict)
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict, UserList, UserDict, ChainMap)
 
 
 @dataclass
