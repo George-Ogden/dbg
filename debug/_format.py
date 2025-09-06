@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from array import array
-from collections import Counter, UserList, defaultdict
+from collections import Counter, UserDict, UserList, defaultdict
 from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
 from dataclasses import dataclass, field
@@ -550,6 +550,12 @@ BaseFormat.SEQUENCE_MAKERS = [
         include_name=True,
         base_cls=UserList,
         sequence_cls=SquareSequenceFormat,
+        show_braces_when_empty=True,
+    ),
+    DictMaker(
+        include_name=True,
+        base_cls=UserDict,
+        sequence_cls=CurlySequenceFormat,
         show_braces_when_empty=True,
     ),
 ]

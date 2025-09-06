@@ -1,5 +1,5 @@
 from array import array
-from collections import Counter, UserList, defaultdict
+from collections import Counter, UserDict, UserList, defaultdict
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -500,6 +500,9 @@ class EmptyRepr:
 
 
 class UserLister(UserList): ...
+
+
+class UserDicter(UserDict): ...
 
 
 @pytest.mark.parametrize(
@@ -1707,6 +1710,7 @@ class UserLister(UserList): ...
             ])
             """,
         ),
+        (UserLister(), None, "UserLister([])"),
         (
             UserLister([[], [1, 2], [3, 4, 5], [6, 7, 8, 9]]),
             None,
@@ -1756,6 +1760,48 @@ class UserLister(UserList): ...
                     9,
                 ],
             ])
+            """,
+        ),
+        (UserDicter(), None, "UserDicter({})"),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            None,
+            "UserDicter({1: [2, 3], 4: [5, 6, 7, 8]})",
+        ),
+        (UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}), 40, "UserDicter({1: [2, 3], 4: [5, 6, 7, 8]})"),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            39,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [5, 6, 7, 8],
+            })
+            """,
+        ),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            20,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [5, 6, 7, 8],
+            })
+            """,
+        ),
+        (
+            UserDicter({1: [2, 3], 4: [5, 6, 7, 8]}),
+            19,
+            """
+            UserDicter({
+                1: [2, 3],
+                4: [
+                    5,
+                    6,
+                    7,
+                    8,
+                ],
+            })
             """,
         ),
     ],
