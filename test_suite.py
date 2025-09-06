@@ -1,5 +1,5 @@
 from array import array
-from collections import Counter, UserDict, UserList, defaultdict
+from collections import Counter, OrderedDict, UserDict, UserList, defaultdict
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -1349,6 +1349,11 @@ class UserDicter(UserDict): ...
             None,
             "UserDictSubclassCustomRepr!",
         ),
+        (
+            custom_repr_cls("OrderedDictSubclassCustomRepr", OrderedDict),
+            None,
+            "OrderedDictSubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1807,6 +1812,58 @@ class UserDicter(UserDict): ...
                 1: [2, 3],
                 4: [
                     5,
+                    6,
+                    7,
+                    8,
+                ],
+            })
+            """,
+        ),
+        (OrderedDict(), None, "OrderedDict()"),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            None,
+            "OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]})",
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            48,
+            "OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]})",
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            47,
+            """
+            OrderedDict({
+                0: [],
+                1: [2, 3, 4],
+                5: [6, 7, 8],
+            })
+            """,
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            17,
+            """
+            OrderedDict({
+                0: [],
+                1: [2, 3, 4],
+                5: [6, 7, 8],
+            })
+            """,
+        ),
+        (
+            OrderedDict({0: [], 1: [2, 3, 4], 5: [6, 7, 8]}),
+            16,
+            """
+            OrderedDict({
+                0: [],
+                1: [
+                    2,
+                    3,
+                    4,
+                ],
+                5: [
                     6,
                     7,
                     8,
