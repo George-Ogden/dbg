@@ -1,5 +1,5 @@
 from array import array
-from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict
+from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from dataclasses import dataclass, field
 import filecmp
 import importlib
@@ -1363,6 +1363,7 @@ class UserDicter(UserDict): ...
             None,
             "ChainMapSubclassCustomRepr!",
         ),
+        (custom_repr_cls("DequeSubclassCustomRepr", deque), None, "DequeSubclassCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -1952,6 +1953,45 @@ class UserDicter(UserDict): ...
                 },
                 {8: [9]},
             )""",
+        ),
+        (deque(), None, "deque([])"),
+        (deque([[1, 2], [3, 4]]), None, "deque([[1, 2], [3, 4]])"),
+        (deque([[1, 2], [3, 4]]), 23, "deque([[1, 2], [3, 4]])"),
+        (
+            deque([[1, 2], [3, 4]]),
+            22,
+            """
+            deque([
+                [1, 2],
+                [3, 4],
+            ])
+            """,
+        ),
+        (
+            deque([[1, 2], [3, 4]]),
+            11,
+            """
+            deque([
+                [1, 2],
+                [3, 4],
+            ])
+            """,
+        ),
+        (
+            deque([[1, 2], [3, 4]]),
+            10,
+            """
+            deque([
+                [
+                    1,
+                    2,
+                ],
+                [
+                    3,
+                    4,
+                ],
+            ])
+            """,
         ),
     ],
 )
