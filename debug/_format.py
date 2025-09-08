@@ -116,6 +116,8 @@ class BaseFormat(abc.ABC):
                 and hasattr(obj.__repr__, "__wrapped__")
                 and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
             ):
+                if id(obj) in visited:
+                    return NamedObjectFormat(type(obj), None)
                 visited.add(id(obj))
                 dataclass_format = NamedObjectFormat(
                     type(obj),
@@ -161,6 +163,8 @@ class BaseFormat(abc.ABC):
             )
 
         if isinstance(obj, ast.AST):
+            if id(obj) in visited:
+                return NamedObjectFormat(type(obj), None)
             visited.add(id(obj))
             ast_format = NamedObjectFormat(
                 type(obj),

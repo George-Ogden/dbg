@@ -508,6 +508,18 @@ class DataclassCustomRepr:
         return "DataclassCustomRepr!"
 
 
+@dataclass
+class RecursiveDataclass:
+    recursive: Self
+
+
+recursive_dataclass = RecursiveDataclass(None)  # type: ignore
+recursive_dataclass.recursive = recursive_dataclass
+
+recursive_ast = ast.Set([])
+recursive_ast.elts.append(recursive_ast)
+
+
 class EmptyRepr:
     def __repr__(self) -> str:
         return ""
@@ -1138,6 +1150,8 @@ class UserDicter(UserDict): ...
             \x1b[32mCC\x1b[39m
             """,
         ),
+        (recursive_dataclass, None, "RecursiveDataclass(recursive=RecursiveDataclass(...))"),
+        (recursive_ast, None, "Set(elts=[Set(...)])"),
         (
             [ColoredMultilineObject([3]), ColoredMultilineObject([4])],
             None,
