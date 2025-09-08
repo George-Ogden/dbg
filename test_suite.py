@@ -127,6 +127,16 @@ def reset_modules() -> None:
             """,
         ),
         ("colored_repr", "[0]", "[colored_repr.py:8:7] ColoredRepr() = [0]"),
+        (
+            "pytest_width",
+            "",
+            f"""
+            [pytest_width.py:3:1] ["X" * 40] * 2 = [
+                {repr("X" * 40)},
+                {repr("X" * 40)},
+            ]
+            """,
+        ),
     ],
 )
 def test_samples(

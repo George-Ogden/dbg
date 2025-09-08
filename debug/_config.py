@@ -13,6 +13,10 @@ import pygments.styles
 from pygments.token import Token
 
 
+def pytest_enabled() -> bool:
+    return "PYTEST_VERSION" in os.environ
+
+
 def supports_color() -> bool:
     """
     Returns True if the running system's terminal supports color, and False otherwise.
