@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from array import array
+import ast
 from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
 from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
@@ -156,6 +157,17 @@ class BaseFormat(abc.ABC):
                 [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
             )
             return NamedObjectFormat(type(obj), array_subformat)
+
+        if isinstance(obj, ast.AST):
+
+            class ASTNode:
+                def __init__(self, node: ast.AST) -> None:
+                    self.node = node
+
+                def __repr__(self) -> str:
+                    return ast.dump(self.node)
+
+            return ItemFormat(ASTNode(obj))
 
         if isinstance(obj, ChainMap):
             if id(obj) in visited:
