@@ -599,16 +599,20 @@ BaseFormat.KNOWN_EXTRA_CLASSES = (
 )
 
 
-@dataclass
+@dataclass(repr=False)
 class FormatterConfig:
+    DEFAULT_WIDTH: ClassVar[int] = 80
+
     @staticmethod
-    def _get_terminal_width() -> None | int:
+    def _get_terminal_width() -> int:
+        width = FormatterConfig.DEFAULT_WIDTH
         try:
             width, _ = os.get_terminal_size(sys.stderr.fileno())
         except OSError:
-            return None
-        else:
-            return width
+            ...
+        if width < FormatterConfig.DEFAULT_WIDTH / 2:
+            width = FormatterConfig.DEFAULT_WIDTH
+        return width
 
     _indent_width: int = 2
     _terminal_width: None | int = field(default_factory=_get_terminal_width)
