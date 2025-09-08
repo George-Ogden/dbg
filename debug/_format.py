@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from array import array
+import ast
 from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
 from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
@@ -115,14 +116,19 @@ class BaseFormat(abc.ABC):
                 and hasattr(obj.__repr__, "__wrapped__")
                 and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
             ):
+                if id(obj) in visited:
+                    return NamedObjectFormat(type(obj), None)
                 visited.add(id(obj))
-                dataclass_subformat: list[BaseFormat] = [
-                    AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
-                    for field in dataclasses.fields(obj)
-                    if field.repr
-                ]
+                dataclass_format = NamedObjectFormat(
+                    type(obj),
+                    [
+                        AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
+                        for field in dataclasses.fields(obj)
+                        if field.repr
+                    ],
+                )
                 visited.remove(id(obj))
-                return DataclassFormat(type(obj), RoundSequenceFormat(dataclass_subformat, None))
+                return dataclass_format
             else:
                 return ItemFormat(obj)
 
@@ -152,20 +158,34 @@ class BaseFormat(abc.ABC):
             sub_objs = [obj.typecode]
             if body:
                 sub_objs.append(body)
-            array_subformat = RoundSequenceFormat(
-                [cls._from(sub_obj, visited) for sub_obj in sub_objs], None
+            return NamedObjectFormat(
+                type(obj), [cls._from(sub_obj, visited) for sub_obj in sub_objs]
             )
-            return NamedObjectFormat(type(obj), array_subformat)
+
+        if isinstance(obj, ast.AST):
+            if id(obj) in visited:
+                return NamedObjectFormat(type(obj), None)
+            visited.add(id(obj))
+            ast_format = NamedObjectFormat(
+                type(obj),
+                [
+                    AttrFormat(field, cls._from(getattr(obj, field), visited))
+                    for field in obj._fields
+                    if getattr(obj, field) is not None
+                ],
+            )
+            visited.remove(id(obj))
+            return ast_format
 
         if isinstance(obj, ChainMap):
             if id(obj) in visited:
-                return NamedObjectFormat(type(obj), RoundSequenceFormat(None, None))
+                return NamedObjectFormat(type(obj), None)
             visited.add(id(obj))
-            chainmap_subformat = RoundSequenceFormat(
-                [cls._from(map, visited) for map in obj.maps], None
+            chainmap_subformat = NamedObjectFormat(
+                type(obj), [cls._from(map, visited) for map in obj.maps]
             )
             visited.remove(id(obj))
-            return NamedObjectFormat(type(obj), chainmap_subformat)
+            return chainmap_subformat
 
         return ItemFormat(obj)
 
@@ -283,20 +303,19 @@ class RoundSequenceFormat(SequenceFormat):
         return "(", ")"
 
 
-class NamedObjectFormat(BaseFormat):
-    def __init__(self, type: type[Any], subformat: BaseFormat) -> None:
+class NamedObjectFormat(RoundSequenceFormat):
+    def __init__(
+        self,
+        type: type[Any],
+        objs: list[BaseFormat] | None,
+    ) -> None:
         self._name = type.__name__
-        self._subformat = subformat
-
-    def length(self) -> int | None:
-        return self.add(len(self._name), self._subformat.length())
-
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
-        return self._name + self._subformat._format(used_width + len(self._name), highlight, config)
+        super().__init__(objs, None)
 
     @property
-    def _highlight(self) -> bool:
-        return self._subformat._highlight
+    def _parentheses(self) -> tuple[str, str]:
+        open, close = super()._parentheses
+        return f"{self._name}{open}", close
 
 
 class PairFormat(BaseFormat):
@@ -335,15 +354,12 @@ class AttrFormat(BaseFormat):
 
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         attr_format = self._attr + "="
-        indent_width = len(attr_format)
-        config = FormatterConfig(
-            config._indent_width,
-            self.add(config._terminal_width, -indent_width),
+        value_format = self._value._format(
+            used_width + len(attr_format), not self._highlight, config
         )
-        value_format = self._value._format(1, not self._highlight, config)
         if isinstance(self._value, ItemFormat) and self._value.length() is None:
             value_format = textwrap.indent(
-                value_format, prefix=" " * indent_width, predicate=not_first()
+                value_format, prefix=" " * len(attr_format), predicate=not_first()
             )
         return self._highlight_code(highlight, attr_format + value_format)
 
@@ -353,9 +369,6 @@ class AttrFormat(BaseFormat):
     @property
     def _highlight(self) -> bool:
         return self._value._highlight
-
-
-class DataclassFormat(NamedObjectFormat): ...
 
 
 class ItemFormat(BaseFormat):
@@ -423,7 +436,7 @@ class SequenceMaker(Generic[SequenceMakerT]):
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
         if self._show_braces_when_empty or display_type is None:
             return None
-        return NamedObjectFormat(display_type, RoundSequenceFormat([], None))
+        return NamedObjectFormat(display_type, [])
 
     def format_sub_objs(self, sub_objs: SequenceMakerT, visited: Visited) -> list[BaseFormat]:
         return [BaseFormat._from(sub_obj, visited) for sub_obj in sub_objs]
@@ -437,7 +450,7 @@ class SequenceMaker(Generic[SequenceMakerT]):
 
 class SetMaker(SequenceMaker[set]):
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
-        return NamedObjectFormat(display_type or self.base_cls, RoundSequenceFormat([], None))
+        return NamedObjectFormat(display_type or self.base_cls, [])
 
 
 class TupleMaker(SequenceMaker[tuple]):
@@ -479,11 +492,8 @@ class DefaultDictMaker(DictMaker[defaultdict]):
             assert display_type is not None
             return NamedObjectFormat(
                 display_type,
-                RoundSequenceFormat(
-                    [ItemFormat(obj.default_factory), self._sequence_cls(sub_objs, None)],
-                    None,
-                    **kwargs,
-                ),
+                [ItemFormat(obj.default_factory), self._sequence_cls(sub_objs, None)],
+                **kwargs,
             )
 
         return construct_default_dict
@@ -588,6 +598,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ValuesView,
     ItemsView,
     deque,
+    ast.AST,
 )
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (
