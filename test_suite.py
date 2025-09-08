@@ -1388,6 +1388,11 @@ class UserDicter(UserDict): ...
             None,
             "ChainMapSubclassCustomRepr!",
         ),
+        (
+            custom_repr_cls("ASTNode", ast.Constant, 15),
+            None,
+            "ASTNode!",
+        ),
         (custom_repr_cls("DequeSubclassCustomRepr", deque), None, "DequeSubclassCustomRepr!"),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),

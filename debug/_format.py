@@ -598,6 +598,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ValuesView,
     ItemsView,
     deque,
+    ast.AST,
 )
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (
