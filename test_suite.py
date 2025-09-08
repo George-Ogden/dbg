@@ -1,4 +1,5 @@
 from array import array
+import ast
 from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from dataclasses import dataclass, field
 import filecmp
@@ -2001,6 +2002,173 @@ class UserDicter(UserDict): ...
                     4,
                 ],
             ])
+            """,
+        ),
+        (
+            ast.Load(),
+            None,
+            "Load()",
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            None,
+            "Expression(body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()))",
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            85,
+            "Expression(body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()))",
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            84,
+            """
+            Expression(
+                body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            78,
+            """
+            Expression(
+                body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            77,
+            """
+            Expression(
+                body=List(
+                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
+                    ctx=Load(),
+                ),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            63,
+            """
+            Expression(
+                body=List(
+                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
+                    ctx=Load(),
+                ),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            59,
+            """
+            Expression(
+                body=List(
+                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
+                    ctx=Load(),
+                ),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            58,
+            """
+            Expression(
+                body=List(
+                    elts=[
+                        Constant(value=1),
+                        Name(id='x', ctx=Load()),
+                    ],
+                    ctx=Load(),
+                ),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            37,
+            """
+            Expression(
+                body=List(
+                    elts=[
+                        Constant(value=1),
+                        Name(id='x', ctx=Load()),
+                    ],
+                    ctx=Load(),
+                ),
+            )
+            """,
+        ),
+        (
+            ast.Expression(
+                body=ast.List(
+                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
+                    ctx=ast.Load(),
+                )
+            ),
+            36,
+            """
+            Expression(
+                body=List(
+                    elts=[
+                        Constant(value=1),
+                        Name(
+                            id='x',
+                            ctx=Load(),
+                        ),
+                    ],
+                    ctx=Load(),
+                ),
+            )
             """,
         ),
     ],
