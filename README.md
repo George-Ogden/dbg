@@ -77,6 +77,18 @@ Getting the debug information involves introspecting the code very heavily.
 You need a Python interpreter that allows this (which you probably have by default).
 If some information is unavailable, a placeholder will be shown, such as `<unknown>`.
 
+## Pytest Tips
+
+`dbg` automatically detects your terminal width when running so that it can display objects better.
+If you're using pytest, it captures the stdout using file descriptors, however, this makes in impossible to detect the width.
+Instead, you can capture at the system level by setting the `--capture=sys` flag, which resolves this issue and enables color (if your terminal supports it).
+If you don't want to do this every time, set the following options in your `pytest.ini`:
+
+```ini
+[pytest]
+addopts = --capture=sys
+```
+
 ## Advanced Features
 
 `dbg` automatically detects whether ANSI codes are supported by your terminal and uses color if available.
