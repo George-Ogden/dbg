@@ -172,6 +172,7 @@ class BaseFormat(abc.ABC):
                     AttrFormat(field, cls._from(getattr(obj, field), visited))
                     for field in obj._fields
                     if getattr(obj, field) is not None
+                    or (isinstance(obj, ast.Constant) and field == "value")
                 ],
             )
             visited.remove(id(obj))
