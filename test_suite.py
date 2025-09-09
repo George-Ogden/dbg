@@ -2190,6 +2190,8 @@ class UserDicter(UserDict): ...
             )
             """,
         ),
+        (ast.Constant(0), None, "Constant(value=0)"),
+        (ast.Constant(None), None, "Constant(value=None)"),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
