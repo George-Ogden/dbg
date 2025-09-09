@@ -27,7 +27,7 @@ import unicodedata
 from wcwidth import wcswidth
 
 from ._code import highlight_code
-from ._config import DbgConfig
+from ._config import DbgConfig, pytest_enabled
 
 frozendict: type[Any]
 try:
@@ -621,7 +621,13 @@ class FormatterConfig:
         try:
             width, _ = os.get_terminal_size(sys.stderr.fileno())
         except OSError:
-            ...
+            if pytest_enabled():
+                stderr = sys.__stderr__
+                if stderr is not None:
+                    try:
+                        width, _ = os.get_terminal_size(stderr.fileno())
+                    except OSError:
+                        ...
         if width < FormatterConfig.DEFAULT_WIDTH / 2:
             width = FormatterConfig.DEFAULT_WIDTH
         return width
