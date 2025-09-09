@@ -25,6 +25,8 @@ def supports_color() -> bool:
     plat = sys.platform
     supported_platform = plat != "Pocket PC" and (plat != "win32" or "ANSICON" in os.environ)
     is_a_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
+    if not is_a_tty and pytest_enabled() and sys.__stderr__ is not None:
+        is_a_tty = hasattr(sys.__stderr__, "isatty") and sys.__stderr__.isatty()
     return supported_platform and is_a_tty
 
 
