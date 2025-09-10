@@ -531,6 +531,17 @@ class UserLister(UserList): ...
 class UserDicter(UserDict): ...
 
 
+if hasattr(ast.Constant, "_field_types"):
+    nested_ast_expression = ast.Expression(body=ast.List(elts=[ast.Constant(1), ast.Name("x")]))
+else:
+    nested_ast_expression = ast.Expression(
+        body=ast.List(
+            elts=[ast.Constant(1), ast.Name("x", ctx=None)],  # type: ignore
+            ctx=None,  # type: ignore
+        )
+    )
+
+
 @pytest.mark.parametrize(
     "obj, width, expected",
     [
@@ -2028,170 +2039,97 @@ class UserDicter(UserDict): ...
             None,
             "Load()",
         ),
+        (ast.Name("id", ctx=ast.Load()), None, ["Name(id='id', ctx=Load())", "Name(id='id')"]),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             None,
-            "Expression(body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()))",
+            "Expression(body=List(elts=[Constant(value=1), Name(id='x')]))",
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            85,
-            "Expression(body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()))",
+            nested_ast_expression,
+            61,
+            "Expression(body=List(elts=[Constant(value=1), Name(id='x')]))",
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            84,
+            nested_ast_expression,
+            60,
             """
             Expression(
-                body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()),
+                body=List(elts=[Constant(value=1), Name(id='x')]),
             )
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            78,
+            nested_ast_expression,
+            54,
             """
             Expression(
-                body=List(elts=[Constant(value=1), Name(id='x', ctx=Load())], ctx=Load()),
+                body=List(elts=[Constant(value=1), Name(id='x')]),
             )
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            77,
+            nested_ast_expression,
+            53,
             """
             Expression(
                 body=List(
-                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
-                    ctx=Load(),
+                    elts=[Constant(value=1), Name(id='x')],
                 ),
             )
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            63,
+            nested_ast_expression,
+            47,
             """
             Expression(
                 body=List(
-                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
-                    ctx=Load(),
+                    elts=[Constant(value=1), Name(id='x')],
                 ),
             )
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            59,
-            """
-            Expression(
-                body=List(
-                    elts=[Constant(value=1), Name(id='x', ctx=Load())],
-                    ctx=Load(),
-                ),
-            )
-            """,
-        ),
-        (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            58,
+            nested_ast_expression,
+            46,
             """
             Expression(
                 body=List(
                     elts=[
                         Constant(value=1),
-                        Name(id='x', ctx=Load()),
+                        Name(id='x'),
                     ],
-                    ctx=Load(),
-                ),
-            )
-            """,
-        ),
-        (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            37,
-            """
-            Expression(
-                body=List(
-                    elts=[
-                        Constant(value=1),
-                        Name(id='x', ctx=Load()),
-                    ],
-                    ctx=Load(),
-                ),
-            )
-            """,
-        ),
-        (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
-            36,
-            """
-            Expression(
-                body=List(
-                    elts=[
-                        Constant(value=1),
-                        Name(
-                            id='x',
-                            ctx=Load(),
-                        ),
-                    ],
-                    ctx=Load(),
                 ),
             )
             """,
         ),
         (ast.Constant(0), None, "Constant(value=0)"),
+        (ast.Constant(1, None), None, "Constant(value=1)"),
         (ast.Constant(None), None, "Constant(value=None)"),
+        (ast.MatchSingleton(None), None, "MatchSingleton(value=None)"),
+        (ast.MatchSingleton(False), None, "MatchSingleton(value=False)"),
+        (ast.MatchSingleton([]), None, "MatchSingleton(value=[])"),  # type: ignore
+        (ast.Constant([]), None, "Constant(value=[])"),  # type: ignore
+        (
+            ast.Dict(keys=[None], values=[ast.Name("d")]),
+            None,
+            "Dict(keys=[None], values=[Name(id='d')])",
+        ),
+        (
+            ast.List(elts=[]),
+            None,
+            "List()",
+        ),
+        (
+            ast.If(
+                ast.Constant(value=True),
+                body=[ast.Expr(value=ast.Constant(value=Ellipsis))],
+                orelse=[],
+            ),
+            None,
+            "If(test=Constant(value=True), body=[Expr(value=Constant(value=Ellipsis))])",
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
