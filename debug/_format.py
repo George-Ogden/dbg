@@ -109,6 +109,7 @@ class BaseFormat(abc.ABC):
 
     @classmethod
     def _from(cls, obj: Any, visited: Visited) -> BaseFormat:
+        obj_cls = type(obj)
         if dataclasses.is_dataclass(obj):
             if (
                 not isinstance(obj, type)
@@ -117,10 +118,10 @@ class BaseFormat(abc.ABC):
                 and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
             ):
                 if id(obj) in visited:
-                    return NamedObjectFormat(type(obj), None)
+                    return NamedObjectFormat(obj_cls, None)
                 visited.add(id(obj))
                 dataclass_format = NamedObjectFormat(
-                    type(obj),
+                    obj_cls,
                     [
                         AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
                         for field in dataclasses.fields(obj)
@@ -158,32 +159,42 @@ class BaseFormat(abc.ABC):
             sub_objs = [obj.typecode]
             if body:
                 sub_objs.append(body)
-            return NamedObjectFormat(
-                type(obj), [cls._from(sub_obj, visited) for sub_obj in sub_objs]
-            )
+            return NamedObjectFormat(obj_cls, [cls._from(sub_obj, visited) for sub_obj in sub_objs])
 
         if isinstance(obj, ast.AST):
             if id(obj) in visited:
-                return NamedObjectFormat(type(obj), None)
+                return NamedObjectFormat(obj_cls, None)
             visited.add(id(obj))
+            ast_subformat: list[BaseFormat] = []
+            for field in obj._fields:
+                try:
+                    value = getattr(obj, field)
+                except AttributeError:
+                    continue
+                if value is None and getattr(obj_cls, field, ...) is None:
+                    continue
+                if value == []:
+                    field_type = obj_cls._field_types.get(field, object)
+                    if getattr(field_type, "__origin__", ...) is list:
+                        continue
+                elif isinstance(value, ast.Load):
+                    field_type = obj_cls._field_types.get(field, object)
+                    if field_type is ast.expr_context:
+                        continue
+                ast_subformat.append(AttrFormat(field, cls._from(value, visited)))
             ast_format = NamedObjectFormat(
-                type(obj),
-                [
-                    AttrFormat(field, cls._from(getattr(obj, field), visited))
-                    for field in obj._fields
-                    if getattr(obj, field) is not None
-                    or (isinstance(obj, ast.Constant) and field == "value")
-                ],
+                obj_cls,
+                ast_subformat,
             )
             visited.remove(id(obj))
             return ast_format
 
         if isinstance(obj, ChainMap):
             if id(obj) in visited:
-                return NamedObjectFormat(type(obj), None)
+                return NamedObjectFormat(obj_cls, None)
             visited.add(id(obj))
             chainmap_subformat = NamedObjectFormat(
-                type(obj), [cls._from(map, visited) for map in obj.maps]
+                obj_cls, [cls._from(map, visited) for map in obj.maps]
             )
             visited.remove(id(obj))
             return chainmap_subformat
