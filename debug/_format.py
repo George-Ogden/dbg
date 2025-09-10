@@ -166,22 +166,31 @@ class BaseFormat(abc.ABC):
                 return NamedObjectFormat(obj_cls, None)
             visited.add(id(obj))
             ast_subformat: list[BaseFormat] = []
-            for field in obj._fields:
-                try:
-                    value = getattr(obj, field)
-                except AttributeError:
-                    continue
-                if value is None and getattr(obj_cls, field, ...) is None:
-                    continue
-                if value == []:
-                    field_type = obj_cls._field_types.get(field, object)
-                    if getattr(field_type, "__origin__", ...) is list:
+            if hasattr(obj_cls, "_field_types"):
+                for field in obj._fields:
+                    try:
+                        value = getattr(obj, field)
+                    except AttributeError:
                         continue
-                elif isinstance(value, ast.Load):
-                    field_type = obj_cls._field_types.get(field, object)
-                    if field_type is ast.expr_context:
+                    if value is None and getattr(obj_cls, field, ...) is None:
                         continue
-                ast_subformat.append(AttrFormat(field, cls._from(value, visited)))
+                    if value == []:
+                        field_type = obj_cls._field_types.get(field, object)
+                        if getattr(field_type, "__origin__", ...) is list:
+                            continue
+                    elif isinstance(value, ast.Load):
+                        field_type = obj_cls._field_types.get(field, object)
+                        if field_type is ast.expr_context:
+                            continue
+                    ast_subformat.append(AttrFormat(field, cls._from(value, visited)))
+            else:
+                ast_subformat = [
+                    AttrFormat(field, cls._from(getattr(obj, field), visited))
+                    for field in obj._fields
+                    if getattr(obj, field, None) not in (None, [])
+                    or (isinstance(obj, (ast.Constant, ast.MatchSingleton)) and field == "value")
+                ]
+
             ast_format = NamedObjectFormat(
                 obj_cls,
                 ast_subformat,

@@ -531,6 +531,17 @@ class UserLister(UserList): ...
 class UserDicter(UserDict): ...
 
 
+if hasattr(ast.Constant, "_field_types"):
+    nested_ast_expression = ast.Expression(body=ast.List(elts=[ast.Constant(1), ast.Name("x")]))
+else:
+    nested_ast_expression = ast.Expression(
+        body=ast.List(
+            elts=[ast.Constant(1), ast.Name("x", ctx=None)],  # type: ignore
+            ctx=None,  # type: ignore
+        )
+    )
+
+
 @pytest.mark.parametrize(
     "obj, width, expected",
     [
@@ -2028,33 +2039,19 @@ class UserDicter(UserDict): ...
             None,
             "Load()",
         ),
+        (ast.Name("id", ctx=ast.Load()), None, ["Name(id='id', ctx=Load())", "Name(id='id')"]),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             None,
             "Expression(body=List(elts=[Constant(value=1), Name(id='x')]))",
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             61,
             "Expression(body=List(elts=[Constant(value=1), Name(id='x')]))",
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             60,
             """
             Expression(
@@ -2063,12 +2060,7 @@ class UserDicter(UserDict): ...
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             54,
             """
             Expression(
@@ -2077,12 +2069,7 @@ class UserDicter(UserDict): ...
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             53,
             """
             Expression(
@@ -2093,12 +2080,7 @@ class UserDicter(UserDict): ...
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             47,
             """
             Expression(
@@ -2109,12 +2091,7 @@ class UserDicter(UserDict): ...
             """,
         ),
         (
-            ast.Expression(
-                body=ast.List(
-                    elts=[ast.Constant(1), ast.Name("x", ast.Load())],
-                    ctx=ast.Load(),
-                )
-            ),
+            nested_ast_expression,
             46,
             """
             Expression(
