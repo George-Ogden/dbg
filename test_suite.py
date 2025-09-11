@@ -857,6 +857,7 @@ else:
             }
             """,
         ),
+        ({EmptyRepr(): EmptyRepr()}, None, "{: }"),
         (
             {MultilineObject([3, 3]): "a", MultilineObject([1, 1]): "aa"},
             None,
@@ -2133,7 +2134,7 @@ else:
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
-    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
     formatter = Formatter(config)
     string = formatter.format(obj, initial_width=0)
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
@@ -2165,7 +2166,7 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     ],
 )
 def test_format_without_frozendict(obj: Any, width: int | None, expected: str) -> None:
-    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
     formatter = Formatter(config)
     with mock.patch.dict(sys.modules, {"frozendict": None}):
         importlib.reload(sys.modules["debug._format"])
@@ -2292,7 +2293,7 @@ def test_format_without_frozendict(obj: Any, width: int | None, expected: str) -
 def test_format_offset(
     obj: Any, initial_width: int, width: int | None, expected: list | str
 ) -> None:
-    config = FormatterConfig(_terminal_width=width, _indent_width=4)
+    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
     formatter = Formatter(config)
     string = (initial_width - 1) * "*" + "_" + formatter.format(obj, initial_width=initial_width)
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):

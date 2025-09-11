@@ -245,7 +245,7 @@ class SequenceFormat(BaseFormat, abc.ABC):
         length = self.length()
         if len(self._objs) == 0 or (
             length is not None
-            and (config._terminal_width is None or length <= config._terminal_width - used_width)
+            and (config.terminal_width is None or length <= config.terminal_width - used_width)
         ):
             return self._highlight_code(highlight, self._flat_format(self._objs, config))
         return self._highlight_code(highlight, self._nested_format(self._objs, used_width, config))
@@ -347,15 +347,14 @@ class PairFormat(BaseFormat):
 
     def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
         key_format = self._key._format(1, not self._highlight, config) + ":"
-        indent_width = 1 + len(key_format.splitlines()[-1])
-        config = FormatterConfig(
-            config._indent_width,
-            self.add(config._terminal_width, -indent_width),
+        lines = key_format.splitlines()
+        offset_width = self.len(lines[-1]) + 1
+        value_format = " " + self._value._format(
+            offset_width + used_width, not self._highlight, config
         )
-        value_format = " " + self._value._format(1, not self._highlight, config)
         if isinstance(self._value, ItemFormat) and self._value.length() is None:
             value_format = textwrap.indent(
-                value_format, prefix=" " * indent_width, predicate=not_first()
+                value_format, prefix=" " * offset_width, predicate=not_first()
             )
         return self._highlight_code(highlight, key_format + value_format)
 
@@ -631,7 +630,7 @@ BaseFormat.KNOWN_EXTRA_CLASSES = (
 )
 
 
-@dataclass(repr=False)
+@dataclass(repr=False, kw_only=True, frozen=True)
 class FormatterConfig:
     DEFAULT_WIDTH: ClassVar[int] = 80
 
@@ -652,24 +651,29 @@ class FormatterConfig:
             width = FormatterConfig.DEFAULT_WIDTH
         return width
 
-    _indent_width: int = 2
-    _terminal_width: None | int = field(default_factory=_get_terminal_width)
+    indent_width: int = 2
+    terminal_width: None | int = field(default_factory=_get_terminal_width)
+    color: bool
 
     def indent(self) -> Self:
         return type(self)(
-            _indent_width=self._indent_width,
-            _terminal_width=BaseFormat.add(self._terminal_width, -self._indent_width),
+            indent_width=self.indent_width,
+            terminal_width=BaseFormat.add(
+                self.terminal_width,
+                -self.indent_width,
+            ),
+            color=self.color,
         )
 
     def flatten(self) -> Self:
-        return type(self)(_indent_width=self._indent_width, _terminal_width=None)
+        return type(self)(indent_width=self.indent_width, terminal_width=None, color=self.color)
 
     def get_indent(self) -> str:
-        return " " * self._indent_width
+        return " " * self.indent_width
 
     @classmethod
     def _from_config(cls, config: DbgConfig) -> Self:
-        return cls(_indent_width=config.indent)
+        return cls(indent_width=config.indent, color=config.color)
 
 
 class Formatter:
@@ -679,7 +683,7 @@ class Formatter:
     def format(self, obj: Any, *, initial_width: int) -> str:
         formatted_obj = BaseFormat._from(obj, set())
         text = formatted_obj._format(initial_width, highlight=True, config=self._config)
-        terminal_width = self._config._terminal_width
+        terminal_width = self._config.terminal_width
         if isinstance(formatted_obj, ItemFormat) and text:
             max_len = max(map(BaseFormat.len, text.splitlines()))
             if terminal_width is not None and max_len + initial_width > terminal_width:
