@@ -4,7 +4,7 @@ import abc
 from array import array
 import ast
 from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
-from collections.abc import Collection, ItemsView, Iterable, KeysView, ValuesView
+from collections.abc import Callable, Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
 from dataclasses import dataclass, field
 import os
@@ -14,7 +14,6 @@ import textwrap
 from types import MethodWrapperType
 from typing import (
     Any,
-    Callable,
     ClassVar,
     Generic,
     Protocol,
@@ -188,7 +187,7 @@ class BaseFormat(abc.ABC):
                     AttrFormat(field, cls._from(getattr(obj, field), visited))
                     for field in obj._fields
                     if getattr(obj, field, None) not in (None, [])
-                    or (isinstance(obj, (ast.Constant, ast.MatchSingleton)) and field == "value")
+                    or (isinstance(obj, ast.Constant | ast.MatchSingleton) and field == "value")
                 ]
 
             ast_format = NamedObjectFormat(
