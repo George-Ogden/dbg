@@ -3,7 +3,7 @@ import os.path
 import re
 import sys
 import types
-from typing import TypeAlias, TypeVar, TypeVarTuple, Unpack, overload
+from typing import TypeAlias, TypeVar, TypeVarTuple, overload
 
 from pygments.token import Token
 
@@ -67,7 +67,7 @@ def dbg(value: T, /) -> T: ...
 
 
 @overload
-def dbg(*values: Unpack[Ts]) -> tuple[Unpack[Ts]]: ...
+def dbg(*values: *Ts) -> tuple[*Ts]: ...
 
 
 def dbg(*values: object) -> object:
