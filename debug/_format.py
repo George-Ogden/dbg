@@ -681,7 +681,9 @@ class Formatter:
 
     def format(self, obj: Any, *, initial_width: int) -> str:
         formatted_obj = BaseFormat._from(obj, set())
-        text = formatted_obj._format(initial_width, highlight=True, config=self._config)
+        text = formatted_obj._format(
+            initial_width, highlight=self._config.color, config=self._config
+        )
         terminal_width = self._config.terminal_width
         if isinstance(formatted_obj, ItemFormat) and text:
             max_len = max(map(BaseFormat.len, text.splitlines()))
