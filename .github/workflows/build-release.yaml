@@ -1,4 +1,4 @@
-name: Tag New Version
+name: Tag New Version and Release
 
 on:
   push:
@@ -10,80 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  tag_version:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Build
-        run: |
-          pip install .
-
-      - name: Verify Install
-        run: |
-          python -Ic "from debug import dbg; assert callable(dbg)"
-
-      - name: Set up Git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Detect version change
-        id: version_check
-        run: |
-          if git diff "${{ github.event.before }}" "${{ github.sha }}" -- pyproject.toml | grep -q "^+version"; then
-            echo "version_changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "version_changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Read version
-        id: read_version
-        if: steps.version_check.outputs.version_changed == 'true'
-        run: |
-          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Create Git tag
-        if: steps.version_check.outputs.version_changed == 'true'
-        run: |
-          git tag -f "v${{ steps.read_version.outputs.version }}"
-          git push origin "v${{ steps.read_version.outputs.version }}"
-
-      - name: Generate changelog
-        id: changelog
-        if: steps.version_check.outputs.version_changed == 'true'
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -n "$LAST_TAG" ]; then
-            LOG=$(git log "$LAST_TAG"..HEAD --pretty=format:"- %s")
-          else
-            LOG=$(git log HEAD --pretty=format:"- %s")
-          fi
-
-          {
-            echo "log<<EOF"
-            echo "$LOG"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub release
-        if: steps.version_check.outputs.version_changed == 'true'
-        uses: actions/create-release@v1
-        with:
-          tag_name: v${{ steps.read_version.outputs.version }}
-          release_name: Release v${{ steps.read_version.outputs.version }}
-          body: ${{ steps.changelog.outputs.log }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  release:
+    uses: George-Ogden/actions/.github/workflows/python-release.yaml@v2
+    with:
+      validation-code: "from debug import dbg; assert callable(dbg)"
