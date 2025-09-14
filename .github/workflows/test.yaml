@@ -10,6 +10,6 @@ on:
 
 jobs:
   test:
-    uses: George-Ogden/actions/.github/workflows/python-test.yaml@v3
+    uses: George-Ogden/actions/.github/workflows/python-test.yaml@v3.0.1
     with:
       python-versions: "['3.11', '3.12', '3.13']"
