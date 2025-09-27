@@ -15,6 +15,7 @@ from unittest import mock
 from _pytest.capture import CaptureFixture
 from colorama import Fore
 from frozendict import frozendict
+import numpy as np
 from pygments.formatters import Terminal256Formatter
 import pytest
 
@@ -2131,6 +2132,28 @@ else:
             None,
             "If(test=Constant(value=True), body=[Expr(value=Constant(value=Ellipsis))])",
         ),
+        [np.array(5), None, "array(5, dtype='int64')"],
+        [np.array(5), 23, "array(5, dtype='int64')"],
+        [
+            np.array(5),
+            22,
+            """
+            array(
+                5,
+                dtype='int64',
+            )
+            """,
+        ],
+        [
+            np.array(5),
+            18,
+            """
+            array(
+                5,
+                dtype='int64',
+            )
+            """,
+        ],
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

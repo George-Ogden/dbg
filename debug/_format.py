@@ -23,6 +23,7 @@ from typing import (
 )
 import unicodedata
 
+import numpy as np
 from wcwidth import wcswidth
 
 from ._code import highlight_code
@@ -146,6 +147,17 @@ class BaseFormat(abc.ABC):
         for sequence_maker in cls.SEQUENCE_MAKERS:
             if isinstance(obj, sequence_maker.base_cls):
                 return sequence_maker.formatter(obj, visited=visited)
+
+        if isinstance(obj, np.ndarray):
+            data = obj.tolist()
+            dtype = obj.dtype
+            print(dtype)
+            if type(obj) is np.ndarray:
+                obj_cls = array
+            return NamedObjectFormat(
+                obj_cls,
+                [cls._from(data, visited), AttrFormat("dtype", cls._from(dtype.name, visited))],
+            )
 
         if isinstance(obj, array):
             body: Any
