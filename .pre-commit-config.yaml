@@ -28,5 +28,6 @@ repos:
     rev: v1.2.4
     hooks:
       - id: check-merge-conflict
+      - id: todo-check
       - id: mypy
         args: [-r, requirements-dev.txt]
