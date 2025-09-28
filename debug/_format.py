@@ -23,7 +23,6 @@ from typing import (
 )
 import unicodedata
 
-import numpy as np
 from wcwidth import wcswidth
 
 from ._code import highlight_code
@@ -34,6 +33,11 @@ try:
     from frozendict import frozendict
 except (ModuleNotFoundError, ImportError):
     frozendict = type("", (), {})
+
+try:
+    import numpy as np
+except (ModuleNotFoundError, ImportError):
+    from . import _numpy_backup as np  # type: ignore
 
 ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
@@ -641,6 +645,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ItemsView,
     deque,
     ast.AST,
+    np.ndarray,
 )
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (

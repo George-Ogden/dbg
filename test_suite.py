@@ -1410,6 +1410,11 @@ else:
             "ASTNode!",
         ),
         (custom_repr_cls("DequeSubclassCustomRepr", deque), None, "DequeSubclassCustomRepr!"),
+        (
+            custom_repr_cls("NumpyArraySubclassCustomRepr", np.ndarray, ()),
+            None,
+            "NumpyArraySubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -2275,6 +2280,7 @@ else:
             )
             """,
         ),
+        (np.array((), dtype=np.int64), None, "array([], dtype='int64')"),
         (recursive_numpy_array, None, "array([array(..., dtype='object')], dtype='object')"),
         (recursive_numpy_array, 51, "array([array(..., dtype='object')], dtype='object')"),
         (
@@ -2331,11 +2337,12 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
 
 
 @pytest.mark.parametrize(
-    "obj, width, expected",
+    "obj, module, width, expected",
     [
-        (recursive_dict, 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
+        (recursive_dict, "frozendict", 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
         (
             recursive_dict,
+            "frozendict",
             47,
             """
             {
@@ -2344,14 +2351,26 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
             }
             """,
         ),
+        (recursive_list, "numpy", 7, "[[...]]"),
+        (
+            recursive_list,
+            "numpy",
+            6,
+            """
+            [
+                [...],
+            ]
+            """,
+        ),
     ],
 )
-def test_format_without_frozendict(obj: Any, width: int | None, expected: str) -> None:
+def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
     config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
     formatter = Formatter(config)
-    with mock.patch.dict(sys.modules, {"frozendict": None}):
+    with mock.patch.dict(sys.modules, {module: None}):
         importlib.reload(sys.modules["debug._format"])
         string = formatter.format(obj, initial_width=0)
+    importlib.reload(sys.modules["debug._format"])
     string = strip_ansi(string)
     expected = textwrap.dedent(expected).strip()
     assert string == expected
