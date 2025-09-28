@@ -465,6 +465,9 @@ partial_recursive_object = (recursive_list, recursive_list)
 recursive_chainmap: ChainMap[Any, Any] = ChainMap()
 recursive_chainmap[ChainMap] = recursive_chainmap
 
+recursive_numpy_array = np.array([None], dtype=object)
+recursive_numpy_array[0] = recursive_numpy_array
+
 
 class ListSubclass(list): ...
 
@@ -2132,9 +2135,9 @@ else:
             None,
             "If(test=Constant(value=True), body=[Expr(value=Constant(value=Ellipsis))])",
         ),
-        [np.array(5), None, "array(5, dtype='int64')"],
-        [np.array(5), 23, "array(5, dtype='int64')"],
-        [
+        (np.array(5), None, "array(5, dtype='int64')"),
+        (np.array(5), 23, "array(5, dtype='int64')"),
+        (
             np.array(5),
             22,
             """
@@ -2143,8 +2146,8 @@ else:
                 dtype='int64',
             )
             """,
-        ],
-        [
+        ),
+        (
             np.array(5),
             18,
             """
@@ -2153,7 +2156,162 @@ else:
                 dtype='int64',
             )
             """,
-        ],
+        ),
+        (
+            np.arange(6, dtype=np.float32),
+            None,
+            "array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], dtype='float32')",
+        ),
+        (
+            np.arange(6, dtype=np.float32),
+            54,
+            "array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], dtype='float32')",
+        ),
+        (
+            np.arange(6, dtype=np.float32),
+            53,
+            """
+            array(
+                [0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+                dtype='float32',
+            )
+            """,
+        ),
+        (
+            np.arange(6, dtype=np.float32),
+            35,
+            """
+            array(
+                [0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
+                dtype='float32',
+            )
+            """,
+        ),
+        (
+            np.arange(6, dtype=np.float32),
+            34,
+            """
+            array(
+                [
+                    0.0,
+                    1.0,
+                    2.0,
+                    3.0,
+                    4.0,
+                    5.0,
+                ],
+                dtype='float32',
+            )
+            """,
+        ),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            None,
+            "array([[4, 3], [2, 1]], dtype='uint8')",
+        ),
+        (np.array([[4, 3], [2, 1]], dtype=np.uint8), 38, "array([[4, 3], [2, 1]], dtype='uint8')"),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            37,
+            """
+            array(
+                [[4, 3], [2, 1]],
+                dtype='uint8',
+            )
+            """,
+        ),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            21,
+            """
+            array(
+                [[4, 3], [2, 1]],
+                dtype='uint8',
+            )
+            """,
+        ),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            20,
+            """
+            array(
+                [
+                    [4, 3],
+                    [2, 1],
+                ],
+                dtype='uint8',
+            )
+            """,
+        ),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            15,
+            """
+            array(
+                [
+                    [4, 3],
+                    [2, 1],
+                ],
+                dtype='uint8',
+            )
+            """,
+        ),
+        (
+            np.array([[4, 3], [2, 1]], dtype=np.uint8),
+            14,
+            """
+            array(
+                [
+                    [
+                        4,
+                        3,
+                    ],
+                    [
+                        2,
+                        1,
+                    ],
+                ],
+                dtype='uint8',
+            )
+            """,
+        ),
+        (recursive_numpy_array, None, "array([array(..., dtype='object')], dtype='object')"),
+        (recursive_numpy_array, 51, "array([array(..., dtype='object')], dtype='object')"),
+        (
+            recursive_numpy_array,
+            50,
+            """
+            array(
+                [array(..., dtype='object')],
+                dtype='object',
+            )
+            """,
+        ),
+        (
+            recursive_numpy_array,
+            33,
+            """
+            array(
+                [array(..., dtype='object')],
+                dtype='object',
+            )
+            """,
+        ),
+        (
+            recursive_numpy_array,
+            32,
+            """
+            array(
+                [
+                    array(
+                        ...,
+                        dtype='object',
+                    ),
+                ],
+                dtype='object',
+            )
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:

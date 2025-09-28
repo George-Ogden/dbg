@@ -151,13 +151,19 @@ class BaseFormat(abc.ABC):
         if isinstance(obj, np.ndarray):
             data = obj.tolist()
             dtype = obj.dtype
-            print(dtype)
             if type(obj) is np.ndarray:
                 obj_cls = array
-            return NamedObjectFormat(
+            if id(obj) in visited:
+                return NamedObjectFormat(
+                    obj_cls, [EllipsisFormat(), AttrFormat("dtype", cls._from(dtype.name, visited))]
+                )
+            visited.add(id(obj))
+            np_array_format = NamedObjectFormat(
                 obj_cls,
                 [cls._from(data, visited), AttrFormat("dtype", cls._from(dtype.name, visited))],
             )
+            visited.remove(id(obj))
+            return np_array_format
 
         if isinstance(obj, array):
             body: Any
@@ -421,6 +427,11 @@ class ItemFormat(BaseFormat):
     @property
     def _highlight(self) -> bool:
         return strip_ansi(self.repr) == self.repr
+
+
+class EllipsisFormat(ItemFormat):
+    def __init__(self) -> None:
+        self.repr = "..."
 
 
 class SequenceCallable(Protocol):
