@@ -34,6 +34,11 @@ try:
 except (ModuleNotFoundError, ImportError):
     frozendict = type("", (), {})
 
+try:
+    import numpy as np
+except (ModuleNotFoundError, ImportError):
+    from . import _numpy_backup as np  # type: ignore
+
 ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
@@ -146,6 +151,23 @@ class BaseFormat(abc.ABC):
         for sequence_maker in cls.SEQUENCE_MAKERS:
             if isinstance(obj, sequence_maker.base_cls):
                 return sequence_maker.formatter(obj, visited=visited)
+
+        if isinstance(obj, np.ndarray):
+            data = obj.tolist()
+            dtype = obj.dtype
+            if type(obj) is np.ndarray:
+                obj_cls = array
+            if id(obj) in visited:
+                return NamedObjectFormat(
+                    obj_cls, [EllipsisFormat(), AttrFormat("dtype", cls._from(dtype.name, visited))]
+                )
+            visited.add(id(obj))
+            np_array_format = NamedObjectFormat(
+                obj_cls,
+                [cls._from(data, visited), AttrFormat("dtype", cls._from(dtype.name, visited))],
+            )
+            visited.remove(id(obj))
+            return np_array_format
 
         if isinstance(obj, array):
             body: Any
@@ -411,6 +433,11 @@ class ItemFormat(BaseFormat):
         return strip_ansi(self.repr) == self.repr
 
 
+class EllipsisFormat(ItemFormat):
+    def __init__(self) -> None:
+        self.repr = "..."
+
+
 class SequenceCallable(Protocol):
     def __call__(
         self, sub_objs: None | list[BaseFormat], display_type: type | None, **kwargs: Any
@@ -618,6 +645,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     ItemsView,
     deque,
     ast.AST,
+    np.ndarray,
 )
 
 BaseFormat.KNOWN_EXTRA_CLASSES = (
