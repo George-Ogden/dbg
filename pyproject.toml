@@ -1,6 +1,6 @@
 [project]
 name = "debug"
-version = "1.9.0"
+version = "1.9.1"
 dynamic = ["dependencies"]
 requires-python = ">=3.11,<3.14"
 
