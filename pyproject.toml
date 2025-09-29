@@ -34,6 +34,9 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.package-data]
 "debug" = ["py.typed"]
 
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:The 'u' type code is deprecated and will be removed in Python 3.16:DeprecationWarning"]
+
 [tool.mypy]
 warn_unreachable = true
 disallow_subclassing_any = true
