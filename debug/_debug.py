@@ -87,8 +87,8 @@ def dbg(*values: object) -> object:
             codes = display_codes(frame, num_codes=num_args)
             formatter_config = FormatterConfig._from_config(CONFIG)
             formatter = Formatter(formatter_config)
-            for code, value in zip(codes, values, strict=True):
-                prefix = f"{position} {code} = "
+            for (code, symbol), value in zip(codes, values, strict=True):
+                prefix = f"{position} {code} {symbol} "
                 *_, last_line = prefix.rsplit("\n", maxsplit=1)
                 print(
                     prefix + formatter.format(value, initial_width=BaseFormat.len(last_line)),

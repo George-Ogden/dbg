@@ -78,15 +78,39 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
-def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[str]:
+def add_symbol_to_source_segments(
+    segments: list[str], num_segments: int
+) -> Iterable[tuple[str, str]]:
+    low_correct_index = -1
+    for i, segment in enumerate(segments):
+        if segment.startswith("*"):
+            break
+        low_correct_index = i
+    high_correct_index = 0
+    for i, segment in enumerate(reversed(segments), 1):
+        if segment.startswith("*"):
+            break
+        high_correct_index = i
+    unmapped_code = ", ".join(segments[low_correct_index + 1 : len(segments) - high_correct_index])
+    unmapped_code = display_code(unmapped_code)
+    for i in range(num_segments):
+        if i <= low_correct_index:
+            yield display_code(segments[i]), "="
+        elif num_segments - i <= high_correct_index:
+            yield display_code(segments[i - num_segments]), "="
+        else:
+            yield unmapped_code, "->"
+
+
+def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[tuple[str, str]]:
+    """Return code and symbols used to represent it."""
     if frame is None:
         source = None
     else:
         source = get_source(frame)
     if source is None:
-        return [CONFIG._unknown_message] * num_codes
+        return [(CONFIG._unknown_message, "=")] * num_codes
     source_segments = get_source_segments(source)
     if source_segments is None:
-        return [CONFIG._unknown_message] * num_codes
-    codes = [display_code(source_segment) for source_segment in (source_segments)]
-    return codes
+        return [(CONFIG._unknown_message, "=")] * num_codes
+    return list(add_symbol_to_source_segments(list(source_segments), num_codes))
