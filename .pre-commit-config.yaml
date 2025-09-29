@@ -31,3 +31,4 @@ repos:
       - id: todo-check
       - id: mypy
         args: [-r, requirements-dev.txt]
+        exclude: ^test_samples
