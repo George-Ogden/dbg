@@ -181,7 +181,9 @@ def test_samples(
         ("no_arguments", "()", "[<string>:3:7]"),
     ],
 )
-def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+def test_run_from_exec(
+    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
+) -> None:
     filepath = os.path.join(SAMPLE_DIR, *name.split("."))
     filepath += ".py"
     with open(filepath) as f:
@@ -214,7 +216,9 @@ def test_run_from_exec(name: str, expected_out: str, expected_err, capsys: Captu
         ("no_arguments", "()", "[<unknown>]"),
     ],
 )
-def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: CaptureFixture) -> None:
+def test_with_no_frames(
+    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
+) -> None:
     cwd = os.getcwd()
 
     module = f"{SAMPLE_DIR}.{name}"
@@ -233,7 +237,7 @@ def test_with_no_frames(name: str, expected_out: str, expected_err, capsys: Capt
 
 
 @pytest.mark.parametrize("style", ["github-dark", "default"])
-def test_config_formatter_valid_style_and_background(style: str):
+def test_config_formatter_valid_style_and_background(style: str) -> None:
     CONFIG.style = style
     formatter = CONFIG._formatter
     assert isinstance(formatter, Terminal256Formatter)
@@ -476,7 +480,7 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __repr__(self) -> str:
+    def __repr__(self: Any) -> str:
         return f"{name}!"
 
     return type(name, bases, dict(__repr__=__repr__))(*args)

@@ -49,7 +49,7 @@ def strip_ansi(text: str) -> str:
 def not_first() -> Callable[..., bool]:
     _first_time_call = True
 
-    def fn(*_) -> bool:
+    def fn(*_: Any) -> bool:
         nonlocal _first_time_call
 
         res = not _first_time_call
