@@ -78,14 +78,16 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
-def add_symbol_to_source_segments(
-    segments: list[str], num_segments: int
-) -> Iterable[tuple[str, str]]:
+def add_symbol_to_source_segments(segments: list[str], num_codes: int) -> Iterable[tuple[str, str]]:
     low_correct_index = -1
     for i, segment in enumerate(segments):
         if segment.startswith("*"):
             break
         low_correct_index = i
+    else:
+        if num_codes != len(segments):
+            yield from [(CONFIG._unknown_message, "=")] * num_codes
+            return
     high_correct_index = 0
     for i, segment in enumerate(reversed(segments), 1):
         if segment.startswith("*"):
@@ -93,11 +95,11 @@ def add_symbol_to_source_segments(
         high_correct_index = i
     unmapped_code = ", ".join(segments[low_correct_index + 1 : len(segments) - high_correct_index])
     unmapped_code = display_code(unmapped_code)
-    for i in range(num_segments):
+    for i in range(num_codes):
         if i <= low_correct_index:
             yield display_code(segments[i]), "="
-        elif num_segments - i <= high_correct_index:
-            yield display_code(segments[i - num_segments]), "="
+        elif num_codes - i <= high_correct_index:
+            yield display_code(segments[i - num_codes]), "="
         else:
             yield unmapped_code, "->"
 

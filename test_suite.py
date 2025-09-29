@@ -191,6 +191,29 @@ def reset_modules() -> None:
             [spill_edge_cases.py:10:7] 4 = 4
             """,
         ),
+        (
+            "partial_fns",
+            """
+            0
+            (10, 20, 30)
+            (0, 1, 2, 3)
+            (0, 1, 2, 3)
+            """,
+            """
+            [partial_fns.py:6:7] 0 = 0
+            [partial_fns.py:9:7] <unknown> = 10
+            [partial_fns.py:9:7] <unknown> = 20
+            [partial_fns.py:9:7] <unknown> = 30
+            [partial_fns.py:12:7] *[1, 2, 3] -> 0
+            [partial_fns.py:12:7] *[1, 2, 3] -> 1
+            [partial_fns.py:12:7] *[1, 2, 3] -> 2
+            [partial_fns.py:12:7] *[1, 2, 3] -> 3
+            [partial_fns.py:16:7] 1 = 0
+            [partial_fns.py:16:7] *[2, 3] -> 1
+            [partial_fns.py:16:7] *[2, 3] -> 2
+            [partial_fns.py:16:7] *[2, 3] -> 3
+            """,
+        ),
     ],
 )
 def test_samples(
