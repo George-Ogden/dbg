@@ -139,6 +139,81 @@ def reset_modules() -> None:
             ]
             """,
         ),
+        (
+            "single_spill",
+            "(1, 2, 3)",
+            """
+            [single_spill.py:3:7] *[1, 2, 3] -> 1
+            [single_spill.py:3:7] *[1, 2, 3] -> 2
+            [single_spill.py:3:7] *[1, 2, 3] -> 3
+            """,
+        ),
+        (
+            "spill_edge_cases",
+            """
+            ()
+            (1, 2, 3, 4)
+            (4, 3, 2, 1)
+            (1, 2, 3, 3, 2, 1)
+            (1, 2, 3, 4, 3, 2, 1)
+            (4, 3, 2, 1, 1, 2, 3, 4)
+            """,
+            """
+            [spill_edge_cases.py:3:7]
+            [spill_edge_cases.py:6:7] *xs -> 1
+            [spill_edge_cases.py:6:7] *xs -> 2
+            [spill_edge_cases.py:6:7] *xs -> 3
+            [spill_edge_cases.py:6:7] 4 = 4
+            [spill_edge_cases.py:7:7] 4 = 4
+            [spill_edge_cases.py:7:7] *reversed(xs) -> 3
+            [spill_edge_cases.py:7:7] *reversed(xs) -> 2
+            [spill_edge_cases.py:7:7] *reversed(xs) -> 1
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 1
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 2
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 3
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 3
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 2
+            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 1
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 1
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 2
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 3
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 4
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 3
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 2
+            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 1
+            [spill_edge_cases.py:10:7] 4 = 4
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 3
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 2
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 1
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 1
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 2
+            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 3
+            [spill_edge_cases.py:10:7] 4 = 4
+            """,
+        ),
+        (
+            "partial_fns",
+            """
+            0
+            (10, 20, 30)
+            (0, 1, 2, 3)
+            (0, 1, 2, 3)
+            """,
+            """
+            [partial_fns.py:6:7] 0 = 0
+            [partial_fns.py:9:7] <unknown> = 10
+            [partial_fns.py:9:7] <unknown> = 20
+            [partial_fns.py:9:7] <unknown> = 30
+            [partial_fns.py:12:7] *[1, 2, 3] -> 0
+            [partial_fns.py:12:7] *[1, 2, 3] -> 1
+            [partial_fns.py:12:7] *[1, 2, 3] -> 2
+            [partial_fns.py:12:7] *[1, 2, 3] -> 3
+            [partial_fns.py:16:7] 1 = 0
+            [partial_fns.py:16:7] *[2, 3] -> 1
+            [partial_fns.py:16:7] *[2, 3] -> 2
+            [partial_fns.py:16:7] *[2, 3] -> 3
+            """,
+        ),
     ],
 )
 def test_samples(
