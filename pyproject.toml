@@ -15,7 +15,7 @@ package-dir = {"debug" = "debug"}
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "UP", "F", "E", "W", "ERA001"]
+extend-select = ["I", "UP", "F", "E", "W", "ERA001", "RUF"]
 extend-ignore = ["F811"]
 
 [tool.ruff.lint.isort]
