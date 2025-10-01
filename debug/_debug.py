@@ -9,7 +9,7 @@ from pygments.token import Token
 
 from ._code import display_codes
 from ._config import CONFIG
-from ._format import BaseFormat, Formatter, FormatterConfig
+from ._format import pformat
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
@@ -84,14 +84,21 @@ def dbg(*values: object) -> object:
         if num_args == 0:
             print(position, file=sys.stderr)
         else:
-            codes = display_codes(frame, num_codes=num_args)
-            formatter_config = FormatterConfig._from_config(CONFIG)
-            formatter = Formatter(formatter_config)
+            codes = display_codes(frame, num_codes=num_args, style=CONFIG.style)
+            if CONFIG.color:
+                style = CONFIG.style
+            else:
+                style = None
             for (code, symbol), value in zip(codes, values, strict=True):
                 prefix = f"{position} {code} {symbol} "
-                *_, last_line = prefix.rsplit("\n", maxsplit=1)
                 print(
-                    prefix + formatter.format(value, initial_width=BaseFormat.len(last_line)),
+                    pformat(
+                        value,
+                        prefix=prefix,
+                        style=style,
+                        indent=CONFIG.indent,
+                        width=CONFIG._get_terminal_width(),
+                    ),
                     file=sys.stderr,
                 )
     finally:

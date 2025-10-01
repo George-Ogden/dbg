@@ -44,6 +44,7 @@ class DbgConfig:
     _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"
+    DEFAULT_WIDTH: ClassVar[int] = 80
     _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
     _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
@@ -127,6 +128,23 @@ class DbgConfig:
                         value = (match.group(2) or "") + (match.group(3) or "")
 
                 setattr(self, key, value)
+
+    @classmethod
+    def _get_terminal_width(cls) -> int:
+        width = cls.DEFAULT_WIDTH
+        try:
+            width, _ = os.get_terminal_size(sys.stderr.fileno())
+        except OSError:
+            if pytest_enabled():
+                stderr = sys.__stderr__
+                if stderr is not None:
+                    try:
+                        width, _ = os.get_terminal_size(stderr.fileno())
+                    except OSError:
+                        ...
+        if width < cls.DEFAULT_WIDTH / 2:
+            width = cls.DEFAULT_WIDTH
+        return width
 
 
 CONFIG = DbgConfig()
