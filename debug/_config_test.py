@@ -127,7 +127,7 @@ def test_invalid_style_warns() -> None:
     config = DbgConfig()
     config.style = "monokai"
 
-    with pytest.warns(match=r"Invalid style 'invalid'\. Choose one of .*\."):
+    with pytest.warns(match=r"Unknown style 'invalid'\. Please, choose one of .*\."):
         config.style = "invalid"
 
     assert config.style == "monokai"

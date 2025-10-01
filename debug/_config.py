@@ -9,8 +9,8 @@ import warnings
 
 import platformdirs
 from pygments.formatters import Terminal256Formatter
-import pygments.styles
-from pygments.token import Token
+
+from ._code import validate_style
 
 
 def pytest_enabled() -> bool:
@@ -41,7 +41,6 @@ class DbgConfig:
         self.color = supports_color()
         self.indent = 2
 
-    _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"
     DEFAULT_WIDTH: ClassVar[int] = 80
@@ -54,24 +53,16 @@ class DbgConfig:
 
     @style.setter
     def style(self, value: str) -> None:
-        if value in pygments.styles.get_all_styles():
-            self._style = value
+        try:
+            validate_style(value)
+        except ValueError as e:
+            warnings.warn(str(e))
         else:
-            warnings.warn(
-                f"Invalid style {value!r}. Choose one of {list(pygments.styles.get_all_styles())}."
-            )
+            self._style = value
 
     @property
     def _formatter(self) -> Terminal256Formatter:
         return Terminal256Formatter(style=self.style, noitalic=True, nobold=True, nounderline=True)
-
-    @property
-    def _unknown_message(self) -> str:
-        if self.color:
-            on, off = self._formatter.style_string[str(Token.Comment.Single)]
-            return on + self._UNKNOWN_MESSAGE + off
-        else:
-            return self._UNKNOWN_MESSAGE
 
     def _use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)

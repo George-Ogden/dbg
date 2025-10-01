@@ -11,9 +11,10 @@ import pygments
 from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
 from pygments.styles import get_all_styles, get_style_by_name
+from pygments.token import Token
 from pygments.util import ClassNotFound
 
-from ._config import CONFIG
+UNKNOWN_MESSAGE = "<unknown>"
 
 
 @functools.cache
@@ -33,11 +34,17 @@ def get_formatter(style: str) -> Terminal256Formatter:
 def highlight_code(code: str, style: str) -> str:
     lexer = PythonLexer()
     formatter = get_formatter(style)
-    code = pygments.highlight(code, lexer, formatter).strip()
+    if code is UNKNOWN_MESSAGE:
+        on, off = formatter.style_string[str(Token.Comment.Single)]
+        code = on + code + off
+    else:
+        code = pygments.highlight(code, lexer, formatter).strip()
     return code
 
 
 def format_code(code: str) -> str:
+    if code is UNKNOWN_MESSAGE:
+        return code
     code = code.replace(",", " , ")
     black_formatted_code = black.format_str(
         f"({' '.join(code.strip().splitlines())})",
@@ -131,7 +138,7 @@ def display_codes(
     frame: None | types.FrameType, *, num_codes: int, style: str | None
 ) -> list[tuple[str, str]]:
     """Return code and symbols used to represent it."""
-    unknown_codes = [(CONFIG._unknown_message, "=")] * num_codes
+    unknown_codes = [(display_code(UNKNOWN_MESSAGE, style), "=")] * num_codes
     if frame is None:
         return unknown_codes
     source = get_source(frame)

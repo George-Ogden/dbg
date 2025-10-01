@@ -7,7 +7,7 @@ from typing import TypeAlias, TypeVar, TypeVarTuple, overload
 
 from pygments.token import Token
 
-from ._code import display_codes
+from ._code import UNKNOWN_MESSAGE, display_codes
 from ._config import CONFIG
 from ._format import pformat
 
@@ -16,7 +16,7 @@ Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
 def get_position(frame: None | types.FrameType) -> Position:
     if frame is None:
-        return (CONFIG._unknown_message, None)
+        return (UNKNOWN_MESSAGE, None)
     filepath = frame.f_code.co_filename
     if re.match(r"<.*>", filepath):
         path = filepath
