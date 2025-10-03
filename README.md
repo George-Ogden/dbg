@@ -1,9 +1,8 @@
 # `dbg!` in Python
 
 The `dbg!` macro in Rust is amazing.
-However, Python doesn't support macros and doesn't have a built-in equivalent.
 
-This library provides a solution:
+This library provides a Python equivalent:
 
 ```python
 from debug import dbg
@@ -69,7 +68,24 @@ result = dbg('Foo', minus_two) # [main.py:24:10] 'Foo' = 'Foo' // [main.py:24:10
 assert result == ('Foo', -2)
 ```
 
-For more examples, see `test_samples/` and `test_suite.py`.
+For more examples, see `test_samples/`.
+
+## Pretty Printing
+
+The debug module now supports pretty printing!
+
+```python
+from debug import pformat, pprint
+
+pprint(list(range(5)), style="github-dark", prefix = "0..5 -> ")
+print(pformat(list(range(5)), style="github-dark", prefix= "0..5 -> "))
+```
+
+Both of these give the same output (even better in color):
+
+```python
+0..5 -> [0, 1, 2, 3, 4]
+```
 
 ## Limitations
 
@@ -80,8 +96,8 @@ If some information is unavailable, a placeholder will be shown, such as `<unkno
 ## Pytest Tips
 
 `dbg` automatically detects your terminal width when running so that it can display objects better.
-If you're using `pytest`, it captures the stdout using file descriptors, which makes it impossible to detect the width.
-Instead, you can capture at the system level by setting the `--capture=sys` flag, which avoids this issue and enables color (if your terminal supports it).
+This fails if you use `pytest` with the default settings.
+Instead, you can set the `--capture=sys` flag, which avoids the issue and reenables color support.
 If you don't want to do this every time, set the following options in your `pytest.ini`:
 
 ```ini

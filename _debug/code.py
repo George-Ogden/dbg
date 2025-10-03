@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+import functools
 import inspect
 import re
 import textwrap
@@ -7,21 +8,48 @@ import types
 import black
 import libcst as cst
 import pygments
+from pygments.formatters import Terminal256Formatter
 from pygments.lexers import PythonLexer
+from pygments.styles import get_all_styles, get_style_by_name
+from pygments.token import Token
+from pygments.util import ClassNotFound
 
-from ._config import CONFIG
+UNKNOWN_MESSAGE = "<unknown>"
 
 
-def highlight_code(code: str) -> str:
-    if not CONFIG.color:
-        return code
+@functools.cache
+def validate_style(style: str) -> None:
+    try:
+        get_style_by_name(style)
+    except ClassNotFound:
+        all_styles = list(get_all_styles())
+        raise ValueError(f"Unknown style {style!r}. Please, choose one of {all_styles}.")
+
+
+@functools.cache
+def get_formatter(style: str) -> Terminal256Formatter:
+    return Terminal256Formatter(style=style, noitalic=True, nobold=True, nounderline=True)
+
+
+def highlight_text(text: str, style: str) -> str:
+    formatter = get_formatter(style)
+    on, off = formatter.style_string[str(Token.Comment.Single)]
+    return on + text + off
+
+
+def highlight_code(code: str, style: str) -> str:
     lexer = PythonLexer()
-    formatter = CONFIG._formatter
-    code = pygments.highlight(code, lexer, formatter).strip()
+    if code is UNKNOWN_MESSAGE:
+        code = highlight_text(code, style)
+    else:
+        formatter = get_formatter(style)
+        code = pygments.highlight(code, lexer, formatter).strip()
     return code
 
 
 def format_code(code: str) -> str:
+    if code is UNKNOWN_MESSAGE:
+        return code
     code = code.replace(",", " , ")
     black_formatted_code = black.format_str(
         f"({' '.join(code.strip().splitlines())})",
@@ -33,8 +61,12 @@ def format_code(code: str) -> str:
     return textwrap.dedent(match.group(1)).strip()
 
 
-def display_code(code: str) -> str:
-    return highlight_code(format_code(code))
+@functools.lru_cache
+def display_code(code: str, style: str | None) -> str:
+    code = format_code(code)
+    if style is not None:
+        code = highlight_code(code, style=style)
+    return code
 
 
 def get_source_segments(source: str) -> None | Iterable[str]:
@@ -78,7 +110,9 @@ def get_source(frame: types.FrameType) -> None | str:
     return source
 
 
-def add_symbol_to_source_segments(segments: list[str], num_codes: int) -> Iterable[tuple[str, str]]:
+def add_symbol_to_source_segments(
+    segments: list[str], num_codes: int
+) -> None | list[tuple[str, str]]:
     low_correct_index = -1
     for i, segment in enumerate(segments):
         if segment.startswith("*"):
@@ -86,33 +120,39 @@ def add_symbol_to_source_segments(segments: list[str], num_codes: int) -> Iterab
         low_correct_index = i
     else:
         if num_codes != len(segments):
-            yield from [(CONFIG._unknown_message, "=")] * num_codes
-            return
+            return None
     high_correct_index = 0
     for i, segment in enumerate(reversed(segments), 1):
         if segment.startswith("*"):
             break
         high_correct_index = i
     unmapped_code = ", ".join(segments[low_correct_index + 1 : len(segments) - high_correct_index])
-    unmapped_code = display_code(unmapped_code)
-    for i in range(num_codes):
-        if i <= low_correct_index:
-            yield display_code(segments[i]), "="
-        elif num_codes - i <= high_correct_index:
-            yield display_code(segments[i - num_codes]), "="
-        else:
-            yield unmapped_code, "->"
+    return [
+        (segments[i], "=")
+        if i <= low_correct_index
+        else (
+            (segments[i - num_codes], "=")
+            if num_codes - i <= high_correct_index
+            else (unmapped_code, "->")
+        )
+        for i in range(num_codes)
+    ]
 
 
-def display_codes(frame: None | types.FrameType, *, num_codes: int) -> list[tuple[str, str]]:
+def display_codes(
+    frame: None | types.FrameType, *, num_codes: int, style: str | None
+) -> list[tuple[str, str]]:
     """Return code and symbols used to represent it."""
+    unknown_codes = [(display_code(UNKNOWN_MESSAGE, style), "=")] * num_codes
     if frame is None:
-        source = None
-    else:
-        source = get_source(frame)
+        return unknown_codes
+    source = get_source(frame)
     if source is None:
-        return [(CONFIG._unknown_message, "=")] * num_codes
+        return unknown_codes
     source_segments = get_source_segments(source)
     if source_segments is None:
-        return [(CONFIG._unknown_message, "=")] * num_codes
-    return list(add_symbol_to_source_segments(list(source_segments), num_codes))
+        return unknown_codes
+    symbol_segments = add_symbol_to_source_segments(list(source_segments), num_codes)
+    if symbol_segments is None:
+        return unknown_codes
+    return [(display_code(code, style), symbol) for (code, symbol) in symbol_segments]

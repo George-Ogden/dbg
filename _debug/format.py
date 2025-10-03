@@ -6,27 +6,35 @@ import ast
 from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
 from collections.abc import Callable, Collection, ItemsView, Iterable, KeysView, ValuesView
 import dataclasses
-from dataclasses import dataclass, field
-import os
+from dataclasses import dataclass
+import functools
 import re
 import sys
 import textwrap
 from types import MethodWrapperType
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Generic,
+    Literal,
     Protocol,
     Self,
     TypeAlias,
     TypeVar,
 )
 import unicodedata
+import warnings
 
 from wcwidth import wcswidth
 
-from ._code import highlight_code
-from ._config import DbgConfig, pytest_enabled
+from . import defaults as defaults
+from .code import highlight_code, validate_style
+from .config import CONFIG
+from .file import FileWrapper
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 frozendict: type[Any]
 try:
@@ -72,16 +80,16 @@ class BaseFormat(abc.ABC):
     def length(self) -> int | None: ...
 
     @abc.abstractmethod
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str: ...
+    def _format(self, highlight_now: bool, config: FormatterConfig) -> str: ...
 
-    def _highlight_code(self, highlight: bool, text: str) -> str:
-        if highlight and self._highlight:
-            return highlight_code(text)
+    def _highlight_code(self, style: str | None, text: str) -> str:
+        if style is not None and self._highlight_subitems:
+            return highlight_code(text, style)
         return text
 
     @property
     @abc.abstractmethod
-    def _highlight(self) -> bool: ...
+    def _highlight_subitems(self) -> bool: ...
 
     @classmethod
     def total_length(cls, objs: Iterable[BaseFormat]) -> int | None:
@@ -260,16 +268,20 @@ class SequenceFormat(BaseFormat, abc.ABC):
         open, close = self.parentheses
         return len(open) + len(close)
 
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+    def _format(self, highlight_now: bool, config: FormatterConfig) -> str:
         if self._objs is None:
             return self._empty_format(config)
         length = self.length()
         if len(self._objs) == 0 or (
             length is not None
-            and (config.terminal_width is None or length <= config.terminal_width - used_width)
+            and (config.remaining_width is None or length <= config.remaining_width)
         ):
-            return self._highlight_code(highlight, self._flat_format(self._objs, config))
-        return self._highlight_code(highlight, self._nested_format(self._objs, used_width, config))
+            return self._highlight_code(
+                config.get_style(highlight_now), self._flat_format(self._objs, config)
+            )
+        return self._highlight_code(
+            config.get_style(highlight_now), self._nested_format(self._objs, config)
+        )
 
     @property
     def parentheses(self) -> tuple[str, str]:
@@ -294,23 +306,22 @@ class SequenceFormat(BaseFormat, abc.ABC):
         config = config.flatten()
         return (
             open
-            + ", ".join(
-                obj._format(len(open) + len(close), not self._highlight, config) for obj in objs
-            )
+            + ", ".join(obj._format(not self._highlight_subitems, config) for obj in objs)
             + ("," if self._extra_trailing_comma else "")
             + close
         )
 
-    def _nested_format(
-        self, objs: list[BaseFormat], used_width: int, config: FormatterConfig
-    ) -> str:
+    def _nested_format(self, objs: list[BaseFormat], config: FormatterConfig) -> str:
         """Return a formatted sequence across multiple lines."""
         open, close = self.parentheses
         config = config.indent()
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(f"{obj._format(1, not self._highlight, config)}," for obj in objs),
+                "\n".join(
+                    f"{obj._format(not self._highlight_subitems, config.use_only(1))},"
+                    for obj in objs
+                ),
                 prefix=config.get_indent(),
             )
             + f"\n{close}"
@@ -320,11 +331,11 @@ class SequenceFormat(BaseFormat, abc.ABC):
     @abc.abstractmethod
     def _parentheses(self) -> tuple[str, str]: ...
 
-    @property
-    def _highlight(self) -> bool:
+    @functools.cached_property
+    def _highlight_subitems(self) -> bool:
         if self._objs is None:
             return True
-        return all(obj._highlight for obj in self._objs)
+        return all(obj._highlight_subitems for obj in self._objs)
 
 
 class SquareSequenceFormat(SequenceFormat):
@@ -366,25 +377,25 @@ class PairFormat(BaseFormat):
         self._value = value
         self._length = self.add(self.add(self._key.length(), self._value.length()), 2)
 
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
-        key_format = self._key._format(1, not self._highlight, config) + ":"
+    def _format(self, highlight: bool, config: FormatterConfig) -> str:
+        key_format = self._key._format(not self._highlight_subitems, config.use_only(1)) + ":"
         lines = key_format.splitlines()
         offset_width = self.len(lines[-1]) + 1
         value_format = " " + self._value._format(
-            offset_width + used_width, not self._highlight, config
+            not self._highlight_subitems, config.use_extra(offset_width)
         )
         if isinstance(self._value, ItemFormat) and self._value.length() is None:
             value_format = textwrap.indent(
                 value_format, prefix=" " * offset_width, predicate=not_first()
             )
-        return self._highlight_code(highlight, key_format + value_format)
+        return self._highlight_code(config.get_style(highlight), key_format + value_format)
 
     def length(self) -> int | None:
         return self._length
 
-    @property
-    def _highlight(self) -> bool:
-        return self._key._highlight and self._value._highlight
+    @functools.cached_property
+    def _highlight_subitems(self) -> bool:
+        return self._key._highlight_subitems and self._value._highlight_subitems
 
 
 class AttrFormat(BaseFormat):
@@ -393,23 +404,23 @@ class AttrFormat(BaseFormat):
         self._value = value
         self._length = self.add(1 + len(self._attr), self._value.length())
 
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
+    def _format(self, highlight: bool, config: FormatterConfig) -> str:
         attr_format = self._attr + "="
         value_format = self._value._format(
-            used_width + len(attr_format), not self._highlight, config
+            not self._highlight_subitems, config.use_extra(len(attr_format))
         )
         if isinstance(self._value, ItemFormat) and self._value.length() is None:
             value_format = textwrap.indent(
                 value_format, prefix=" " * len(attr_format), predicate=not_first()
             )
-        return self._highlight_code(highlight, attr_format + value_format)
+        return self._highlight_code(config.get_style(highlight), attr_format + value_format)
 
     def length(self) -> int | None:
         return self._length
 
-    @property
-    def _highlight(self) -> bool:
-        return self._value._highlight
+    @functools.cached_property
+    def _highlight_subitems(self) -> bool:
+        return self._value._highlight_subitems
 
 
 class ItemFormat(BaseFormat):
@@ -421,15 +432,15 @@ class ItemFormat(BaseFormat):
             return None
         return self.len(self.repr)
 
-    def _format(self, used_width: int, highlight: bool, config: FormatterConfig) -> str:
-        return self._highlight_code(highlight, self.repr)
+    def _format(self, highlight_now: bool, config: FormatterConfig) -> str:
+        return self._highlight_code(config.get_style(highlight_now), self.repr)
 
     @property
     def multiline(self) -> bool:
         return "\n" in self.repr
 
-    @property
-    def _highlight(self) -> bool:
+    @functools.cached_property
+    def _highlight_subitems(self) -> bool:
         return strip_ansi(self.repr) == self.repr
 
 
@@ -659,66 +670,200 @@ BaseFormat.KNOWN_EXTRA_CLASSES = (
 
 @dataclass(repr=False, kw_only=True, frozen=True)
 class FormatterConfig:
-    DEFAULT_WIDTH: ClassVar[int] = 80
+    indent_width: int
+    width_pair: None | tuple[int, int]
+    style: str | None
 
-    @staticmethod
-    def _get_terminal_width() -> int:
-        width = FormatterConfig.DEFAULT_WIDTH
-        try:
-            width, _ = os.get_terminal_size(sys.stderr.fileno())
-        except OSError:
-            if pytest_enabled():
-                stderr = sys.__stderr__
-                if stderr is not None:
-                    try:
-                        width, _ = os.get_terminal_size(stderr.fileno())
-                    except OSError:
-                        ...
-        if width < FormatterConfig.DEFAULT_WIDTH / 2:
-            width = FormatterConfig.DEFAULT_WIDTH
-        return width
+    def __post_init__(self) -> None:
+        if self.style is not None:
+            validate_style(self.style)
 
-    indent_width: int = 2
-    terminal_width: None | int = field(default_factory=_get_terminal_width)
-    color: bool
+    @property
+    def remaining_width(self) -> int | None:
+        if self.width_pair is None:
+            return None
+        used_width, terminal_width = self.width_pair
+        return terminal_width - used_width
 
     def indent(self) -> Self:
-        return type(self)(
-            indent_width=self.indent_width,
-            terminal_width=BaseFormat.add(
-                self.terminal_width,
-                -self.indent_width,
-            ),
-            color=self.color,
+        if self.width_pair is None:
+            return self
+        used_width, terminal_width = self.width_pair
+        return self.replace(
+            width_pair=(used_width, terminal_width - self.indent_width),
         )
 
+    def replace(self, **kwargs: Any) -> Self:
+        return dataclasses.replace(self, **kwargs)
+
     def flatten(self) -> Self:
-        return type(self)(indent_width=self.indent_width, terminal_width=None, color=self.color)
+        return self.replace(width_pair=None)
 
     def get_indent(self) -> str:
         return " " * self.indent_width
 
-    @classmethod
-    def _from_config(cls, config: DbgConfig) -> Self:
-        return cls(indent_width=config.indent, color=config.color)
-
-
-class Formatter:
-    def __init__(self, config: FormatterConfig) -> None:
-        self._config = config
-
-    def format(self, obj: Any, *, initial_width: int) -> str:
-        formatted_obj = BaseFormat._from(obj, set())
-        text = formatted_obj._format(
-            initial_width, highlight=self._config.color, config=self._config
+    def _update_used_space(self, update: Callable[[int], int]) -> Self:
+        if self.width_pair is None:
+            return self
+        used_width, terminal_width = self.width_pair
+        return self.replace(
+            width_pair=(update(used_width), terminal_width),
         )
-        terminal_width = self._config.terminal_width
-        if isinstance(formatted_obj, ItemFormat) and text:
-            max_len = max(map(BaseFormat.len, text.splitlines()))
-            if terminal_width is not None and max_len + initial_width > terminal_width:
-                text = "\n" + text
-                if initial_width + 1 <= terminal_width:
-                    text = "\u23ce" + text
-            else:
-                text = textwrap.indent(text, " " * initial_width, predicate=not_first())
-        return text
+
+    def use_extra(self, space: int) -> Self:
+        return self._update_used_space(lambda used_width: used_width + space)
+
+    def use_only(self, space: int) -> Self:
+        return self._update_used_space(lambda used_width: space)
+
+    @property
+    def color(self) -> bool:
+        return self.style is not None
+
+    def get_style(self, enabled: bool) -> str | None:
+        if not enabled:
+            return None
+        return self.style
+
+
+def pprint(
+    obj: Any,
+    /,
+    *,
+    file: SupportsWrite[str] | None = None,
+    width: int | Literal["auto"] | None = "auto",
+    style: str | Literal["config"] | None = "config",
+    color: bool | Literal["auto"] | Literal["config"] = "config",
+    indent: int | Literal["config"] = "config",
+    prefix: str = "",
+) -> None:
+    """Pretty print an object to a file. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
+
+    Args:
+        obj (Any):
+            The object to pretty print.
+
+        file (SupportsWrite[str] | None, optional):
+            The file to write to.
+            If `None` is used, `sys.stdout` will be used.
+            Defaults to `None`.
+
+        width (int | Literal["auto"] | None, optional):
+            The terminal width for pretty printing.
+            If `"auto"` is used, this is calculated based on the `file` width (if `file` is a terminal).
+            However, if `file` is not a terminal, a default of 80 is used.
+            If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
+            Defaults to `"auto"`.
+
+        style (str | Literal["config"] | None, optional):
+            The color scheme to use for displaying text.
+            If `"config"` is used, the style is taken from local `dbg.conf` files.
+            If a string is used, the output will be colored using that color theme.
+            See https://pygments.org/styles/ for the full list of styles.
+            If `None` is used, the output will not be colored.
+            Defaults to `"config"`.
+
+        color (bool | Literal["auto"] | Literal["config"], optional):
+            Whether to use color when displaying the output.
+            If `"config"` is used, highlighting is determined from local `dbg.conf` files.
+            If `"auto"` is used, this is calculated based on whether `file` is a terminal that supports color.
+            If `True` is used, `style` is always used to highlight.
+            If `False` is used, the output is never highlighted.
+            Defaults to `"config"`.
+
+        indent (int | Literal["config"], optional):
+            The indent size when printing nested objects.
+            If `"config"` is used, the indent is taken from local `dbg.conf` files.
+            If an integer is used, that many spaces are used for indenting.
+            Defaults to `"config"`.
+
+        prefix (str, optional):
+            A prefix to print before the object is formatted.
+            This string is never colored or formatted.
+            Defaults to `""`.
+    """
+    if color is True and style is None:
+        warnings.warn(
+            f"`color` was set to {color!r}, but `style` was set to {style!r}. "
+            "The output will not be colored."
+        )
+    elif color is False and (style is not None and style != "config"):
+        warnings.warn(
+            f"`color` was set to {color!r}, but `style` was set to {style!r}. "
+            "The output will not be colored."
+        )
+    if file is None:
+        file = sys.stdout
+    if file == "upper":
+        wrapped_file = FileWrapper.back()
+    else:
+        wrapped_file = FileWrapper(file)
+    if color == "config":
+        color = CONFIG.color
+    if style == "config":
+        style = CONFIG.style
+    if indent == "config":
+        indent = CONFIG.indent
+    if color == "auto":
+        color = wrapped_file.supports_color
+    if width == "auto":
+        width = wrapped_file.terminal_width
+    if not color:
+        style = None
+    wrapped_file.write(pformat(obj, width=width, style=style, indent=indent, prefix=prefix) + "\n")
+
+
+def pformat(
+    obj: Any,
+    /,
+    *,
+    width: int | None = defaults.DEFAULT_WIDTH,
+    style: str | None = None,
+    indent: int = defaults.DEFAULT_INDENT,
+    prefix: str = "",
+) -> str:
+    """Pretty print an object to a string. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
+
+    Args:
+        obj (Any):
+            The object to pretty print.
+
+        width (int | None, optional):
+            The terminal width for pretty printing.
+            If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
+            Defaults to 80.
+
+        style (str | None, optional):
+            The color scheme to use for displaying text.
+            If a string is used, the output will be colored using that color theme.
+            See https://pygments.org/styles/ for the full list of styles.
+            If `None` is used, the output will not be colored.
+            Defaults to `None`.
+
+        indent (int, optional):
+            The number of spaces to use for indents when printing nested objects.
+            Defaults to 4.
+
+        prefix (str, optional):
+            A prefix to print before the object is formatted.
+            This string is never colored or formatted.
+            Defaults to `""`.
+    """
+    *_, last_line = prefix.rsplit("\n", maxsplit=1)
+    initial_offset = BaseFormat.len(last_line)
+    if width is None:
+        width_pair = None
+    else:
+        width_pair = (initial_offset, width)
+    config = FormatterConfig(width_pair=width_pair, indent_width=indent, style=style)
+    formatted_obj = BaseFormat._from(obj, set())
+    text = formatted_obj._format(highlight_now=True, config=config)
+    if prefix and isinstance(formatted_obj, ItemFormat) and text:
+        max_len = max(map(BaseFormat.len, text.splitlines()))
+        if config.remaining_width is not None and max_len > config.remaining_width:
+            text = "\n" + text
+            if config.remaining_width >= 1:
+                text = "\u23ce" + text
+        else:
+            text = textwrap.indent(text, " " * initial_offset, predicate=not_first())
+    return prefix + text

@@ -1,3 +1,3 @@
-from ._debug import CONFIG, dbg
+from _debug import dbg, pformat, pprint
 
-__all__ = ["dbg", "CONFIG"]
+__all__ = ["dbg", "pformat", "pprint"]

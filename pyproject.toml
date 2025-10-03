@@ -1,6 +1,6 @@
 [project]
 name = "debug"
-version = "1.9.2"
+version = "2.0.0"
 dynamic = ["dependencies"]
 requires-python = ">=3.11,<3.14"
 
@@ -9,14 +9,14 @@ requires = ["setuptools>=62"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"debug" = "debug"}
+package-dir = {"debug" = "debug", "_debug" = "_debug"}
 
 [tool.ruff]
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "UP", "F", "E", "W", "ERA001"]
-extend-ignore = ["F811"]
+extend-select = ["I", "UP", "F", "E", "W", "ERA001", "RUF"]
+extend-ignore = ["F811", "E501"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
@@ -29,10 +29,11 @@ indent-style = "space"
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.data-files]
-"debug" = ["debug/default.conf"]
+"_debug" = ["_debug/default.conf"]
 
 [tool.setuptools.package-data]
 "debug" = ["py.typed"]
+"_debug" = ["py.typed"]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore:The 'u' type code is deprecated and will be removed in Python 3.16:DeprecationWarning"]

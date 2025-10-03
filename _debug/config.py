@@ -3,47 +3,29 @@ from dataclasses import dataclass
 import inspect
 import os.path
 import re
-import sys
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 import warnings
 
 import platformdirs
-from pygments.formatters import Terminal256Formatter
-import pygments.styles
-from pygments.token import Token
 
-
-def pytest_enabled() -> bool:
-    return "PYTEST_VERSION" in os.environ
-
-
-def supports_color() -> bool:
-    """
-    Returns True if the running system's terminal supports color, and False otherwise.
-    Modified from from https://stackoverflow.com/a/22254892.
-    """
-    plat = sys.platform
-    supported_platform = plat != "Pocket PC" and (plat != "win32" or "ANSICON" in os.environ)
-    is_a_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
-    if not is_a_tty and pytest_enabled() and sys.__stderr__ is not None:
-        is_a_tty = hasattr(sys.__stderr__, "isatty") and sys.__stderr__.isatty()
-    return supported_platform and is_a_tty
+from . import defaults as defaults
+from .code import validate_style
 
 
 @dataclass
 class DbgConfig:
-    color: bool
+    color: bool | Literal["auto"]
     indent: int
     style: str
 
     def __init__(self) -> None:
-        self._style = "solarized-dark"
-        self.color = supports_color()
-        self.indent = 2
+        self._style = defaults.DEFAULT_STYLE
+        self.color = "auto"
+        self.indent = defaults.DEFAULT_INDENT
 
-    _UNKNOWN_MESSAGE: ClassVar[str] = "<unknown>"
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"
+    _DEFAULT_VALUE: ClassVar[Any] = object()
     _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
     _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
@@ -53,26 +35,14 @@ class DbgConfig:
 
     @style.setter
     def style(self, value: str) -> None:
-        if value in pygments.styles.get_all_styles():
+        try:
+            validate_style(value)
+        except ValueError as e:
+            warnings.warn(str(e))
+        else:
             self._style = value
-        else:
-            warnings.warn(
-                f"Invalid style {value!r}. Choose one of {list(pygments.styles.get_all_styles())}."
-            )
 
-    @property
-    def _formatter(self) -> Terminal256Formatter:
-        return Terminal256Formatter(style=self.style, noitalic=True, nobold=True, nounderline=True)
-
-    @property
-    def _unknown_message(self) -> str:
-        if self.color:
-            on, off = self._formatter.style_string[str(Token.Comment.Single)]
-            return on + self._UNKNOWN_MESSAGE + off
-        else:
-            return self._UNKNOWN_MESSAGE
-
-    def _use_config(self, filepath: str) -> None:
+    def use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)
         config = configparser.ConfigParser()
         try:
@@ -112,21 +82,48 @@ class DbgConfig:
                 if value_type is None:
                     warnings.warn(f"Unused field '{key}' found in '{filepath}'.")
                     continue
-                elif value_type is bool:
-                    value = section.getboolean(key)
+                if value_type is bool | Literal["auto"]:
+                    try:
+                        value = section.getboolean(key)
+                    except ValueError:
+                        value = self.remove_quotes(section[key], filepath=filepath)
+                        if value != "auto":
+                            self.warn_invalid_type(
+                                expected="bool or 'auto'", key=key, filepath=filepath, value=value
+                            )
+                            continue
                 elif value_type is int:
-                    value = section.getint(key)
-                else:
-                    value = section[key]
-                    match = re.match(r"^('(.*)'|\"(.*)\")$", value)
-                    if match:
-                        warnings.warn(
-                            f"Quotes used around {value} in '{filepath}'. "
-                            "They will be ignored, but please remove to silence this warning."
+                    try:
+                        value = section.getint(key)
+                    except ValueError:
+                        self.warn_invalid_type(
+                            expected=value_type.__name__,
+                            key=key,
+                            filepath=filepath,
+                            value=section[key],
                         )
-                        value = (match.group(2) or "") + (match.group(3) or "")
+                        continue
+                else:
+                    value = self.remove_quotes(section[key], filepath=filepath)
 
                 setattr(self, key, value)
+
+    @classmethod
+    def remove_quotes(cls, value: str, *, filepath: str) -> str:
+        match = re.match(r"^('(.*)'|\"(.*)\")$", value)
+        if match:
+            warnings.warn(
+                f"Quotes used around {value} in '{filepath}'. "
+                "They will be ignored, but please remove to silence this warning."
+            )
+            value = (match.group(2) or "") + (match.group(3) or "")
+        return value
+
+    @classmethod
+    def warn_invalid_type(cls, *, expected: str, key: str, filepath: str, value: str) -> None:
+        warnings.warn(
+            f"Invalid value {value!r} found in field {key!r} (expected {expected}) in '{filepath}'."
+        )
 
 
 CONFIG = DbgConfig()
@@ -141,6 +138,6 @@ if not os.path.exists(CONFIG._USER_FILENAME):
     except OSError:
         ...
 
-CONFIG._use_config(CONFIG._USER_FILENAME)
+CONFIG.use_config(CONFIG._USER_FILENAME)
 if os.path.exists(CONFIG._LOCAL_FILENAME):
-    CONFIG._use_config(CONFIG._LOCAL_FILENAME)
+    CONFIG.use_config(CONFIG._LOCAL_FILENAME)

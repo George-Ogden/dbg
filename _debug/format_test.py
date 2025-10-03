@@ -2,493 +2,21 @@ from array import array
 import ast
 from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from dataclasses import dataclass, field
-import filecmp
 import importlib
-import os
-import re
+import io
 import sys
-import tempfile
 import textwrap
 from typing import Any, ClassVar, Self
 from unittest import mock
 
-from _pytest.capture import CaptureFixture
 from colorama import Fore
 from frozendict import frozendict
 import numpy as np
-from pygments.formatters import Terminal256Formatter
 import pytest
 
-from debug import CONFIG
-from debug._config import DbgConfig
-from debug._format import ANSI_PATTERN, Formatter, FormatterConfig, strip_ansi
-
-SAMPLE_DIR = "test_samples"
-TEST_DATA_DIR = "test_data"
-
-
-@pytest.fixture(autouse=True)
-def reset_modules() -> None:
-    for key in list(sys.modules.keys()):
-        if key.startswith(SAMPLE_DIR):
-            del sys.modules[key]
-
-
-@pytest.mark.parametrize(
-    "name,expected_out,expected_err",
-    [
-        ("number", "12", "[number.py:3:7] 12 = 12"),
-        ("variable", "17", "[variable.py:5:7] x = 17"),
-        ("two_line", "-32", "[two_line.py:6:7] x * y = -32"),
-        ("three_line", "14\n14", "[three_line.py:3:7] y := (10 + 4) = 14"),
-        (
-            "same_line",
-            "7",
-            """
-            [same_line.py:6:7] x = 3
-            [same_line.py:6:16] y = 4
-            """,
-        ),
-        (
-            "nested_expression",
-            "4",
-            """
-            [nested_expression.py:5:11] x := x + 1 = 4
-            [nested_expression.py:5:7] dbg(x := x + 1) = 4
-            """,
-        ),
-        ("nested.file", "foo", "[nested/file.py:5:7] x = 'foo'"),
-        ("offset", "5", "[offset.py:7:12] arg = 5"),
-        ("no_offset", "-5", "[no_offset.py:3:12] arg = -5"),
-        (
-            "nested_function",
-            "8",
-            """
-            [nested_function.py:8:16] a = 2
-            [nested_function.py:8:25] b = 6
-            """,
-        ),
-        (
-            "multiple_arguments",
-            "('hello', 8.5)",
-            """
-            [multiple_arguments.py:6:7] x = 'hello'
-            [multiple_arguments.py:6:7] y = 8.5
-            """,
-        ),
-        ("singleton", "False", "[singleton.py:4:7] v = False"),
-        ("no_arguments", "()", "[no_arguments.py:3:7]"),
-        (
-            "multiline_arguments",
-            "('bye', 0.25, -5)",
-            """
-            [multiline_arguments.py:7:7] x = 'bye'
-            [multiline_arguments.py:7:7] y = 0.25
-            [multiline_arguments.py:7:7] z + 4 = -5
-            """,
-        ),
-        (
-            "string",
-            """
-            foo
-            bar
-            """,
-            """
-            [string.py:3:7] 'foo' = 'foo'
-            [string.py:4:7] "bar" = 'bar'
-            """,
-        ),
-        ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
-        (
-            "generator",
-            "None",
-            ["[generator.py:7:44] True = True", "[generator.py:7:44] <unknown> = True"],
-        ),
-        (
-            "lists",
-            """
-            [8, 9, 10]
-            [8, 9, 10]
-            [A
-            B, 'A\\nB']
-            [1, 2, 3]
-            """,
-            """
-            [lists.py:3:7] [8, 9, 10] = [8, 9, 10]
-            [lists.py:7:7] [
-                8,
-                9,
-                10,
-            ] = [8, 9, 10]
-            [lists.py:15:7] [MultilineObject(), "A\\nB"] = [
-                A
-                B,
-                'A\\nB',
-            ]
-            [lists.py:17:7] [1, 2, 3] = [1, 2, 3]
-            """,
-        ),
-        ("colored_repr", "[0]", "[colored_repr.py:8:7] ColoredRepr() = [0]"),
-        (
-            "pytest_width",
-            "",
-            f"""
-            [pytest_width.py:3:1] ["X" * 40] * 2 = [
-                {repr("X" * 40)},
-                {repr("X" * 40)},
-            ]
-            """,
-        ),
-        (
-            "single_spill",
-            "(1, 2, 3)",
-            """
-            [single_spill.py:3:7] *[1, 2, 3] -> 1
-            [single_spill.py:3:7] *[1, 2, 3] -> 2
-            [single_spill.py:3:7] *[1, 2, 3] -> 3
-            """,
-        ),
-        (
-            "spill_edge_cases",
-            """
-            ()
-            (1, 2, 3, 4)
-            (4, 3, 2, 1)
-            (1, 2, 3, 3, 2, 1)
-            (1, 2, 3, 4, 3, 2, 1)
-            (4, 3, 2, 1, 1, 2, 3, 4)
-            """,
-            """
-            [spill_edge_cases.py:3:7]
-            [spill_edge_cases.py:6:7] *xs -> 1
-            [spill_edge_cases.py:6:7] *xs -> 2
-            [spill_edge_cases.py:6:7] *xs -> 3
-            [spill_edge_cases.py:6:7] 4 = 4
-            [spill_edge_cases.py:7:7] 4 = 4
-            [spill_edge_cases.py:7:7] *reversed(xs) -> 3
-            [spill_edge_cases.py:7:7] *reversed(xs) -> 2
-            [spill_edge_cases.py:7:7] *reversed(xs) -> 1
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 1
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 2
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 3
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 3
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 2
-            [spill_edge_cases.py:8:7] *xs, *reversed(xs) -> 1
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 1
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 2
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 3
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 4
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 3
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 2
-            [spill_edge_cases.py:9:7] *xs, 4, *reversed(xs) -> 1
-            [spill_edge_cases.py:10:7] 4 = 4
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 3
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 2
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 1
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 1
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 2
-            [spill_edge_cases.py:10:7] *reversed(xs), *xs -> 3
-            [spill_edge_cases.py:10:7] 4 = 4
-            """,
-        ),
-        (
-            "partial_fns",
-            """
-            0
-            (10, 20, 30)
-            (0, 1, 2, 3)
-            (0, 1, 2, 3)
-            """,
-            """
-            [partial_fns.py:6:7] 0 = 0
-            [partial_fns.py:9:7] <unknown> = 10
-            [partial_fns.py:9:7] <unknown> = 20
-            [partial_fns.py:9:7] <unknown> = 30
-            [partial_fns.py:12:7] *[1, 2, 3] -> 0
-            [partial_fns.py:12:7] *[1, 2, 3] -> 1
-            [partial_fns.py:12:7] *[1, 2, 3] -> 2
-            [partial_fns.py:12:7] *[1, 2, 3] -> 3
-            [partial_fns.py:16:7] 1 = 0
-            [partial_fns.py:16:7] *[2, 3] -> 1
-            [partial_fns.py:16:7] *[2, 3] -> 2
-            [partial_fns.py:16:7] *[2, 3] -> 3
-            """,
-        ),
-    ],
-)
-def test_samples(
-    name: str, expected_out: str, expected_err: str | list[str], capsys: CaptureFixture
-) -> None:
-    cwd = os.getcwd()
-
-    module = f"{SAMPLE_DIR}.{name}"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        importlib.import_module(module)
-        CONFIG.indent = 4
-
-    expected_out = textwrap.dedent(expected_out).strip()
-    if not isinstance(expected_err, list):
-        expected_err = [expected_err]
-    expected_err = [textwrap.dedent(possible_err).strip() for possible_err in expected_err]
-
-    out, err = capsys.readouterr()
-    assert strip_ansi(out.strip()) == expected_out
-    err = strip_ansi(err.strip())
-    if len(expected_err) == 1:
-        [expected_err] = expected_err
-        assert err == expected_err
-    else:
-        assert err in expected_err
-
-
-@pytest.mark.parametrize(
-    "name,expected_out,expected_err",
-    [
-        ("variable", "17", "[<string>:5:7] <unknown> = 17"),
-        (
-            "multiple_arguments",
-            "('hello', 8.5)",
-            """
-            [<string>:6:7] <unknown> = 'hello'
-            [<string>:6:7] <unknown> = 8.5
-            """,
-        ),
-        ("no_arguments", "()", "[<string>:3:7]"),
-    ],
-)
-def test_run_from_exec(
-    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
-) -> None:
-    filepath = os.path.join(SAMPLE_DIR, *name.split("."))
-    filepath += ".py"
-    with open(filepath) as f:
-        source = f.read()
-
-    cwd = os.getcwd()
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        exec(source)
-
-    expected_out = textwrap.dedent(expected_out).strip()
-    expected_err = textwrap.dedent(expected_err).strip()
-
-    out, err = capsys.readouterr()
-    assert out.strip() == expected_out
-    assert strip_ansi(err.strip()) == expected_err
-
-
-@pytest.mark.parametrize(
-    "name,expected_out,expected_err",
-    [
-        ("variable", "17", "[<unknown>] <unknown> = 17"),
-        (
-            "multiple_arguments",
-            "('hello', 8.5)",
-            """
-                [<unknown>] <unknown> = 'hello'
-                [<unknown>] <unknown> = 8.5
-                """,
-        ),
-        ("no_arguments", "()", "[<unknown>]"),
-    ],
-)
-def test_with_no_frames(
-    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
-) -> None:
-    cwd = os.getcwd()
-
-    module = f"{SAMPLE_DIR}.{name}"
-    with (
-        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
-        mock.patch("inspect.currentframe", mock.Mock(return_value=None)),
-    ):
-        importlib.import_module(module)
-
-    expected_out = textwrap.dedent(expected_out).strip()
-    expected_err = textwrap.dedent(expected_err).strip()
-
-    out, err = capsys.readouterr()
-    assert out.strip() == expected_out
-    assert strip_ansi(err.strip()) == expected_err
-
-
-@pytest.mark.parametrize("style", ["github-dark", "default"])
-def test_config_formatter_valid_style_and_background(style: str) -> None:
-    CONFIG.style = style
-    formatter = CONFIG._formatter
-    assert isinstance(formatter, Terminal256Formatter)
-    assert formatter.style.name == style
-
-
-def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
-    module = f"{SAMPLE_DIR}.string"
-
-    CONFIG.color = True
-    CONFIG.style = "github-dark"
-    importlib.import_module(module)
-
-    out_1, err_1 = capsys.readouterr()
-
-    del sys.modules[module]
-
-    CONFIG.color = True
-    CONFIG.style = "bw"
-    importlib.import_module(module)
-
-    out_2, err_2 = capsys.readouterr()
-
-    assert out_1 == out_2
-    assert strip_ansi(err_1.strip()) == strip_ansi(err_2.strip())
-    assert err_1.strip() != err_2.strip()
-
-
-def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
-    cwd = os.getcwd()
-
-    module = f"{SAMPLE_DIR}.colored_repr"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        from debug import CONFIG
-
-        CONFIG.color = True
-        CONFIG.style = "solarized-dark"
-        importlib.import_module(module)
-
-    expected_out = "\x1b[40m\x1b[97m[0]\x1b[0m"
-    expected_err = "[colored_repr.py:8:7] ColoredRepr() = \x1b[40m\x1b[97m[0]\x1b[0m"
-
-    out, err = capsys.readouterr()
-    assert out.strip() == expected_out
-    assert strip_ansi(err.strip().split(" = ")[0]) == expected_err.split(" = ")[0]
-    assert err.strip().split(" = ")[1] == expected_err.split(" = ")[1]
-
-
-@pytest.mark.parametrize(
-    "name, settings",
-    [
-        ("disabled", dict(color=False)),
-        ("monokai", dict(style="monokai", color=True)),
-        ("extra_section", dict(style="default", color=False)),
-        ("unused_field", dict(style="default")),
-        ("quotes", dict(style="algol")),
-        ("syntax_error", dict()),
-        ("location_error", dict()),
-        ("empty", dict()),
-        ("../debug/default", dict()),
-        ("wide_indent", dict(indent=4)),
-    ],
-)
-@pytest.mark.filterwarnings("ignore")
-def test_load_config(name: str, settings: dict[str, Any]) -> None:
-    config = DbgConfig()
-    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
-    config._use_config(filename)
-
-    expected_config = DbgConfig()
-    for k, v in settings.items():
-        setattr(expected_config, k, v)
-    assert config == expected_config
-
-
-@pytest.mark.parametrize(
-    "name, warning_message",
-    [
-        (
-            "extra_section",
-            "Extra section [extra] found in $. "
-            "Please, use no sections or one section called [dbg].",
-        ),
-        ("unused_field", "Unused field 'extra' found in $"),
-        (
-            "quotes",
-            'Quotes used around "algol" in $. '
-            "They will be ignored, but please remove to silence this warning.",
-        ),
-        ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
-        ("syntax_error", "Unable to load config from $. (ParsingError)"),
-        ("location_error", "Unable to load config from $. (FileNotFoundError)"),
-    ],
-)
-def test_load_config_displays_warning(name: str, warning_message: str) -> None:
-    config = DbgConfig()
-    filename = os.path.join(TEST_DATA_DIR, name + ".conf")
-
-    filename_msg = f"'{os.path.abspath(filename)}'"
-    warning_regex = re.escape(warning_message.replace("$", filename_msg))
-    with pytest.warns(match=warning_regex):
-        config._use_config(filename)
-
-
-def test_invalid_style_warns() -> None:
-    config = DbgConfig()
-    config.style = "monokai"
-
-    with pytest.warns(match=r"Invalid style 'invalid'\. Choose one of .*\."):
-        config.style = "invalid"
-
-    assert config.style == "monokai"
-
-
-def test_creates_default_config() -> None:
-    temp_dir = tempfile.mkdtemp()
-    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
-
-    def user_config_dir(appname: str) -> str:
-        return os.path.join(temp_dir, appname)
-
-    with mock.patch("platformdirs.user_config_dir", user_config_dir):
-        importlib.reload(sys.modules["debug._config"])
-        from debug import dbg
-
-        _ = dbg
-
-    assert os.path.exists(config_filename)
-    assert os.path.getsize(config_filename) > 0
-    assert filecmp.cmp(config_filename, "debug/default.conf")
-
-
-def test_loads_default_config() -> None:
-    temp_dir = tempfile.mkdtemp()
-    config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
-    os.mkdir(os.path.dirname(config_filename))
-    with open(config_filename, "w") as f:
-        f.write("style = fruity")
-
-    def user_config_dir(appname: str) -> str:
-        return os.path.join(temp_dir, appname)
-
-    with mock.patch("platformdirs.user_config_dir", user_config_dir):
-        importlib.reload(sys.modules["debug._config"])
-        importlib.reload(sys.modules["debug._debug"])
-        importlib.reload(sys.modules["debug"])
-        from debug import CONFIG
-
-    assert CONFIG.style == "fruity"
-
-
-def test_loads_default_config_over_user_config() -> None:
-    user_dir = tempfile.mkdtemp()
-    user_config_filename = os.path.join(user_dir, "debug", "dbg.conf")
-    os.mkdir(os.path.dirname(user_config_filename))
-    with open(user_config_filename, "w") as f:
-        f.write("style = fruity")
-
-    current_dir = tempfile.mkdtemp()
-    local_config_filename = os.path.join(current_dir, "dbg.conf")
-    with open(local_config_filename, "w") as f:
-        f.write("style = vim")
-
-    def user_config_dir(appname: str) -> str:
-        return os.path.join(user_dir, appname)
-
-    with (
-        mock.patch("platformdirs.user_config_dir", user_config_dir),
-        mock.patch("os.getcwd", mock.Mock(return_value=current_dir)),
-    ):
-        importlib.reload(sys.modules["debug._config"])
-        importlib.reload(sys.modules["debug._debug"])
-        importlib.reload(sys.modules["debug"])
-        from debug import CONFIG
-
-    assert CONFIG.style == "vim"
+from . import defaults as defaults
+from . import pformat
+from .format import ANSI_PATTERN, pprint, strip_ansi
 
 
 class MultilineObject:
@@ -632,6 +160,7 @@ else:
         (None, None, "None"),
         ("hello", None, "'hello'"),
         ("hello", 7, "'hello'"),
+        ("hello", 1, "'hello'"),
         (["a", 10, None, 5.0], 20, "['a', 10, None, 5.0]"),
         (
             ["a", 10, None, 5.0],
@@ -1549,7 +1078,7 @@ else:
         (
             DataclassNoRepr.instance,
             None,
-            f"<test_suite.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
+            f"<_debug.format_test.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
         (
             DataclassCustomRepr(),
@@ -1626,6 +1155,17 @@ else:
             type("freezeset", (frozenset,), {})(),
             None,
             "freezeset()",
+        ),
+        (
+            {frozenset([1, 2, 3]): {frozenset([4, 5, 6]): None}},
+            29,
+            """
+            {
+                frozenset({1, 2, 3}): {
+                    frozenset({4, 5, 6}): None,
+                },
+            }
+            """,
         ),
         (array("l"), None, "array('l')"),
         (array("i"), 10, "array('i')"),
@@ -2400,9 +1940,7 @@ else:
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
-    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
-    formatter = Formatter(config)
-    string = formatter.format(obj, initial_width=0)
+    string = pformat(obj, style="monokai", width=width, indent=4)
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
     if not isinstance(expected, list):
@@ -2444,12 +1982,10 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     ],
 )
 def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
-    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
-    formatter = Formatter(config)
     with mock.patch.dict(sys.modules, {module: None}):
-        importlib.reload(sys.modules["debug._format"])
-        string = formatter.format(obj, initial_width=0)
-    importlib.reload(sys.modules["debug._format"])
+        importlib.reload(sys.modules["_debug.format"])
+        string = pformat(obj, style="monokai", width=width, indent=4)
+    importlib.reload(sys.modules["_debug.format"])
     string = strip_ansi(string)
     expected = textwrap.dedent(expected).strip()
     assert string == expected
@@ -2572,9 +2108,8 @@ def test_format_without_module(obj: Any, module: str, width: int | None, expecte
 def test_format_offset(
     obj: Any, initial_width: int, width: int | None, expected: list | str
 ) -> None:
-    config = FormatterConfig(terminal_width=width, indent_width=4, color=True)
-    formatter = Formatter(config)
-    string = (initial_width - 1) * "*" + "_" + formatter.format(obj, initial_width=initial_width)
+    prefix = (initial_width - 1) * "*" + "_"
+    string = pformat(obj, width=width, indent=4, style="monokai", prefix=prefix)
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
     if not isinstance(expected, list):
@@ -2586,3 +2121,97 @@ def test_format_offset(
         assert string == expected
     else:
         assert string in expected
+
+
+@pytest.mark.parametrize(
+    "prefix, obj, width, expected",
+    [
+        ("======", "hello", 6, "======\n'hello'"),
+        ("=====", "hello", 6, "=====[ENTER]\n'hello'"),
+        ("=======\n", "hello", 7, "=======\n'hello'"),
+        ("========\n\x1b[34m=\x1b[39m", "hello", 8, "========\n\x1b[34m=\x1b[39m'hello'"),
+    ],
+)
+def test_format_with_prefix(prefix: str, obj: Any, width: int, expected: str) -> None:
+    expected = textwrap.dedent(expected).strip().replace("[ENTER]", "⏎")
+    assert pformat(obj, width=width, prefix=prefix, style=None) == expected
+
+
+def test_format_with_invalid_style() -> None:
+    with pytest.raises(
+        ValueError, match=r"Unknown style 'unknown'\. Please, choose one of \[.*\]\."
+    ):
+        pformat((), style="unknown")
+
+
+def test_pprint_default_file_is_stdout(capsys: pytest.CaptureFixture) -> None:
+    pprint("test", color=False, style=None)
+    out, err = capsys.readouterr()
+    assert out == "'test'\n"
+    assert err == ""
+
+
+def test_pprint_write_to_custom_file() -> None:
+    original_pformat = pformat
+    saved_kwargs: dict[str, Any] | None = None
+
+    def mock_pformat(obj: Any, **kwargs: Any) -> str:
+        nonlocal saved_kwargs
+        saved_kwargs = kwargs
+        return original_pformat(obj, **kwargs)
+
+    with io.StringIO() as file:
+        with mock.patch("_debug.format.pformat", mock_pformat):
+            pprint("test", color="auto", width="auto", file=file)
+
+        assert file.getvalue() == "'test'\n"
+
+    assert saved_kwargs is not None
+    assert saved_kwargs["style"] is None
+    assert saved_kwargs["width"] == defaults.DEFAULT_WIDTH
+
+
+@pytest.mark.parametrize(
+    "kwargs, warning",
+    [
+        ({}, None),
+        (
+            dict(color=True, style=None),
+            r"^`color` was set to True, but `style` was set to None\. "
+            r"The output will not be colored\.$",
+        ),
+        (dict(color=False, style=None), None),
+        (
+            dict(color=False, style="monokai"),
+            r"`color` was set to False, but `style` was set to 'monokai'\. "
+            r"The output will not be colored\.$",
+        ),
+        (dict(color=True, style="monokai"), None),
+        (dict(color=False, style="config"), None),
+        (dict(color=True, style="config"), None),
+    ],
+)
+@pytest.mark.filterwarnings("error")
+def test_pprint_argument_validation(kwargs: dict[str, Any], warning: None | str) -> None:
+    if warning is None:
+        pprint((), **kwargs)
+    else:
+        with pytest.warns(match=warning):
+            pprint((), **kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs, color",
+    [
+        (dict(color=True, style=None), False),
+        (dict(color=False, style="monokai"), False),
+        (dict(color=True, style="monokai"), True),
+        (dict(color=True, style=None), False),
+    ],
+)
+@pytest.mark.filterwarnings("ignore")
+def test_pprint_color_calculation(kwargs: dict[str, Any], color: bool) -> None:
+    with io.StringIO() as file:
+        pprint(100, **kwargs, file=file)
+        assert strip_ansi(file.getvalue()) == "100\n"
+        assert (file.getvalue() == "100\n") == (not color)
