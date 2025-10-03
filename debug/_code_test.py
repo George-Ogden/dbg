@@ -1,6 +1,14 @@
+from pygments.formatters import Terminal256Formatter
 import pytest
 
-from ._code import validate_style
+from ._code import get_formatter, validate_style
+
+
+@pytest.mark.parametrize("style", ["github-dark", "default"])
+def test_config_formatter_valid_style_and_background(style: str) -> None:
+    formatter = get_formatter(style)
+    assert isinstance(formatter, Terminal256Formatter)
+    assert formatter.style.name == style
 
 
 @pytest.mark.parametrize(

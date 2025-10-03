@@ -4,7 +4,8 @@ from typing import TypeVar, TypeVarTuple, overload
 
 from ._code import display_codes
 from ._config import CONFIG
-from ._format import pformat
+from ._file import FileWrapper
+from ._format import pprint
 from ._position import display_position
 
 T = TypeVar("T")
@@ -29,27 +30,26 @@ def dbg(*values: object) -> object:
     if frame is not None:
         frame = frame.f_back
     try:
-        position = display_position(frame)
-        if num_args == 0:
-            print(position, file=sys.stderr)
-        else:
-            codes = display_codes(frame, num_codes=num_args, style=CONFIG.style)
-            if CONFIG.color:
+        with FileWrapper.lock(sys.stderr) as file_wrapper:
+            if file_wrapper.supports_color:
                 style = CONFIG.style
             else:
                 style = None
-            for (code, symbol), value in zip(codes, values, strict=True):
-                prefix = f"{position} {code} {symbol} "
-                print(
-                    pformat(
+            position = display_position(frame, style=style)
+            if num_args == 0:
+                print(position, file=sys.stderr)
+            else:
+                codes = display_codes(frame, num_codes=num_args, style=style)
+                for (code, symbol), value in zip(codes, values, strict=True):
+                    prefix = f"{position} {code} {symbol} "
+                    pprint(
                         value,
                         prefix=prefix,
-                        style=style,
-                        indent=CONFIG.indent,
-                        width=CONFIG._get_terminal_width(),
-                    ),
-                    file=sys.stderr,
-                )
+                        style="config",
+                        indent="config",
+                        width="auto",
+                        file="upper",  # type: ignore
+                    )
     finally:
         del frame
     if len(values) == 1:

@@ -9,22 +9,32 @@ import dataclasses
 from dataclasses import dataclass
 import functools
 import re
+import sys
 import textwrap
 from types import MethodWrapperType
 from typing import (
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Generic,
+    Literal,
     Protocol,
     Self,
     TypeAlias,
     TypeVar,
 )
 import unicodedata
+import warnings
 
 from wcwidth import wcswidth
 
+from . import _constants as constants
 from ._code import highlight_code, validate_style
+from ._config import CONFIG
+from ._file import FileWrapper
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsWrite
 
 frozendict: type[Any]
 try:
@@ -716,13 +726,55 @@ class FormatterConfig:
         return self.style
 
 
+def pprint(
+    obj: Any,
+    /,
+    *,
+    file: SupportsWrite[str] | None = None,
+    width: int | Literal["auto"] | None = "auto",
+    style: str | Literal["config"] | None = "config",
+    color: bool | Literal["auto"] | Literal["config"] = "config",
+    indent: int | Literal["config"] = "config",
+    prefix: str = "",
+) -> None:
+    if color is True and style is None:
+        warnings.warn(
+            f"`color` was set to {color!r}, but `style` was set to {style!r}. "
+            "The output will not be colored."
+        )
+    elif color is False and (style is not None and style != "config"):
+        warnings.warn(
+            f"`color` was set to {color!r}, but `style` was set to {style!r}. "
+            "The output will not be colored."
+        )
+    if file is None:
+        file = sys.stdout
+    if file == "upper":
+        wrapped_file = FileWrapper.back()
+    else:
+        wrapped_file = FileWrapper(file)
+    if color == "config":
+        color = CONFIG.color
+    if style == "config":
+        style = CONFIG.style
+    if indent == "config":
+        indent = CONFIG.indent
+    if color == "auto":
+        color = wrapped_file.supports_color
+    if width == "auto":
+        width = wrapped_file.terminal_width
+    if not color:
+        style = None
+    wrapped_file.write(pformat(obj, width=width, style=style, indent=indent, prefix=prefix) + "\n")
+
+
 def pformat(
     obj: Any,
     /,
     *,
-    width: int | None = 80,
+    width: int | None = constants.DEFAULT_WIDTH,
     style: str | None = None,
-    indent: int = 2,
+    indent: int = constants.DEFAULT_INDENT,
     prefix: str = "",
 ) -> str:
     *_, last_line = prefix.rsplit("\n", maxsplit=1)

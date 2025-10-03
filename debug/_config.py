@@ -3,47 +3,29 @@ from dataclasses import dataclass
 import inspect
 import os.path
 import re
-import sys
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Literal
 import warnings
 
 import platformdirs
-from pygments.formatters import Terminal256Formatter
 
+from . import _constants as constants
 from ._code import validate_style
-
-
-def pytest_enabled() -> bool:
-    return "PYTEST_VERSION" in os.environ
-
-
-def supports_color() -> bool:
-    """
-    Returns True if the running system's terminal supports color, and False otherwise.
-    Modified from from https://stackoverflow.com/a/22254892.
-    """
-    plat = sys.platform
-    supported_platform = plat != "Pocket PC" and (plat != "win32" or "ANSICON" in os.environ)
-    is_a_tty = hasattr(sys.stderr, "isatty") and sys.stderr.isatty()
-    if not is_a_tty and pytest_enabled() and sys.__stderr__ is not None:
-        is_a_tty = hasattr(sys.__stderr__, "isatty") and sys.__stderr__.isatty()
-    return supported_platform and is_a_tty
 
 
 @dataclass
 class DbgConfig:
-    color: bool
+    color: bool | Literal["auto"]
     indent: int
     style: str
 
     def __init__(self) -> None:
-        self._style = "solarized-dark"
-        self.color = supports_color()
-        self.indent = 2
+        self._style = constants.DEFAULT_STYLE
+        self.color = "auto"
+        self.indent = constants.DEFAULT_INDENT
 
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"
-    DEFAULT_WIDTH: ClassVar[int] = 80
+    _DEFAULT_VALUE: ClassVar[Any] = object()
     _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
     _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
@@ -60,11 +42,7 @@ class DbgConfig:
         else:
             self._style = value
 
-    @property
-    def _formatter(self) -> Terminal256Formatter:
-        return Terminal256Formatter(style=self.style, noitalic=True, nobold=True, nounderline=True)
-
-    def _use_config(self, filepath: str) -> None:
+    def use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)
         config = configparser.ConfigParser()
         try:
@@ -104,38 +82,48 @@ class DbgConfig:
                 if value_type is None:
                     warnings.warn(f"Unused field '{key}' found in '{filepath}'.")
                     continue
-                elif value_type is bool:
-                    value = section.getboolean(key)
+                if value_type is bool | Literal["auto"]:
+                    try:
+                        value = section.getboolean(key)
+                    except ValueError:
+                        value = self.remove_quotes(section[key], filepath=filepath)
+                        if value != "auto":
+                            self.warn_invalid_type(
+                                expected="bool or 'auto'", key=key, filepath=filepath, value=value
+                            )
+                            continue
                 elif value_type is int:
-                    value = section.getint(key)
-                else:
-                    value = section[key]
-                    match = re.match(r"^('(.*)'|\"(.*)\")$", value)
-                    if match:
-                        warnings.warn(
-                            f"Quotes used around {value} in '{filepath}'. "
-                            "They will be ignored, but please remove to silence this warning."
+                    try:
+                        value = section.getint(key)
+                    except ValueError:
+                        self.warn_invalid_type(
+                            expected=value_type.__name__,
+                            key=key,
+                            filepath=filepath,
+                            value=section[key],
                         )
-                        value = (match.group(2) or "") + (match.group(3) or "")
+                        continue
+                else:
+                    value = self.remove_quotes(section[key], filepath=filepath)
 
                 setattr(self, key, value)
 
     @classmethod
-    def _get_terminal_width(cls) -> int:
-        width = cls.DEFAULT_WIDTH
-        try:
-            width, _ = os.get_terminal_size(sys.stderr.fileno())
-        except OSError:
-            if pytest_enabled():
-                stderr = sys.__stderr__
-                if stderr is not None:
-                    try:
-                        width, _ = os.get_terminal_size(stderr.fileno())
-                    except OSError:
-                        ...
-        if width < cls.DEFAULT_WIDTH / 2:
-            width = cls.DEFAULT_WIDTH
-        return width
+    def remove_quotes(cls, value: str, *, filepath: str) -> str:
+        match = re.match(r"^('(.*)'|\"(.*)\")$", value)
+        if match:
+            warnings.warn(
+                f"Quotes used around {value} in '{filepath}'. "
+                "They will be ignored, but please remove to silence this warning."
+            )
+            value = (match.group(2) or "") + (match.group(3) or "")
+        return value
+
+    @classmethod
+    def warn_invalid_type(cls, *, expected: str, key: str, filepath: str, value: str) -> None:
+        warnings.warn(
+            f"Invalid value {value!r} found in field {key!r} (expected {expected}) in '{filepath}'."
+        )
 
 
 CONFIG = DbgConfig()
@@ -150,6 +138,6 @@ if not os.path.exists(CONFIG._USER_FILENAME):
     except OSError:
         ...
 
-CONFIG._use_config(CONFIG._USER_FILENAME)
+CONFIG.use_config(CONFIG._USER_FILENAME)
 if os.path.exists(CONFIG._LOCAL_FILENAME):
-    CONFIG._use_config(CONFIG._LOCAL_FILENAME)
+    CONFIG.use_config(CONFIG._LOCAL_FILENAME)

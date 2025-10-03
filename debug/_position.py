@@ -4,10 +4,7 @@ import re
 import types
 from typing import TypeAlias
 
-from pygments.token import Token
-
-from ._code import UNKNOWN_MESSAGE
-from ._config import CONFIG
+from ._code import UNKNOWN_MESSAGE, highlight_text
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
@@ -35,22 +32,23 @@ def get_position(frame: None | types.FrameType) -> Position:
 def format_position(position: Position) -> str:
     filepath, location = position
     if location is None:
-        return filepath
-    lineno, col = location
-    if col is None:
-        return f"{filepath}:{lineno}"
+        position_text = filepath
     else:
-        return f"{filepath}:{lineno}:{col}"
+        lineno, col = location
+        if col is None:
+            position_text = f"{filepath}:{lineno}"
+        else:
+            position_text = f"{filepath}:{lineno}:{col}"
+    return f"[{position_text}]"
 
 
-def highlight_position(position: str) -> str:
-    position = f"[{position}]"
-    if CONFIG.color:
-        on, off = CONFIG._formatter.style_string[str(Token.Comment.Single)]
-        position = on + position + off
-    return position
+def highlight_position(position: str, style: str) -> str:
+    return highlight_text(position, style)
 
 
-def display_position(frame: None | types.FrameType) -> str:
+def display_position(frame: None | types.FrameType, style: str | None) -> str:
     position = get_position(frame)
-    return highlight_position(format_position(position))
+    position_text = format_position(position)
+    if style is not None:
+        position_text = highlight_position(position_text, style)
+    return position_text

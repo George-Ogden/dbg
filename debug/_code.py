@@ -31,13 +31,18 @@ def get_formatter(style: str) -> Terminal256Formatter:
     return Terminal256Formatter(style=style, noitalic=True, nobold=True, nounderline=True)
 
 
+def highlight_text(text: str, style: str) -> str:
+    formatter = get_formatter(style)
+    on, off = formatter.style_string[str(Token.Comment.Single)]
+    return on + text + off
+
+
 def highlight_code(code: str, style: str) -> str:
     lexer = PythonLexer()
-    formatter = get_formatter(style)
     if code is UNKNOWN_MESSAGE:
-        on, off = formatter.style_string[str(Token.Comment.Single)]
-        code = on + code + off
+        code = highlight_text(code, style)
     else:
+        formatter = get_formatter(style)
         code = pygments.highlight(code, lexer, formatter).strip()
     return code
 

@@ -8,21 +8,12 @@ from typing import Any
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
-from pygments.formatters import Terminal256Formatter
 import pytest
 
 from . import CONFIG
 from ._config import DbgConfig
 from ._format import strip_ansi
 from .conftest import SAMPLE_DIR, TEST_DATA_DIR
-
-
-@pytest.mark.parametrize("style", ["github-dark", "default"])
-def test_config_formatter_valid_style_and_background(style: str) -> None:
-    CONFIG.style = style
-    formatter = CONFIG._formatter
-    assert isinstance(formatter, Terminal256Formatter)
-    assert formatter.style.name == style
 
 
 def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
@@ -74,19 +65,23 @@ def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
         ("monokai", dict(style="monokai", color=True)),
         ("extra_section", dict(style="default", color=False)),
         ("unused_field", dict(style="default")),
-        ("quotes", dict(style="algol")),
+        ("style_quotes", dict(style="algol")),
+        ("color_quotes", dict(color="auto")),
         ("syntax_error", dict()),
         ("location_error", dict()),
         ("empty", dict()),
         ("../debug/default", dict()),
         ("wide_indent", dict(indent=4)),
+        ("auto_color", dict(color="auto")),
+        ("invalid_indent", dict()),
+        ("invalid_color", dict()),
     ],
 )
 @pytest.mark.filterwarnings("ignore")
 def test_load_config(name: str, settings: dict[str, Any]) -> None:
     config = DbgConfig()
     filename = os.path.join(TEST_DATA_DIR, name + ".conf")
-    config._use_config(filename)
+    config.use_config(filename)
 
     expected_config = DbgConfig()
     for k, v in settings.items():
@@ -104,13 +99,26 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
         ),
         ("unused_field", "Unused field 'extra' found in $"),
         (
-            "quotes",
+            "style_quotes",
             'Quotes used around "algol" in $. '
+            "They will be ignored, but please remove to silence this warning.",
+        ),
+        (
+            "color_quotes",
+            "Quotes used around 'auto' in $. "
             "They will be ignored, but please remove to silence this warning.",
         ),
         ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
         ("syntax_error", "Unable to load config from $. (ParsingError)"),
         ("location_error", "Unable to load config from $. (FileNotFoundError)"),
+        (
+            "invalid_indent",
+            "Invalid value '\"----\"' found in field 'indent' (expected int) in $.",
+        ),
+        (
+            "invalid_color",
+            "Invalid value 'bad-color' found in field 'color' (expected bool or 'auto') in $.",
+        ),
     ],
 )
 def test_load_config_displays_warning(name: str, warning_message: str) -> None:
@@ -120,7 +128,7 @@ def test_load_config_displays_warning(name: str, warning_message: str) -> None:
     filename_msg = f"'{os.path.abspath(filename)}'"
     warning_regex = re.escape(warning_message.replace("$", filename_msg))
     with pytest.warns(match=warning_regex):
-        config._use_config(filename)
+        config.use_config(filename)
 
 
 def test_invalid_style_warns() -> None:

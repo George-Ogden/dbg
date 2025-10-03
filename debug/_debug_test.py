@@ -1,5 +1,8 @@
+from collections.abc import Iterator
 import importlib
 import os
+import sys
+import tempfile
 import textwrap
 from unittest import mock
 
@@ -10,9 +13,16 @@ from ._format import strip_ansi
 from .conftest import SAMPLE_DIR
 
 
+@pytest.fixture(autouse=True, scope="module")
+def reload_modules() -> None:
+    importlib.reload(sys.modules["debug._config"])
+    importlib.reload(sys.modules["debug._format"])
+    importlib.reload(sys.modules["debug"])
+
+
 @pytest.fixture(autouse=True)
 def set_wide_indent() -> None:
-    from . import CONFIG
+    from ._config import CONFIG
 
     CONFIG.indent = 4
 
@@ -117,8 +127,8 @@ def set_wide_indent() -> None:
             "",
             f"""
             [pytest_width.py:3:1] ["X" * 40] * 2 = [
-                {repr("X" * 40)},
-                {repr("X" * 40)},
+                {"X" * 40!r},
+                {"X" * 40!r},
             ]
             """,
         ),
@@ -197,6 +207,31 @@ def set_wide_indent() -> None:
             [partial_fns.py:16:7] *[2, 3] -> 3
             """,
         ),
+        (
+            "stateful_repr",
+            """
+            stdout
+            """,
+            """
+            stderr
+            [stateful_repr.py:13:1] StatefulRepr() = repr
+            """,
+        ),
+        (
+            "many_files",
+            """
+            'stdout'
+            'stdout'
+            repr
+            'stdout'
+            """,
+            """
+            'stderr'
+            'stderr'
+            'stderr'
+            repr
+            """,
+        ),
     ],
 )
 def test_samples(
@@ -221,6 +256,29 @@ def test_samples(
         assert err == expected_err
     else:
         assert err in expected_err
+
+
+@pytest.fixture
+def patch_tempfile() -> Iterator[str]:
+    fd, filename = tempfile.mkstemp()
+    try:
+        with mock.patch("tempfile.mkstemp", mock.Mock(return_value=(fd, filename))):
+            yield filename
+    finally:
+        os.remove(filename)
+
+
+@pytest.mark.parametrize("name, expected", [("many_files", "'tempfile'")])
+def test_write_to_tempfile(name: str, expected: str, patch_tempfile: str) -> None:
+    cwd = os.getcwd()
+
+    module = f"{SAMPLE_DIR}.{name}"
+    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
+        importlib.import_module(module)
+
+    expected = textwrap.dedent(expected).strip()
+    with open(patch_tempfile) as f:
+        assert f.read().strip() == expected
 
 
 @pytest.mark.parametrize(

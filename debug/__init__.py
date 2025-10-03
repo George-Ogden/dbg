@@ -1,4 +1,4 @@
 from ._debug import CONFIG, dbg
-from ._format import pformat
+from ._format import pformat, pprint
 
-__all__ = ["dbg", "pformat", "CONFIG"]
+__all__ = ["CONFIG", "dbg", "pformat", "pprint"]

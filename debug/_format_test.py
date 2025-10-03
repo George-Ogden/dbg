@@ -3,6 +3,7 @@ import ast
 from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from dataclasses import dataclass, field
 import importlib
+import io
 import sys
 import textwrap
 from typing import Any, ClassVar, Self
@@ -13,8 +14,9 @@ from frozendict import frozendict
 import numpy as np
 import pytest
 
+from . import _constants as constants
 from . import pformat
-from ._format import ANSI_PATTERN, strip_ansi
+from ._format import ANSI_PATTERN, pprint, strip_ansi
 
 
 class MultilineObject:
@@ -2140,3 +2142,76 @@ def test_format_with_invalid_style() -> None:
         ValueError, match=r"Unknown style 'unknown'\. Please, choose one of \[.*\]\."
     ):
         pformat((), style="unknown")
+
+
+def test_pprint_default_file_is_stdout(capsys: pytest.CaptureFixture) -> None:
+    pprint("test", color=False, style=None)
+    out, err = capsys.readouterr()
+    assert out == "'test'\n"
+    assert err == ""
+
+
+def test_pprint_write_to_custom_file() -> None:
+    original_pformat = pformat
+    saved_kwargs: dict[str, Any] | None = None
+
+    def mock_pformat(obj: Any, **kwargs: Any) -> str:
+        nonlocal saved_kwargs
+        saved_kwargs = kwargs
+        return original_pformat(obj, **kwargs)
+
+    with io.StringIO() as file:
+        with mock.patch("debug._format.pformat", mock_pformat):
+            pprint("test", color="auto", width="auto", file=file)
+
+        assert file.getvalue() == "'test'\n"
+
+    assert saved_kwargs is not None
+    assert saved_kwargs["style"] is None
+    assert saved_kwargs["width"] == constants.DEFAULT_WIDTH
+
+
+@pytest.mark.parametrize(
+    "kwargs, warning",
+    [
+        ({}, None),
+        (
+            dict(color=True, style=None),
+            r"^`color` was set to True, but `style` was set to None\. "
+            r"The output will not be colored\.$",
+        ),
+        (dict(color=False, style=None), None),
+        (
+            dict(color=False, style="monokai"),
+            r"`color` was set to False, but `style` was set to 'monokai'\. "
+            r"The output will not be colored\.$",
+        ),
+        (dict(color=True, style="monokai"), None),
+        (dict(color=False, style="config"), None),
+        (dict(color=True, style="config"), None),
+    ],
+)
+@pytest.mark.filterwarnings("error")
+def test_pprint_argument_validation(kwargs: dict[str, Any], warning: None | str) -> None:
+    if warning is None:
+        pprint((), **kwargs)
+    else:
+        with pytest.warns(match=warning):
+            pprint((), **kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs, color",
+    [
+        (dict(color=True, style=None), False),
+        (dict(color=False, style="monokai"), False),
+        (dict(color=True, style="monokai"), True),
+        (dict(color=True, style=None), False),
+    ],
+)
+@pytest.mark.filterwarnings("ignore")
+def test_pprint_color_calculation(kwargs: dict[str, Any], color: bool) -> None:
+    with io.StringIO() as file:
+        pprint(100, **kwargs, file=file)
+        assert strip_ansi(file.getvalue()) == "100\n"
+        assert (file.getvalue() == "100\n") == (not color)

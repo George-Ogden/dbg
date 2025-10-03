@@ -1,0 +1,3 @@
+DEFAULT_WIDTH = 80
+DEFAULT_INDENT = 2
+DEFAULT_STYLE = "solarized-dark"
