@@ -28,7 +28,7 @@ import warnings
 
 from wcwidth import wcswidth
 
-from . import _constants as constants
+from . import _defaults as defaults
 from ._code import highlight_code, validate_style
 from ._config import CONFIG
 from ._file import FileWrapper
@@ -817,9 +817,9 @@ def pformat(
     obj: Any,
     /,
     *,
-    width: int | None = constants.DEFAULT_WIDTH,
+    width: int | None = defaults.DEFAULT_WIDTH,
     style: str | None = None,
-    indent: int = constants.DEFAULT_INDENT,
+    indent: int = defaults.DEFAULT_INDENT,
     prefix: str = "",
 ) -> str:
     """Pretty print an object to a string. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.

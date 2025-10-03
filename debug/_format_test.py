@@ -14,7 +14,7 @@ from frozendict import frozendict
 import numpy as np
 import pytest
 
-from . import _constants as constants
+from . import _defaults as defaults
 from . import pformat
 from ._format import ANSI_PATTERN, pprint, strip_ansi
 
@@ -2168,7 +2168,7 @@ def test_pprint_write_to_custom_file() -> None:
 
     assert saved_kwargs is not None
     assert saved_kwargs["style"] is None
-    assert saved_kwargs["width"] == constants.DEFAULT_WIDTH
+    assert saved_kwargs["width"] == defaults.DEFAULT_WIDTH
 
 
 @pytest.mark.parametrize(

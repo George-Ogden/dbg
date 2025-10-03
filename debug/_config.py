@@ -8,7 +8,7 @@ import warnings
 
 import platformdirs
 
-from . import _constants as constants
+from . import _defaults as defaults
 from ._code import validate_style
 
 
@@ -19,9 +19,9 @@ class DbgConfig:
     style: str
 
     def __init__(self) -> None:
-        self._style = constants.DEFAULT_STYLE
+        self._style = defaults.DEFAULT_STYLE
         self.color = "auto"
-        self.indent = constants.DEFAULT_INDENT
+        self.indent = defaults.DEFAULT_INDENT
 
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"

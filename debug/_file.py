@@ -5,7 +5,7 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TextIO
 
-from . import _constants as constants
+from . import _defaults as defaults
 
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
@@ -49,7 +49,7 @@ class FileWrapper:
 
     @functools.cached_property
     def terminal_width(self) -> int:
-        width = constants.DEFAULT_WIDTH
+        width = defaults.DEFAULT_WIDTH
         try:
             width, _ = os.get_terminal_size(self._file.fileno())  # type: ignore
         except (OSError, AttributeError):
@@ -60,8 +60,8 @@ class FileWrapper:
                         width, _ = os.get_terminal_size(fallback_file.fileno())
                     except (OSError, AttributeError):
                         ...
-        if width < constants.DEFAULT_WIDTH / 2:
-            width = constants.DEFAULT_WIDTH
+        if width < defaults.DEFAULT_WIDTH / 2:
+            width = defaults.DEFAULT_WIDTH
         return width
 
     def write(self, text: str) -> None:

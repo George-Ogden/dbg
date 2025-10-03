@@ -171,7 +171,6 @@ def test_loads_default_config() -> None:
 
     with mock.patch("platformdirs.user_config_dir", user_config_dir):
         importlib.reload(sys.modules["debug._config"])
-        importlib.reload(sys.modules["debug._debug"])
         importlib.reload(sys.modules["debug"])
         from debug import CONFIG
 
@@ -198,7 +197,6 @@ def test_loads_default_config_over_user_config() -> None:
         mock.patch("os.getcwd", mock.Mock(return_value=current_dir)),
     ):
         importlib.reload(sys.modules["debug._config"])
-        importlib.reload(sys.modules["debug._debug"])
         importlib.reload(sys.modules["debug"])
         from debug import CONFIG
 
