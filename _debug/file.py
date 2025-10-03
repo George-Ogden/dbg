@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 class FileWrapper:
     _current: ClassVar[list[Self]] = []
-    _file: SupportsWrite[str]
 
     def __init__(self, file: SupportsWrite[str]) -> None:
         self._file = file
@@ -72,8 +71,6 @@ class FileWrapper:
         return cls._current[-1]
 
     class lock:
-        _file: SupportsWrite[str]
-
         def __init__(self, file: SupportsWrite[str]) -> None:
             self._file = file
 

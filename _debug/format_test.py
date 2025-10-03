@@ -1024,6 +1024,11 @@ else:
             None,
             "NumpyArraySubclassCustomRepr!",
         ),
+        (
+            custom_repr_cls("BidictSubclassCustomRepr", bidict.bidict),
+            None,
+            "BidictSubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
@@ -2012,6 +2017,92 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
     string = pformat(obj, style="monokai", width=width, indent=4)
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
+    if not isinstance(expected, list):
+        expected = [expected]
+    expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        ({}, None, "{}"),
+        ({3: 1, 2: 2, 1: 3}, None, "{1: 3, 2: 2, 3: 1}"),
+        ({3: 1, 2: 2, 1: 3}, 18, "{1: 3, 2: 2, 3: 1}"),
+        (
+            {3: 1, 2: 2, 1: 3},
+            17,
+            """
+            {
+                1: 3,
+                2: 2,
+                3: 1,
+            }
+            """,
+        ),
+        (
+            {2: {2: 1, 1: 2}, 1: {2: 1, 1: 2}},
+            20,
+            """
+            {
+                1: {1: 2, 2: 1},
+                2: {1: 2, 2: 1},
+            }
+            """,
+        ),
+        (
+            frozendict({2: frozendict({2: 1, 1: 2}), 1: frozendict({2: 1, 1: 2})}),
+            32,
+            """
+            frozendict({
+                1: frozendict({1: 2, 2: 1}),
+                2: frozendict({1: 2, 2: 1}),
+            })
+            """,
+        ),
+        (Counter("abbccc"), None, "Counter({'c': 3, 'b': 2, 'a': 1})"),
+        (Counter([frozendict({2: 1, 1: 2})] * 2), None, "Counter({frozendict({1: 2, 2: 1}): 2})"),
+        (OrderedDict([(3, 1), (2, 2), (1, 3)]), None, "OrderedDict({3: 1, 2: 2, 1: 3})"),
+        ((3, 2, 1), None, "(3, 2, 1)"),
+        ([3, 2, 1], None, "[3, 2, 1]"),
+        ({5, 4, 3, 2, 1}, None, "{1, 2, 3, 4, 5}"),
+        ({"5", "4", "3", "2", "1"}, None, "{'1', '2', '3', '4', '5'}"),
+        (frozenset({"5", "4", "3", "2", "1"}), None, "frozenset({'1', '2', '3', '4', '5'})"),
+        (
+            frozenset([frozenset({"4", "3", "2", "1"}), frozenset({"3", "2", "1"})]),
+            36,
+            [
+                """
+                frozenset({
+                    frozenset({'1', '2', '3'}),
+                    frozenset({'1', '2', '3', '4'}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({'1', '2', '3', '4'}),
+                    frozenset({'1', '2', '3'}),
+                })
+                """,
+            ],
+        ),
+        ({None, 1}, None, ["{None, 1}", "{1, None}"]),
+        (
+            {"a", "b", "c", 1.0, 2.0, 3.0},
+            None,
+            [
+                "{'a', 'b', 'c', 1.0, 2.0, 3.0}",
+                "{1.0, 2.0, 3.0, 'a', 'b', 'c'}",
+            ],
+        ),
+    ],
+)
+def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style=None, width=width, indent=4, sort_unordered_collections=True)
     if not isinstance(expected, list):
         expected = [expected]
     expected = [textwrap.dedent(output).strip() for output in expected]
