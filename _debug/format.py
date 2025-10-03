@@ -4,7 +4,15 @@ import abc
 from array import array
 import ast
 from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
-from collections.abc import Callable, Collection, ItemsView, Iterable, KeysView, ValuesView
+from collections.abc import (
+    Callable,
+    Collection,
+    ItemsView,
+    Iterable,
+    KeysView,
+    Sequence,
+    ValuesView,
+)
 import dataclasses
 from dataclasses import dataclass
 import functools
@@ -126,7 +134,7 @@ class BaseFormat(abc.ABC):
         return wcswidth(cls.clean_string(string))
 
     @classmethod
-    def _from(cls, obj: Any, visited: Visited) -> BaseFormat:
+    def _from(cls, obj: Any, visited: Visited, *, sort_unordered_collections: bool) -> BaseFormat:
         obj_cls = type(obj)
         if dataclasses.is_dataclass(obj):
             if (
@@ -141,7 +149,14 @@ class BaseFormat(abc.ABC):
                 dataclass_format = NamedObjectFormat(
                     obj_cls,
                     [
-                        AttrFormat(field.name, cls._from(getattr(obj, field.name), visited))
+                        AttrFormat(
+                            field.name,
+                            cls._from(
+                                getattr(obj, field.name),
+                                visited,
+                                sort_unordered_collections=sort_unordered_collections,
+                            ),
+                        )
                         for field in dataclasses.fields(obj)
                         if field.repr
                     ],
@@ -164,7 +179,9 @@ class BaseFormat(abc.ABC):
 
         for sequence_maker in cls.SEQUENCE_MAKERS:
             if isinstance(obj, sequence_maker.base_cls):
-                return sequence_maker.formatter(obj, visited=visited)
+                return sequence_maker.formatter(
+                    obj, visited=visited, sort_unordered_collections=sort_unordered_collections
+                )
 
         if isinstance(obj, np.ndarray):
             data = obj.tolist()
@@ -173,12 +190,33 @@ class BaseFormat(abc.ABC):
                 obj_cls = array
             if id(obj) in visited:
                 return NamedObjectFormat(
-                    obj_cls, [EllipsisFormat(), AttrFormat("dtype", cls._from(dtype.name, visited))]
+                    obj_cls,
+                    [
+                        EllipsisFormat(),
+                        AttrFormat(
+                            "dtype",
+                            cls._from(
+                                dtype.name,
+                                visited,
+                                sort_unordered_collections=sort_unordered_collections,
+                            ),
+                        ),
+                    ],
                 )
             visited.add(id(obj))
             np_array_format = NamedObjectFormat(
                 obj_cls,
-                [cls._from(data, visited), AttrFormat("dtype", cls._from(dtype.name, visited))],
+                [
+                    cls._from(data, visited, sort_unordered_collections=sort_unordered_collections),
+                    AttrFormat(
+                        "dtype",
+                        cls._from(
+                            dtype.name,
+                            visited,
+                            sort_unordered_collections=sort_unordered_collections,
+                        ),
+                    ),
+                ],
             )
             visited.remove(id(obj))
             return np_array_format
@@ -194,7 +232,15 @@ class BaseFormat(abc.ABC):
             sub_objs = [obj.typecode]
             if body:
                 sub_objs.append(body)
-            return NamedObjectFormat(obj_cls, [cls._from(sub_obj, visited) for sub_obj in sub_objs])
+            return NamedObjectFormat(
+                obj_cls,
+                [
+                    cls._from(
+                        sub_obj, visited, sort_unordered_collections=sort_unordered_collections
+                    )
+                    for sub_obj in sub_objs
+                ],
+            )
 
         if isinstance(obj, ast.AST):
             if id(obj) in visited:
@@ -217,10 +263,26 @@ class BaseFormat(abc.ABC):
                         field_type = obj_cls._field_types.get(field, object)
                         if field_type is ast.expr_context:
                             continue
-                    ast_subformat.append(AttrFormat(field, cls._from(value, visited)))
+                    ast_subformat.append(
+                        AttrFormat(
+                            field,
+                            cls._from(
+                                value,
+                                visited,
+                                sort_unordered_collections=sort_unordered_collections,
+                            ),
+                        )
+                    )
             else:
                 ast_subformat = [
-                    AttrFormat(field, cls._from(getattr(obj, field), visited))
+                    AttrFormat(
+                        field,
+                        cls._from(
+                            getattr(obj, field),
+                            visited,
+                            sort_unordered_collections=sort_unordered_collections,
+                        ),
+                    )
                     for field in obj._fields
                     if getattr(obj, field, None) not in (None, [])
                     or (isinstance(obj, ast.Constant | ast.MatchSingleton) and field == "value")
@@ -238,7 +300,11 @@ class BaseFormat(abc.ABC):
                 return NamedObjectFormat(obj_cls, None)
             visited.add(id(obj))
             chainmap_subformat = NamedObjectFormat(
-                obj_cls, [cls._from(map, visited) for map in obj.maps]
+                obj_cls,
+                [
+                    cls._from(map, visited, sort_unordered_collections=sort_unordered_collections)
+                    for map in obj.maps
+                ],
             )
             visited.remove(id(obj))
             return chainmap_subformat
@@ -465,6 +531,21 @@ SequenceInit: TypeAlias = SequenceCallable | type[SequenceFormat]
 SequenceMakerT = TypeVar("SequenceMakerT", bound=Collection)
 
 
+class SafeSortItem:
+    def __init__(self, obj: Any, /) -> None:
+        self._obj = obj
+
+    def __lt__(self, other: Self) -> bool:
+        try:
+            return self._obj < other._obj
+        except TypeError:
+            return (str(type(self._obj)), id(self._obj)) < (str(type(other._obj)), id(other._obj))
+
+
+def SafeSortTuple(objs: Sequence[Any], /) -> tuple[SafeSortItem, ...]:
+    return tuple(SafeSortItem(obj) for obj in objs)
+
+
 class SequenceMaker(Generic[SequenceMakerT]):
     def __init__(
         self,
@@ -479,7 +560,14 @@ class SequenceMaker(Generic[SequenceMakerT]):
         self._sequence_cls = sequence_cls
         self._show_braces_when_empty = show_braces_when_empty
 
-    def formatter(self, obj: SequenceMakerT, visited: Visited, **kwargs: Any) -> BaseFormat:
+    def formatter(
+        self,
+        obj: SequenceMakerT,
+        visited: Visited,
+        *,
+        sort_unordered_collections: bool,
+        **kwargs: Any,
+    ) -> BaseFormat:
         display_type = self.use_type(obj)
         if len(obj) == 0:
             empty_formatter = self.format_empty(display_type)
@@ -489,7 +577,9 @@ class SequenceMaker(Generic[SequenceMakerT]):
             sub_objs = None
         else:
             visited.add(id(obj))
-            sub_objs = self.format_sub_objs(obj, visited)
+            sub_objs = self.format_sub_objs(
+                obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
             visited.remove(id(obj))
         return self.sequence_init(obj)(sub_objs, display_type, **kwargs)
 
@@ -501,8 +591,15 @@ class SequenceMaker(Generic[SequenceMakerT]):
             return None
         return NamedObjectFormat(display_type, [])
 
-    def format_sub_objs(self, sub_objs: SequenceMakerT, visited: Visited) -> list[BaseFormat]:
-        return [BaseFormat._from(sub_obj, visited) for sub_obj in sub_objs]
+    def format_sub_objs(
+        self, sub_objs: SequenceMakerT, visited: Visited, *, sort_unordered_collections: bool
+    ) -> list[BaseFormat]:
+        return [
+            BaseFormat._from(
+                sub_obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
+            for sub_obj in sub_objs
+        ]
 
     def use_type(self, obj: SequenceMakerT) -> None | type:
         obj_type = type(obj)
@@ -517,34 +614,52 @@ class SetMaker(SequenceMaker[set]):
 
 
 class TupleMaker(SequenceMaker[tuple]):
-    def formatter(self, obj: tuple, visited: Visited, **kwargs: Any) -> BaseFormat:
+    def formatter(
+        self, obj: tuple, visited: Visited, *, sort_unordered_collections: bool, **kwargs: Any
+    ) -> BaseFormat:
         if len(obj) == 1:
             kwargs = kwargs | dict(extra_trailing_comma=True)
-        return super().formatter(obj, visited, **kwargs)
+        return super().formatter(
+            obj, visited, sort_unordered_collections=sort_unordered_collections, **kwargs
+        )
 
 
 DictMakerT = TypeVar("DictMakerT", bound=dict)
 
 
 class DictMaker(Generic[DictMakerT], SequenceMaker[DictMakerT]):
-    def format_sub_objs(self, sub_objs: DictMakerT, visited: Visited) -> list[BaseFormat]:
+    def format_sub_objs(
+        self, sub_objs: DictMakerT, visited: Visited, *, sort_unordered_collections: bool
+    ) -> list[BaseFormat]:
+        items: Iterable[tuple[Any, Any]]
         items = sub_objs.items()
+        if sort_unordered_collections:
+            items = sorted(items, key=SafeSortTuple)
         return [
             PairFormat(
-                BaseFormat._from(k, visited),
-                BaseFormat._from(v, visited),
+                BaseFormat._from(k, visited, sort_unordered_collections=sort_unordered_collections),
+                BaseFormat._from(v, visited, sort_unordered_collections=sort_unordered_collections),
             )
             for k, v in items
         ]
 
 
 class CounterMaker(DictMaker[Counter]):
-    def format_sub_objs(self, sub_objs: Counter, visited: Visited) -> list[BaseFormat]:
+    def format_sub_objs(
+        self, sub_objs: Counter, visited: Visited, *, sort_unordered_collections: bool
+    ) -> list[BaseFormat]:
+        items: Iterable[tuple[Any, Any]]
         try:
-            items = list(sub_objs.most_common())
+            items = sub_objs.most_common()
         except (AttributeError, TypeError):
-            items = list(sub_objs.items())
-        return super().format_sub_objs(dict(items), visited)  # type: ignore
+            items = sub_objs.items()
+        return [
+            PairFormat(
+                BaseFormat._from(k, visited, sort_unordered_collections=sort_unordered_collections),
+                BaseFormat._from(v, visited, sort_unordered_collections=sort_unordered_collections),
+            )
+            for k, v in items
+        ]
 
 
 class DefaultDictMaker(DictMaker[defaultdict]):
@@ -833,6 +948,7 @@ def pformat(
     width: int | None = defaults.DEFAULT_WIDTH,
     style: str | None = None,
     indent: int = defaults.DEFAULT_INDENT,
+    sort_unordered_collections: bool = False,
     prefix: str = "",
 ) -> str:
     """Pretty print an object to a string. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
@@ -869,7 +985,9 @@ def pformat(
     else:
         width_pair = (initial_offset, width)
     config = FormatterConfig(width_pair=width_pair, indent_width=indent, style=style)
-    formatted_obj = BaseFormat._from(obj, set())
+    formatted_obj = BaseFormat._from(
+        obj, set(), sort_unordered_collections=sort_unordered_collections
+    )
     text = formatted_obj._format(highlight_now=True, config=config)
     if prefix and isinstance(formatted_obj, ItemFormat) and text:
         max_len = max(map(BaseFormat.len, text.splitlines()))

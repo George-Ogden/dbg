@@ -2028,6 +2028,57 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
 
 
 @pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        ({}, None, "{}"),
+        ({3: 1, 2: 2, 1: 3}, None, "{1: 3, 2: 2, 3: 1}"),
+        ({3: 1, 2: 2, 1: 3}, 18, "{1: 3, 2: 2, 3: 1}"),
+        (
+            {3: 1, 2: 2, 1: 3},
+            17,
+            """
+            {
+                1: 3,
+                2: 2,
+                3: 1,
+            }
+            """,
+        ),
+        (
+            {2: {2: 1, 1: 2}, 1: {2: 1, 1: 2}},
+            20,
+            """
+            {
+                1: {1: 2, 2: 1},
+                2: {1: 2, 2: 1},
+            }
+            """,
+        ),
+        (
+            frozendict({2: frozendict({2: 1, 1: 2}), 1: frozendict({2: 1, 1: 2})}),
+            32,
+            """
+            frozendict({
+                1: frozendict({1: 2, 2: 1}),
+                2: frozendict({1: 2, 2: 1}),
+            })
+            """,
+        ),
+    ],
+)
+def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style=None, width=width, indent=4, sort_unordered_collections=True)
+    if not isinstance(expected, list):
+        expected = [expected]
+    expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
+
+
+@pytest.mark.parametrize(
     "obj, module, width, expected",
     [
         (recursive_dict, "frozendict", 48, "{<class 'dict'>: {...}, <class 'list'>: [[...]]}"),
