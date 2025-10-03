@@ -1024,6 +1024,11 @@ else:
             None,
             "NumpyArraySubclassCustomRepr!",
         ),
+        (
+            custom_repr_cls("BidictSubclassCustomRepr", bidict.bidict),
+            None,
+            "BidictSubclassCustomRepr!",
+        ),
         (DataclassNoField(), None, "DataclassNoField()"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),

@@ -674,6 +674,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
 BaseFormat.KNOWN_EXTRA_CLASSES = (
     Counter,
     frozendict,
+    BidictBase,
     UserList,
     UserDict,
     ChainMap,
