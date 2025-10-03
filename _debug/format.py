@@ -938,6 +938,11 @@ def pprint(
             If an integer is used, that many spaces are used for indenting.
             Defaults to `"config"`.
 
+        sort_unordered_collections (bool, optional):
+            Sort values in unordered collections, such as dictionary keys or sets.
+            This may differ from the existing ordering.
+            Defaults to `False`.
+
         prefix (str, optional):
             A prefix to print before the object is formatted.
             This string is never colored or formatted.
@@ -1003,7 +1008,7 @@ def pformat(
         width (int | None, optional):
             The terminal width for pretty printing.
             If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
-            Defaults to 80.
+            Defaults to `80`.
 
         style (str | None, optional):
             The color scheme to use for displaying text.
@@ -1014,7 +1019,12 @@ def pformat(
 
         indent (int, optional):
             The number of spaces to use for indents when printing nested objects.
-            Defaults to 4.
+            Defaults to `4`.
+
+        sort_unordered_collections (bool, optional):
+            Sort values in unordered collections, such as dictionary keys or sets.
+            This may differ from the existing ordering.
+            Defaults to `False`.
 
         prefix (str, optional):
             A prefix to print before the object is formatted.
