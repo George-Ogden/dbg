@@ -9,7 +9,7 @@ requires = ["setuptools>=62"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"debug" = "debug"}
+package-dir = {"debug" = "debug", "_debug" = "_debug"}
 
 [tool.ruff]
 line-length = 100
@@ -29,10 +29,11 @@ indent-style = "space"
 dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools.data-files]
-"debug" = ["debug/default.conf"]
+"_debug" = ["_debug/default.conf"]
 
 [tool.setuptools.package-data]
 "debug" = ["py.typed"]
+"_debug" = ["py.typed"]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore:The 'u' type code is deprecated and will be removed in Python 3.16:DeprecationWarning"]
