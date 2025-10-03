@@ -42,6 +42,12 @@ try:
 except (ModuleNotFoundError, ImportError):
     frozendict = type("", (), {})
 
+BidictBase: type[Any]
+try:
+    from bidict import BidictBase
+except (ModuleNotFoundError, ImportError):
+    BidictBase = type("", (), {})
+
 try:
     import numpy as np
 except (ModuleNotFoundError, ImportError):
@@ -592,6 +598,12 @@ BaseFormat.SEQUENCE_MAKERS = [
         base_cls=frozendict,
         sequence_cls=CurlySequenceFormat,
         show_braces_when_empty=True,
+    ),
+    DictMaker(
+        include_name=True,
+        base_cls=BidictBase,
+        sequence_cls=CurlySequenceFormat,
+        show_braces_when_empty=False,
     ),
     DictMaker(
         include_name=False,

@@ -9,6 +9,7 @@ import textwrap
 from typing import Any, ClassVar, Self
 from unittest import mock
 
+import bidict
 from colorama import Fore
 from frozendict import frozendict
 import numpy as np
@@ -1937,6 +1938,74 @@ else:
             )
             """,
         ),
+        (
+            bidict.bidict(),
+            None,
+            "bidict()",
+        ),
+        (bidict.bidict({1: 2}), None, "bidict({1: 2})"),
+        (bidict.bidict({1: 2}), 14, "bidict({1: 2})"),
+        (
+            bidict.bidict({1: 2}),
+            13,
+            """
+            bidict({
+                1: 2,
+            })
+            """,
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            None,
+            "frozenbidict({frozenbidict({'a': 'b'}): frozenbidict({'c': 'd'})})",
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            66,
+            "frozenbidict({frozenbidict({'a': 'b'}): frozenbidict({'c': 'd'})})",
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            65,
+            """
+            frozenbidict({
+                frozenbidict({'a': 'b'}): frozenbidict({'c': 'd'}),
+            })
+            """,
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            55,
+            """
+            frozenbidict({
+                frozenbidict({'a': 'b'}): frozenbidict({'c': 'd'}),
+            })
+            """,
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            54,
+            """
+            frozenbidict({
+                frozenbidict({'a': 'b'}): frozenbidict({
+                    'c': 'd',
+                }),
+            })
+            """,
+        ),
+        (
+            bidict.frozenbidict({bidict.frozenbidict(a="b"): bidict.frozenbidict(c="d")}),
+            26,
+            """
+            frozenbidict({
+                frozenbidict({
+                    'a': 'b',
+                }): frozenbidict({
+                    'c': 'd',
+                }),
+            })
+            """,
+        ),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
@@ -1979,6 +2048,7 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
             ]
             """,
         ),
+        ({}, "bidict", None, "{}"),
     ],
 )
 def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
