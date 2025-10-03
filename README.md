@@ -1,9 +1,8 @@
 # `dbg!` in Python
 
 The `dbg!` macro in Rust is amazing.
-However, Python doesn't support macros and doesn't have a built-in equivalent.
 
-This library provides a solution:
+This library provides a Python equivalent:
 
 ```python
 from debug import dbg
@@ -97,8 +96,8 @@ If some information is unavailable, a placeholder will be shown, such as `<unkno
 ## Pytest Tips
 
 `dbg` automatically detects your terminal width when running so that it can display objects better.
-If you're using `pytest`, it captures the stdout using file descriptors, which makes it impossible to detect the width.
-Instead, you can capture at the system level by setting the `--capture=sys` flag, which avoids this issue and enables color (if your terminal supports it).
+This fails if you use `pytest` with the default settings.
+Instead, you can set the `--capture=sys` flag, which avoids the issue and reenables color support.
 If you don't want to do this every time, set the following options in your `pytest.ini`:
 
 ```ini
