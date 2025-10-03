@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 from array import array
 import ast
-from collections import ChainMap, Counter, UserDict, UserList, defaultdict, deque
+from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from collections.abc import (
     Callable,
     Collection,
@@ -624,10 +624,26 @@ class TupleMaker(SequenceMaker[tuple]):
         )
 
 
+ODictMakerT = TypeVar("ODictMakerT", bound=dict)
+
+
+class OrderedDictMaker(Generic[ODictMakerT], SequenceMaker[ODictMakerT]):
+    def format_sub_objs(
+        self, sub_objs: ODictMakerT, visited: Visited, *, sort_unordered_collections: bool
+    ) -> list[BaseFormat]:
+        return [
+            PairFormat(
+                BaseFormat._from(k, visited, sort_unordered_collections=sort_unordered_collections),
+                BaseFormat._from(v, visited, sort_unordered_collections=sort_unordered_collections),
+            )
+            for k, v in sub_objs.items()
+        ]
+
+
 DictMakerT = TypeVar("DictMakerT", bound=dict)
 
 
-class DictMaker(Generic[DictMakerT], SequenceMaker[DictMakerT]):
+class DictMaker(Generic[DictMakerT], OrderedDictMaker[DictMakerT]):
     def format_sub_objs(
         self, sub_objs: DictMakerT, visited: Visited, *, sort_unordered_collections: bool
     ) -> list[BaseFormat]:
@@ -635,16 +651,14 @@ class DictMaker(Generic[DictMakerT], SequenceMaker[DictMakerT]):
         items = sub_objs.items()
         if sort_unordered_collections:
             items = sorted(items, key=SafeSortTuple)
-        return [
-            PairFormat(
-                BaseFormat._from(k, visited, sort_unordered_collections=sort_unordered_collections),
-                BaseFormat._from(v, visited, sort_unordered_collections=sort_unordered_collections),
-            )
-            for k, v in items
-        ]
+        return super().format_sub_objs(
+            dict(items),  # type: ignore
+            visited,
+            sort_unordered_collections=sort_unordered_collections,
+        )
 
 
-class CounterMaker(DictMaker[Counter]):
+class CounterMaker(OrderedDictMaker[Counter]):
     def format_sub_objs(
         self, sub_objs: Counter, visited: Visited, *, sort_unordered_collections: bool
     ) -> list[BaseFormat]:
@@ -653,13 +667,11 @@ class CounterMaker(DictMaker[Counter]):
             items = sub_objs.most_common()
         except (AttributeError, TypeError):
             items = sub_objs.items()
-        return [
-            PairFormat(
-                BaseFormat._from(k, visited, sort_unordered_collections=sort_unordered_collections),
-                BaseFormat._from(v, visited, sort_unordered_collections=sort_unordered_collections),
-            )
-            for k, v in items
-        ]
+        return super().format_sub_objs(
+            dict(items),  # type: ignore
+            visited,
+            sort_unordered_collections=sort_unordered_collections,
+        )
 
 
 class DefaultDictMaker(DictMaker[defaultdict]):
@@ -707,6 +719,12 @@ BaseFormat.SEQUENCE_MAKERS = [
         base_cls=defaultdict,
         sequence_cls=CurlySequenceFormat,
         show_braces_when_empty=True,
+    ),
+    OrderedDictMaker(
+        include_name=True,
+        base_cls=OrderedDict,
+        sequence_cls=CurlySequenceFormat,
+        show_braces_when_empty=False,
     ),
     DictMaker(
         include_name=True,

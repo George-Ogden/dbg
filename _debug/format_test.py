@@ -2064,6 +2064,11 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
             })
             """,
         ),
+        (Counter("abbccc"), None, "Counter({'c': 3, 'b': 2, 'a': 1})"),
+        (Counter([frozendict({2: 1, 1: 2})] * 2), None, "Counter({frozendict({1: 2, 2: 1}): 2})"),
+        (OrderedDict([(3, 1), (2, 2), (1, 3)]), None, "OrderedDict({3: 1, 2: 2, 1: 3})"),
+        ((3, 2, 1), None, "(3, 2, 1)"),
+        ([3, 2, 1], None, "[3, 2, 1]"),
     ],
 )
 def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> None:
