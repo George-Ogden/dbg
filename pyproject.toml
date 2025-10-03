@@ -16,7 +16,7 @@ line-length = 100
 
 [tool.ruff.lint]
 extend-select = ["I", "UP", "F", "E", "W", "ERA001", "RUF"]
-extend-ignore = ["F811"]
+extend-ignore = ["F811", "E501"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true

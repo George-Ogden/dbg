@@ -737,6 +737,51 @@ def pprint(
     indent: int | Literal["config"] = "config",
     prefix: str = "",
 ) -> None:
+    """Pretty print an object to a file. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
+
+    Args:
+        obj (Any):
+            The object to pretty print.
+
+        file (SupportsWrite[str] | None, optional):
+            The file to write to.
+            If `None` is used, `sys.stdout` will be used.
+            Defaults to `None`.
+
+        width (int | Literal["auto"] | None, optional):
+            The terminal width for pretty printing.
+            If "auto" is used, this is calculated based on the `file` width (if `file` is a terminal).
+            However, if `file` is not a terminal, a default of 80 is used.
+            If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
+            Defaults to "auto".
+
+        style (str | Literal["config"] | None, optional):
+            The color scheme to use for displaying text.
+            If "config" is used, the style is taken from local `dbg.conf` files.
+            If a string is used, the output will be colored using that color theme.
+            See https://pygments.org/styles/ for the full list of styles.
+            If `None` is used, the output will not be colored.
+            Defaults to "config".
+
+        color (bool | Literal["auto"] | Literal["config"], optional):
+            Whether to use color when displaying the output.
+            If "config" is used, highlighting is determined from local `dbg.conf` files.
+            If "auto" is used, this is calculated based on whether `file` is a terminal that supports color.
+            If `True` is used, `style` is always used to highlight.
+            If `False` is used, the output is never highlighted.
+            Defaults to "config".
+
+        indent (int | Literal["config"], optional):
+            The indent size when printing nested objects.
+            If "config" is used, the indent is taken from local `dbg.conf` files.
+            If an integer is used, that many spaces are used for indenting.
+            Defaults to "config".
+
+        prefix (str, optional):
+            A prefix to print before the object is formatted.
+            This string is never colored or formatted.
+            Defaults to "".
+    """
     if color is True and style is None:
         warnings.warn(
             f"`color` was set to {color!r}, but `style` was set to {style!r}. "
@@ -777,6 +822,33 @@ def pformat(
     indent: int = constants.DEFAULT_INDENT,
     prefix: str = "",
 ) -> str:
+    """Pretty print an object to a string. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
+
+    Args:
+        obj (Any):
+            The object to pretty print.
+
+        width (int | None, optional):
+            The terminal width for pretty printing.
+            If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
+            Defaults to 80.
+
+        style (str | None, optional):
+            The color scheme to use for displaying text.
+            If a string is used, the output will be colored using that color theme.
+            See https://pygments.org/styles/ for the full list of styles.
+            If `None` is used, the output will not be colored.
+            Defaults to `None`.
+
+        indent (int, optional):
+            The number of spaces to use for indents when printing nested objects.
+            Defaults to 4.
+
+        prefix (str, optional):
+            A prefix to print before the object is formatted.
+            This string is never colored or formatted.
+            Defaults to "".
+    """
     *_, last_line = prefix.rsplit("\n", maxsplit=1)
     initial_offset = BaseFormat.len(last_line)
     if width is None:
