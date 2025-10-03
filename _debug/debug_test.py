@@ -233,6 +233,7 @@ def set_wide_indent() -> None:
             repr
             """,
         ),
+        ("pprint_sort", "{1: 3, 2: 2, 3: 1}", ""),
     ],
 )
 def test_samples(

@@ -895,6 +895,7 @@ def pprint(
     style: str | Literal["config"] | None = "config",
     color: bool | Literal["auto"] | Literal["config"] = "config",
     indent: int | Literal["config"] = "config",
+    sort_unordered_collections: bool = False,
     prefix: str = "",
 ) -> None:
     """Pretty print an object to a file. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
@@ -970,7 +971,17 @@ def pprint(
         width = wrapped_file.terminal_width
     if not color:
         style = None
-    wrapped_file.write(pformat(obj, width=width, style=style, indent=indent, prefix=prefix) + "\n")
+    wrapped_file.write(
+        pformat(
+            obj,
+            width=width,
+            style=style,
+            indent=indent,
+            sort_unordered_collections=sort_unordered_collections,
+            prefix=prefix,
+        )
+        + "\n"
+    )
 
 
 def pformat(
