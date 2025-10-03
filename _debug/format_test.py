@@ -2090,6 +2090,15 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
                 """,
             ],
         ),
+        ({None, 1}, None, ["{None, 1}", "{1, None}"]),
+        (
+            {"a", "b", "c", 1.0, 2.0, 3.0},
+            None,
+            [
+                "{'a', 'b', 'c', 1.0, 2.0, 3.0}",
+                "{1.0, 2.0, 3.0, 'a', 'b', 'c'}",
+            ],
+        ),
     ],
 )
 def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> None:
