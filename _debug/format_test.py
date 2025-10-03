@@ -2069,6 +2069,27 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
         (OrderedDict([(3, 1), (2, 2), (1, 3)]), None, "OrderedDict({3: 1, 2: 2, 1: 3})"),
         ((3, 2, 1), None, "(3, 2, 1)"),
         ([3, 2, 1], None, "[3, 2, 1]"),
+        ({5, 4, 3, 2, 1}, None, "{1, 2, 3, 4, 5}"),
+        ({"5", "4", "3", "2", "1"}, None, "{'1', '2', '3', '4', '5'}"),
+        (frozenset({"5", "4", "3", "2", "1"}), None, "frozenset({'1', '2', '3', '4', '5'})"),
+        (
+            frozenset([frozenset({"4", "3", "2", "1"}), frozenset({"3", "2", "1"})]),
+            36,
+            [
+                """
+                frozenset({
+                    frozenset({'1', '2', '3'}),
+                    frozenset({'1', '2', '3', '4'}),
+                })
+                """,
+                """
+                frozenset({
+                    frozenset({'1', '2', '3', '4'}),
+                    frozenset({'1', '2', '3'}),
+                })
+                """,
+            ],
+        ),
     ],
 )
 def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> None:

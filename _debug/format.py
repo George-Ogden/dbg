@@ -608,7 +608,21 @@ class SequenceMaker(Generic[SequenceMakerT]):
         return obj_type
 
 
-class SetMaker(SequenceMaker[set]):
+USequenceMakerT = TypeVar("USequenceMakerT", bound=Collection)
+
+
+class UnorderedSequenceMaker(Generic[USequenceMakerT], SequenceMaker[USequenceMakerT]):
+    def format_sub_objs(
+        self, sub_objs: USequenceMakerT, visited: Visited, *, sort_unordered_collections: bool
+    ) -> list[BaseFormat]:
+        if sort_unordered_collections:
+            sub_objs = sorted(sub_objs, key=SafeSortItem)  # type: ignore
+        return super().format_sub_objs(
+            sub_objs, visited, sort_unordered_collections=sort_unordered_collections
+        )
+
+
+class SetMaker(UnorderedSequenceMaker[set]):
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
         return NamedObjectFormat(display_type or self.base_cls, [])
 
@@ -744,25 +758,25 @@ BaseFormat.SEQUENCE_MAKERS = [
         sequence_cls=CurlySequenceFormat,
         show_braces_when_empty=False,
     ),
-    SequenceMaker(
+    UnorderedSequenceMaker(
         include_name=True,
         base_cls=frozenset,
         sequence_cls=CurlySequenceFormat,
         show_braces_when_empty=False,
     ),
-    SequenceMaker(
+    UnorderedSequenceMaker(
         include_name=True,
         base_cls=KeysView,
         sequence_cls=SquareSequenceFormat,
         show_braces_when_empty=True,
     ),
-    SequenceMaker(
+    UnorderedSequenceMaker(
         include_name=True,
         base_cls=ValuesView,
         sequence_cls=SquareSequenceFormat,
         show_braces_when_empty=True,
     ),
-    SequenceMaker(
+    UnorderedSequenceMaker(
         include_name=True,
         base_cls=ItemsView,
         sequence_cls=SquareSequenceFormat,
