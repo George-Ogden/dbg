@@ -69,7 +69,24 @@ result = dbg('Foo', minus_two) # [main.py:24:10] 'Foo' = 'Foo' // [main.py:24:10
 assert result == ('Foo', -2)
 ```
 
-For more examples, see `test_samples/` and `test_suite.py`.
+For more examples, see `test_samples/`.
+
+## Pretty Printing
+
+The debug module now supports pretty printing!
+
+```python
+from debug import pformat, pprint
+
+pprint(list(range(5)), style="github-dark", prefix = "0..5 -> ")
+print(pformat(list(range(5)), style="github-dark", prefix= "0..5 -> "))
+```
+
+Both of these give the same output (even better in color):
+
+```python
+0..5 -> [0, 1, 2, 3, 4]
+```
 
 ## Limitations
 

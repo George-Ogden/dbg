@@ -750,37 +750,37 @@ def pprint(
 
         width (int | Literal["auto"] | None, optional):
             The terminal width for pretty printing.
-            If "auto" is used, this is calculated based on the `file` width (if `file` is a terminal).
+            If `"auto"` is used, this is calculated based on the `file` width (if `file` is a terminal).
             However, if `file` is not a terminal, a default of 80 is used.
             If `None` is used, the file is treated as having infinite length, but multiple lines may still be used.
-            Defaults to "auto".
+            Defaults to `"auto"`.
 
         style (str | Literal["config"] | None, optional):
             The color scheme to use for displaying text.
-            If "config" is used, the style is taken from local `dbg.conf` files.
+            If `"config"` is used, the style is taken from local `dbg.conf` files.
             If a string is used, the output will be colored using that color theme.
             See https://pygments.org/styles/ for the full list of styles.
             If `None` is used, the output will not be colored.
-            Defaults to "config".
+            Defaults to `"config"`.
 
         color (bool | Literal["auto"] | Literal["config"], optional):
             Whether to use color when displaying the output.
-            If "config" is used, highlighting is determined from local `dbg.conf` files.
-            If "auto" is used, this is calculated based on whether `file` is a terminal that supports color.
+            If `"config"` is used, highlighting is determined from local `dbg.conf` files.
+            If `"auto"` is used, this is calculated based on whether `file` is a terminal that supports color.
             If `True` is used, `style` is always used to highlight.
             If `False` is used, the output is never highlighted.
-            Defaults to "config".
+            Defaults to `"config"`.
 
         indent (int | Literal["config"], optional):
             The indent size when printing nested objects.
-            If "config" is used, the indent is taken from local `dbg.conf` files.
+            If `"config"` is used, the indent is taken from local `dbg.conf` files.
             If an integer is used, that many spaces are used for indenting.
-            Defaults to "config".
+            Defaults to `"config"`.
 
         prefix (str, optional):
             A prefix to print before the object is formatted.
             This string is never colored or formatted.
-            Defaults to "".
+            Defaults to `""`.
     """
     if color is True and style is None:
         warnings.warn(
@@ -847,7 +847,7 @@ def pformat(
         prefix (str, optional):
             A prefix to print before the object is formatted.
             This string is never colored or formatted.
-            Defaults to "".
+            Defaults to `""`.
     """
     *_, last_line = prefix.rsplit("\n", maxsplit=1)
     initial_offset = BaseFormat.len(last_line)
