@@ -2,11 +2,11 @@ import inspect
 import sys
 from typing import TypeVar, TypeVarTuple, overload
 
-from ._code import display_codes
-from ._config import CONFIG
-from ._file import FileWrapper
-from ._format import pprint
-from ._position import display_position
+from .code import display_codes
+from .config import CONFIG
+from .file import FileWrapper
+from .format import pprint
+from .position import display_position
 
 T = TypeVar("T")
 Ts = TypeVarTuple("Ts")

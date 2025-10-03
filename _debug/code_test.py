@@ -1,7 +1,7 @@
 from pygments.formatters import Terminal256Formatter
 import pytest
 
-from ._code import get_formatter, validate_style
+from .code import get_formatter, validate_style
 
 
 @pytest.mark.parametrize("style", ["github-dark", "default"])

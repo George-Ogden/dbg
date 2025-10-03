@@ -9,20 +9,21 @@ from unittest import mock
 from _pytest.capture import CaptureFixture
 import pytest
 
-from ._format import strip_ansi
 from .conftest import SAMPLE_DIR
+from .format import strip_ansi
 
 
 @pytest.fixture(autouse=True, scope="module")
 def reload_modules() -> None:
-    importlib.reload(sys.modules["debug._config"])
-    importlib.reload(sys.modules["debug._format"])
+    importlib.reload(sys.modules["_debug.config"])
+    importlib.reload(sys.modules["_debug.format"])
+    importlib.reload(sys.modules["_debug"])
     importlib.reload(sys.modules["debug"])
 
 
 @pytest.fixture(autouse=True)
 def set_wide_indent() -> None:
-    from ._config import CONFIG
+    from .config import CONFIG
 
     CONFIG.indent = 4
 

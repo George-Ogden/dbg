@@ -11,9 +11,9 @@ from _pytest.capture import CaptureFixture
 import pytest
 
 from . import CONFIG
-from ._config import DbgConfig
-from ._format import strip_ansi
+from .config import DbgConfig
 from .conftest import SAMPLE_DIR, TEST_DATA_DIR
+from .format import strip_ansi
 
 
 def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
@@ -43,7 +43,7 @@ def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
 
     module = f"{SAMPLE_DIR}.colored_repr"
     with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        from debug import CONFIG
+        from _debug import CONFIG
 
         CONFIG.color = True
         CONFIG.style = "solarized-dark"
@@ -149,14 +149,17 @@ def test_creates_default_config() -> None:
         return os.path.join(temp_dir, appname)
 
     with mock.patch("platformdirs.user_config_dir", user_config_dir):
-        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["_debug.config"])
+        importlib.reload(sys.modules["_debug"])
+        if "debug" in sys.modules:
+            importlib.reload(sys.modules["debug"])
         from debug import dbg
 
         _ = dbg
 
     assert os.path.exists(config_filename)
     assert os.path.getsize(config_filename) > 0
-    assert filecmp.cmp(config_filename, "debug/default.conf")
+    assert filecmp.cmp(config_filename, "_debug/default.conf")
 
 
 def test_loads_default_config() -> None:
@@ -170,9 +173,10 @@ def test_loads_default_config() -> None:
         return os.path.join(temp_dir, appname)
 
     with mock.patch("platformdirs.user_config_dir", user_config_dir):
-        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["_debug.config"])
+        importlib.reload(sys.modules["_debug"])
         importlib.reload(sys.modules["debug"])
-        from debug import CONFIG
+        from _debug import CONFIG
 
     assert CONFIG.style == "fruity"
 
@@ -196,8 +200,9 @@ def test_loads_default_config_over_user_config() -> None:
         mock.patch("platformdirs.user_config_dir", user_config_dir),
         mock.patch("os.getcwd", mock.Mock(return_value=current_dir)),
     ):
-        importlib.reload(sys.modules["debug._config"])
+        importlib.reload(sys.modules["_debug.config"])
+        importlib.reload(sys.modules["_debug"])
         importlib.reload(sys.modules["debug"])
-        from debug import CONFIG
+        from _debug import CONFIG
 
     assert CONFIG.style == "vim"

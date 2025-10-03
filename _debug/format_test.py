@@ -14,9 +14,9 @@ from frozendict import frozendict
 import numpy as np
 import pytest
 
-from . import _defaults as defaults
+from . import defaults as defaults
 from . import pformat
-from ._format import ANSI_PATTERN, pprint, strip_ansi
+from .format import ANSI_PATTERN, pprint, strip_ansi
 
 
 class MultilineObject:
@@ -1078,7 +1078,7 @@ else:
         (
             DataclassNoRepr.instance,
             None,
-            f"<debug._format_test.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
+            f"<_debug.format_test.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
         (
             DataclassCustomRepr(),
@@ -1983,9 +1983,9 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
 )
 def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
     with mock.patch.dict(sys.modules, {module: None}):
-        importlib.reload(sys.modules["debug._format"])
+        importlib.reload(sys.modules["_debug.format"])
         string = pformat(obj, style="monokai", width=width, indent=4)
-    importlib.reload(sys.modules["debug._format"])
+    importlib.reload(sys.modules["_debug.format"])
     string = strip_ansi(string)
     expected = textwrap.dedent(expected).strip()
     assert string == expected
@@ -2161,7 +2161,7 @@ def test_pprint_write_to_custom_file() -> None:
         return original_pformat(obj, **kwargs)
 
     with io.StringIO() as file:
-        with mock.patch("debug._format.pformat", mock_pformat):
+        with mock.patch("_debug.format.pformat", mock_pformat):
             pprint("test", color="auto", width="auto", file=file)
 
         assert file.getvalue() == "'test'\n"

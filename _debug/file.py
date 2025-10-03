@@ -5,7 +5,7 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TextIO
 
-from . import _defaults as defaults
+from . import defaults as defaults
 
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite

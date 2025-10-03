@@ -8,8 +8,8 @@ import warnings
 
 import platformdirs
 
-from . import _defaults as defaults
-from ._code import validate_style
+from . import defaults as defaults
+from .code import validate_style
 
 
 @dataclass

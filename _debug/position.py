@@ -4,7 +4,7 @@ import re
 import types
 from typing import TypeAlias
 
-from ._code import UNKNOWN_MESSAGE, highlight_text
+from .code import UNKNOWN_MESSAGE, highlight_text
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 

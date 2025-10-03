@@ -28,10 +28,10 @@ import warnings
 
 from wcwidth import wcswidth
 
-from . import _defaults as defaults
-from ._code import highlight_code, validate_style
-from ._config import CONFIG
-from ._file import FileWrapper
+from . import defaults as defaults
+from .code import highlight_code, validate_style
+from .config import CONFIG
+from .file import FileWrapper
 
 if TYPE_CHECKING:
     from _typeshed import SupportsWrite
