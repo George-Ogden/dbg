@@ -895,7 +895,7 @@ def pprint(
     style: str | Literal["config"] | None = "config",
     color: bool | Literal["auto"] | Literal["config"] = "config",
     indent: int | Literal["config"] = "config",
-    sort_unordered_collections: bool = False,
+    sort_unordered_collections: bool | Literal["config"] = "config",
     prefix: str = "",
 ) -> None:
     """Pretty print an object to a file. This recursively calls `repr` on all the subobjects, but with special overrides for common classes.
@@ -918,7 +918,7 @@ def pprint(
 
         style (str | Literal["config"] | None, optional):
             The color scheme to use for displaying text.
-            If `"config"` is used, the style is taken from local `dbg.conf` files.
+            If `"config"` is used, the style is taken from the local `dbg.conf` files.
             If a string is used, the output will be colored using that color theme.
             See https://pygments.org/styles/ for the full list of styles.
             If `None` is used, the output will not be colored.
@@ -926,7 +926,7 @@ def pprint(
 
         color (bool | Literal["auto"] | Literal["config"], optional):
             Whether to use color when displaying the output.
-            If `"config"` is used, highlighting is determined from local `dbg.conf` files.
+            If `"config"` is used, highlighting is determined from the local `dbg.conf` files.
             If `"auto"` is used, this is calculated based on whether `file` is a terminal that supports color.
             If `True` is used, `style` is always used to highlight.
             If `False` is used, the output is never highlighted.
@@ -934,14 +934,15 @@ def pprint(
 
         indent (int | Literal["config"], optional):
             The indent size when printing nested objects.
-            If `"config"` is used, the indent is taken from local `dbg.conf` files.
+            If `"config"` is used, the indent is taken from the local `dbg.conf` files.
             If an integer is used, that many spaces are used for indenting.
             Defaults to `"config"`.
 
-        sort_unordered_collections (bool, optional):
+        sort_unordered_collections (bool | Literal["config"], optional):
+            If `"config"` is used, the indent is taken from the local `dbg.conf` files.
             Sort values in unordered collections, such as dictionary keys or sets.
             This may differ from the existing ordering.
-            Defaults to `False`.
+            Defaults to `"config"`.
 
         prefix (str, optional):
             A prefix to print before the object is formatted.
@@ -970,6 +971,8 @@ def pprint(
         style = CONFIG.style
     if indent == "config":
         indent = CONFIG.indent
+    if sort_unordered_collections == "config":
+        sort_unordered_collections = CONFIG.sort_unordered_collections
     if color == "auto":
         color = wrapped_file.supports_color
     if width == "auto":
