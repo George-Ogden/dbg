@@ -1,5 +1,6 @@
 import configparser
 from dataclasses import dataclass
+import difflib
 import inspect
 import os.path
 import re
@@ -15,6 +16,7 @@ from .code import validate_style
 @dataclass
 class DbgConfig:
     color: bool | Literal["auto"]
+    sort_unordered_collections: bool
     indent: int
     style: str
 
@@ -22,6 +24,7 @@ class DbgConfig:
         self._style = defaults.DEFAULT_STYLE
         self.color = "auto"
         self.indent = defaults.DEFAULT_INDENT
+        self.sort_unordered_collections = False
 
     _FILENAME: ClassVar[str] = "dbg.conf"
     _SECTION: ClassVar[str] = "dbg"
@@ -80,9 +83,24 @@ class DbgConfig:
                 value_type = annotations.get(key, None)
                 value: Any
                 if value_type is None:
-                    warnings.warn(f"Unused field '{key}' found in '{filepath}'.")
+                    warning_msg = f"Unused field '{key}' found in '{filepath}'."
+                    suggestions = difflib.get_close_matches(
+                        key, possibilities=annotations.keys(), n=1
+                    )
+                    if suggestions:
+                        [suggestion] = suggestions
+                        warning_msg += f" Did you mean {suggestion!r}?"
+                    warnings.warn(warning_msg)
                     continue
-                if value_type is bool | Literal["auto"]:
+                if value_type is bool:
+                    try:
+                        value = section.getboolean(key)
+                    except ValueError:
+                        self.warn_invalid_type(
+                            expected="bool", key=key, filepath=filepath, value=section[key]
+                        )
+                        continue
+                elif value_type is bool | Literal["auto"]:
                     try:
                         value = section.getboolean(key)
                     except ValueError:

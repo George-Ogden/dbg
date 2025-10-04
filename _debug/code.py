@@ -50,7 +50,7 @@ def highlight_code(code: str, style: str) -> str:
 def format_code(code: str) -> str:
     if code is UNKNOWN_MESSAGE:
         return code
-    code = code.replace(",", " , ")
+    code = code.replace(",", " , ").replace(":", " :")
     black_formatted_code = black.format_str(
         f"({' '.join(code.strip().splitlines())})",
         mode=black.FileMode(string_normalization=False, line_length=len(code) + 2),

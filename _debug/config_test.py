@@ -70,11 +70,15 @@ def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
         ("syntax_error", dict()),
         ("location_error", dict()),
         ("empty", dict()),
+        ("sort_unordered_collections", dict(sort_unordered_collections=True)),
         ("../debug/default", dict()),
         ("wide_indent", dict(indent=4)),
         ("auto_color", dict(color="auto")),
         ("invalid_indent", dict()),
         ("invalid_color", dict()),
+        ("invalid_sort_collections", dict()),
+        ("hyphenated_sort_collections", dict()),
+        ("spaced_sort_collections", dict()),
     ],
 )
 @pytest.mark.filterwarnings("ignore")
@@ -97,7 +101,15 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
             "Extra section [extra] found in $. "
             "Please, use no sections or one section called [dbg].",
         ),
-        ("unused_field", "Unused field 'extra' found in $"),
+        ("unused_field", "Unused field 'extra' found in $."),
+        (
+            "spaced_sort_collections",
+            "Unused field 'sort unordered collections' found in $. Did you mean 'sort_unordered_collections'?",
+        ),
+        (
+            "hyphenated_sort_collections",
+            "Unused field 'sort-unordered-collections' found in $. Did you mean 'sort_unordered_collections'?",
+        ),
         (
             "style_quotes",
             'Quotes used around "algol" in $. '
@@ -118,6 +130,10 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
         (
             "invalid_color",
             "Invalid value 'bad-color' found in field 'color' (expected bool or 'auto') in $.",
+        ),
+        (
+            "invalid_sort_collections",
+            """Invalid value '"yes"' found in field 'sort_unordered_collections' (expected bool) in $.""",
         ),
     ],
 )
