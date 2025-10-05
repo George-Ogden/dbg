@@ -43,7 +43,7 @@ def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
 
     module = f"{SAMPLE_DIR}.colored_repr"
     with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        from _debug import CONFIG
+        from debug import CONFIG
 
         CONFIG.color = True
         CONFIG.style = "solarized-dark"
@@ -192,7 +192,7 @@ def test_loads_default_config() -> None:
         importlib.reload(sys.modules["_debug.config"])
         importlib.reload(sys.modules["_debug"])
         importlib.reload(sys.modules["debug"])
-        from _debug import CONFIG
+        from debug import CONFIG
 
     assert CONFIG.style == "fruity"
 
@@ -219,6 +219,6 @@ def test_loads_default_config_over_user_config() -> None:
         importlib.reload(sys.modules["_debug.config"])
         importlib.reload(sys.modules["_debug"])
         importlib.reload(sys.modules["debug"])
-        from _debug import CONFIG
+        from debug import CONFIG
 
     assert CONFIG.style == "vim"
