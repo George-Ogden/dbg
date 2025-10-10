@@ -15,10 +15,11 @@ from .format import strip_ansi
 
 @pytest.fixture(autouse=True, scope="module")
 def reload_modules() -> None:
-    importlib.reload(sys.modules["_debug.config"])
-    importlib.reload(sys.modules["_debug.format"])
-    importlib.reload(sys.modules["_debug"])
-    importlib.reload(sys.modules["debug"])
+    if "debug" in sys.modules:
+        importlib.reload(sys.modules["_debug.config"])
+        importlib.reload(sys.modules["_debug.format"])
+        importlib.reload(sys.modules["_debug"])
+        importlib.reload(sys.modules["debug"])
 
 
 @pytest.fixture(autouse=True)
@@ -234,6 +235,12 @@ def set_wide_indent() -> None:
             """,
         ),
         ("pprint_sort", "{1: 3, 2: 2, 3: 1}", ""),
+        pytest.param(
+            "t_string",
+            "",
+            """"[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
+            marks=[pytest.mark.skip] if sys.version_info < (3, 14) else [],
+        ),
     ],
 )
 def test_samples(
