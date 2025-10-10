@@ -31,10 +31,7 @@ def dbg(*values: object) -> object:
         frame = frame.f_back
     try:
         with FileWrapper.lock(sys.stderr) as file_wrapper:
-            if file_wrapper.supports_color:
-                style = CONFIG.style
-            else:
-                style = None
+            style = CONFIG.style if file_wrapper.supports_color else None
             position = display_position(frame, style=style)
             if num_args == 0:
                 print(position, file=sys.stderr)
@@ -55,5 +52,4 @@ def dbg(*values: object) -> object:
     if len(values) == 1:
         [value] = values
         return value
-    else:
-        return values
+    return values

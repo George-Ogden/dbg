@@ -32,7 +32,7 @@ def test_validate_style(style: str, error: str | None) -> None:
 
 @pytest.mark.parametrize(
     "code, expected",
-    (
+    [
         # empty list
         ("[]", "[]"),
         # multiline addition
@@ -117,7 +117,7 @@ def test_validate_style(style: str, error: str | None) -> None:
             "{1:2,3:4}",
             "{1: 2, 3: 4}",
         ),
-    ),
+    ],
 )
 def test_format_code(code: str, expected: str) -> None:
     assert format_code(textwrap.dedent(code)).strip() == textwrap.dedent(expected).strip()

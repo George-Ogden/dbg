@@ -6,7 +6,7 @@ import importlib
 import io
 import sys
 import textwrap
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Final, Self
 from unittest import mock
 
 import bidict
@@ -35,14 +35,15 @@ class MultilineObject:
 
 class ColoredMultilineObject:
     def __init__(self, lengths: list[int]) -> None:
-        RESET = "\033[39m"
+        reset_character: Final[str] = "\033[39m"
         self._string = "\n".join(
             [
-                f"{color}{chr(i) * length}{RESET}"
+                f"{color}{chr(i) * length}{reset_character}"
                 for i, length, color in zip(
                     range(ord("A"), ord("A") + len(lengths)),
                     lengths,
                     [Fore.RED, Fore.BLUE, Fore.GREEN],
+                    strict=False,
                 )
             ]
         )
@@ -84,7 +85,7 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __repr__(self: Any) -> str:
+    def __repr__(self: Any) -> str:  # noqa: N807
         return f"{name}!"
 
     return type(name, bases, dict(__repr__=__repr__))(*args)
@@ -2367,7 +2368,6 @@ def test_pprint_argument_validation(kwargs: dict[str, Any], warning: None | str)
         (dict(color=True, style=None), False),
         (dict(color=False, style="monokai"), False),
         (dict(color=True, style="monokai"), True),
-        (dict(color=True, style=None), False),
     ],
 )
 @pytest.mark.filterwarnings("ignore")

@@ -25,7 +25,7 @@ def validate_style(style: str) -> None:
         get_style_by_name(style)
     except ClassNotFound:
         all_styles = list(get_all_styles())
-        raise ValueError(f"Unknown style {style!r}. Please, choose one of {all_styles}.")
+        raise ValueError(f"Unknown style {style!r}. Please, choose one of {all_styles}.") from None
 
 
 @functools.cache

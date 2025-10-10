@@ -35,10 +35,7 @@ def format_position(position: Position) -> str:
         position_text = filepath
     else:
         lineno, col = location
-        if col is None:
-            position_text = f"{filepath}:{lineno}"
-        else:
-            position_text = f"{filepath}:{lineno}:{col}"
+        position_text = f"{filepath}:{lineno}" if col is None else f"{filepath}:{lineno}:{col}"
     return f"[{position_text}]"
 
 
