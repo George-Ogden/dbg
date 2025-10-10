@@ -1,6 +1,6 @@
 [project]
 name = "debug"
-version = "2.2.1"
+version = "2.2.2"
 dynamic = ["dependencies"]
 requires-python = ">=3.11,<3.14"
 
@@ -15,11 +15,14 @@ package-dir = {"debug" = "debug", "_debug" = "_debug"}
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "UP", "F", "E", "W", "ERA001", "RUF"]
-extend-ignore = ["F811", "E501"]
+extend-select = ["B", "E", "ERA", "F", "I", "N", "PT", "PYI", "RET", "RUF", "SIM", "UP", "W"]
+extend-ignore = ["B028", "E501", "F811", "PT011", "PT012", "PYI041", "RET504", "SIM118"]
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = "csv"
 
 [tool.ruff.format]
 quote-style = "double"

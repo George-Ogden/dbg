@@ -163,8 +163,7 @@ class BaseFormat(abc.ABC):
                 )
                 visited.remove(id(obj))
                 return dataclass_format
-            else:
-                return ItemFormat(obj)
+            return ItemFormat(obj)
 
         if (
             isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)
@@ -542,7 +541,7 @@ class SafeSortItem:
             return (str(type(self._obj)), id(self._obj)) < (str(type(other._obj)), id(other._obj))
 
 
-def SafeSortTuple(objs: Sequence[Any], /) -> tuple[SafeSortItem, ...]:
+def SafeSortTuple(objs: Sequence[Any], /) -> tuple[SafeSortItem, ...]:  # noqa: N802
     return tuple(SafeSortItem(obj) for obj in objs)
 
 
@@ -611,7 +610,7 @@ class SequenceMaker(Generic[SequenceMakerT]):
 USequenceMakerT = TypeVar("USequenceMakerT", bound=Collection)
 
 
-class UnorderedSequenceMaker(Generic[USequenceMakerT], SequenceMaker[USequenceMakerT]):
+class UnorderedSequenceMaker(SequenceMaker[USequenceMakerT], Generic[USequenceMakerT]):
     def format_sub_objs(
         self, sub_objs: USequenceMakerT, visited: Visited, *, sort_unordered_collections: bool
     ) -> list[BaseFormat]:
@@ -641,7 +640,7 @@ class TupleMaker(SequenceMaker[tuple]):
 ODictMakerT = TypeVar("ODictMakerT", bound=dict)
 
 
-class OrderedDictMaker(Generic[ODictMakerT], SequenceMaker[ODictMakerT]):
+class OrderedDictMaker(SequenceMaker[ODictMakerT], Generic[ODictMakerT]):
     def format_sub_objs(
         self, sub_objs: ODictMakerT, visited: Visited, *, sort_unordered_collections: bool
     ) -> list[BaseFormat]:
@@ -657,7 +656,7 @@ class OrderedDictMaker(Generic[ODictMakerT], SequenceMaker[ODictMakerT]):
 DictMakerT = TypeVar("DictMakerT", bound=dict)
 
 
-class DictMaker(Generic[DictMakerT], OrderedDictMaker[DictMakerT]):
+class DictMaker(OrderedDictMaker[DictMakerT], Generic[DictMakerT]):
     def format_sub_objs(
         self, sub_objs: DictMakerT, visited: Visited, *, sort_unordered_collections: bool
     ) -> list[BaseFormat]:
@@ -892,8 +891,8 @@ def pprint(
     *,
     file: SupportsWrite[str] | None = None,
     width: int | Literal["auto"] | None = "auto",
-    style: str | Literal["config"] | None = "config",
-    color: bool | Literal["auto"] | Literal["config"] = "config",
+    style: str | Literal["config"] | None = "config",  # noqa: PYI051
+    color: Literal["auto", "config"] | bool = "config",
     indent: int | Literal["config"] = "config",
     sort_unordered_collections: bool | Literal["config"] = "config",
     prefix: str = "",
@@ -949,22 +948,16 @@ def pprint(
             This string is never colored or formatted.
             Defaults to `""`.
     """
-    if color is True and style is None:
+    if (color is True and style is None) or (
+        color is False and (style is not None and style != "config")
+    ):
         warnings.warn(
             f"`color` was set to {color!r}, but `style` was set to {style!r}. "
-            "The output will not be colored."
-        )
-    elif color is False and (style is not None and style != "config"):
-        warnings.warn(
-            f"`color` was set to {color!r}, but `style` was set to {style!r}. "
-            "The output will not be colored."
+            "The output will not be colored.",
         )
     if file is None:
         file = sys.stdout
-    if file == "upper":
-        wrapped_file = FileWrapper.back()
-    else:
-        wrapped_file = FileWrapper(file)
+    wrapped_file = FileWrapper.back() if file == "upper" else FileWrapper(file)
     if color == "config":
         color = CONFIG.color
     if style == "config":
@@ -1036,10 +1029,7 @@ def pformat(
     """
     *_, last_line = prefix.rsplit("\n", maxsplit=1)
     initial_offset = BaseFormat.len(last_line)
-    if width is None:
-        width_pair = None
-    else:
-        width_pair = (initial_offset, width)
+    width_pair = None if width is None else (initial_offset, width)
     config = FormatterConfig(width_pair=width_pair, indent_width=indent, style=style)
     formatted_obj = BaseFormat._from(
         obj, set(), sort_unordered_collections=sort_unordered_collections
