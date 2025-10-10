@@ -17,7 +17,7 @@ from .format import strip_ansi
 
 
 def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
-    module = f"{SAMPLE_DIR}.string"
+    module = f"{SAMPLE_DIR}.string_literal"
 
     CONFIG.color = True
     CONFIG.style = "github-dark"

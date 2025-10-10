@@ -3,6 +3,8 @@ import functools
 import inspect
 import re
 import textwrap
+import token
+import tokenize
 import types
 
 import black
@@ -50,9 +52,11 @@ def highlight_code(code: str, style: str) -> str:
 def format_code(code: str) -> str:
     if code is UNKNOWN_MESSAGE:
         return code
-    code = code.replace(",", " , ").replace(":", " :")
+    lines = (line for line in code.splitlines() if line)
+    toks = tokenize.generate_tokens(functools.partial(next, iter(lines)))
+    code = " ".join(tok.string for tok in toks if tok.type != token.COMMENT)
     black_formatted_code = black.format_str(
-        f"({' '.join(code.strip().splitlines())})",
+        f"({code})",
         mode=black.FileMode(string_normalization=False, line_length=len(code) + 2),
     ).strip()
     match = re.match(r"^\((.*)\)$", black_formatted_code, flags=re.MULTILINE | re.DOTALL)
