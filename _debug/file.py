@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import os
 import sys
+import types
 from typing import TYPE_CHECKING, Any, ClassVar, Self, TextIO
 
 from . import defaults as defaults
@@ -25,7 +27,7 @@ class FileWrapper:
     def _fallback_file(cls, file: Any) -> TextIO | None:
         if file == sys.stdout and sys.__stdout__ is not None:
             return sys.__stdout__
-        elif file == sys.stderr and sys.__stderr__ is not None:
+        if file == sys.stderr and sys.__stderr__ is not None:
             return sys.__stderr__
         return None
 
@@ -55,10 +57,8 @@ class FileWrapper:
             if self._pytest_enabled():
                 fallback_file = self._fallback_file(self._file)
                 if fallback_file is not None:
-                    try:
+                    with contextlib.suppress(OSError, AttributeError):
                         width, _ = os.get_terminal_size(fallback_file.fileno())
-                    except (OSError, AttributeError):
-                        ...
         if width < defaults.DEFAULT_WIDTH / 2:
             width = defaults.DEFAULT_WIDTH
         return width
@@ -70,7 +70,7 @@ class FileWrapper:
     def back(cls) -> Self:
         return cls._current[-1]
 
-    class lock:
+    class lock:  # noqa: N801
         def __init__(self, file: SupportsWrite[str]) -> None:
             self._file = file
 
@@ -79,6 +79,9 @@ class FileWrapper:
             return FileWrapper.back()
 
         def __exit__(
-            self, exception_type: Any, exception_value: Any, exception_traceback: Any
+            self,
+            exception_type: type[BaseException] | None,
+            exception_value: BaseException | None,
+            exception_traceback: types.TracebackType | None,
         ) -> None:
             FileWrapper._current.pop()

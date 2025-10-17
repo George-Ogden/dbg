@@ -83,14 +83,16 @@ def set_wide_indent() -> None:
             """,
         ),
         (
-            "string",
+            "string_literal",
             """
             foo
             bar
+            ,:
             """,
             """
-            [string.py:3:7] 'foo' = 'foo'
-            [string.py:4:7] "bar" = 'bar'
+            [string_literal.py:3:7] 'foo' = 'foo'
+            [string_literal.py:4:7] "bar" = 'bar'
+            [string_literal.py:5:7] ",:" = ',:'
             """,
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
@@ -235,6 +237,7 @@ def set_wide_indent() -> None:
             """,
         ),
         ("pprint_sort", "{1: 3, 2: 2, 3: 1}", ""),
+        ("comment", "3", "[comment.py:3:7] 1 + 2 = 3"),
         pytest.param(
             "t_string",
             "",
