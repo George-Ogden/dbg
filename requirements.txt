@@ -1,5 +1,5 @@
 black
-libcst==1.8.2
+libcst==1.8.5
 platformdirs
 pygments
 wcwidth
