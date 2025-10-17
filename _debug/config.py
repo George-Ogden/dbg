@@ -47,7 +47,7 @@ class DbgConfig:
 
     def use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)
-        config = configparser.ConfigParser()
+        config = configparser.ConfigParser(allow_unnamed_section=False)
         try:
             with open(filepath) as f:
                 config_string = f.read()
@@ -100,7 +100,7 @@ class DbgConfig:
                             expected="bool", key=key, filepath=filepath, value=section[key]
                         )
                         continue
-                elif value_type is bool | Literal["auto"]:
+                elif value_type == bool | Literal["auto"]:
                     try:
                         value = section.getboolean(key)
                     except ValueError:
