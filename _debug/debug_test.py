@@ -82,7 +82,7 @@ def set_wide_indent() -> None:
             [multiline_arguments.py:7:7] z + 4 = -5
             """,
         ),
-        (
+        pytest.param(
             "string_literal",
             """
             foo
@@ -95,9 +95,10 @@ def set_wide_indent() -> None:
             [string_literal.py:3:7] 'foo' = 'foo'
             [string_literal.py:4:7] "bar" = 'bar'
             [string_literal.py:5:7] ",:" = ',:'
-            [string_literal.py:6:7] f"{f'{f"{f'{None}'}"}'}" = 'None'
+            [string_literal.py:6:7] f"{f'{None}'}" = 'None'
             [string_literal.py:8:5] "a" "b" = 'ab'
             """,
+            marks=[pytest.mark.skip] if sys.version_info < (3, 12) else [],
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
         (

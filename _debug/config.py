@@ -47,7 +47,7 @@ class DbgConfig:
 
     def use_config(self, filepath: str) -> None:
         filepath = os.path.abspath(filepath)
-        config = configparser.ConfigParser(allow_unnamed_section=False)
+        config = configparser.ConfigParser()
         try:
             with open(filepath) as f:
                 config_string = f.read()
