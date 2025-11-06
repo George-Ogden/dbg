@@ -88,11 +88,15 @@ def set_wide_indent() -> None:
             foo
             bar
             ,:
+            None
+            ab
             """,
             """
             [string_literal.py:3:7] 'foo' = 'foo'
             [string_literal.py:4:7] "bar" = 'bar'
             [string_literal.py:5:7] ",:" = ',:'
+            [string_literal.py:6:7] f"{f'{f"{f'{None}'}"}'}" = 'None'
+            [string_literal.py:8:5] "a" "b" = 'ab'
             """,
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
@@ -241,7 +245,7 @@ def set_wide_indent() -> None:
         pytest.param(
             "t_string",
             "",
-            """"[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
+            """[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
             marks=[pytest.mark.skip] if sys.version_info < (3, 14) else [],
         ),
     ],
@@ -252,7 +256,10 @@ def test_samples(
     cwd = os.getcwd()
 
     module = f"{SAMPLE_DIR}.{name}"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
+    with (
+        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
+        mock.patch("os.get_terminal_size", mock.Mock(return_value=(120, 100))),
+    ):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
