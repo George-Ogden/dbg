@@ -2,7 +2,7 @@
 name = "debug"
 version = "2.2.2"
 dynamic = ["dependencies"]
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11,<3.15"
 
 [build-system]
 requires = ["setuptools>=62"]
