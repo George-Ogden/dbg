@@ -100,7 +100,7 @@ class DbgConfig:
                             expected="bool", key=key, filepath=filepath, value=section[key]
                         )
                         continue
-                elif value_type is bool | Literal["auto"]:
+                elif value_type == bool | Literal["auto"]:
                     try:
                         value = section.getboolean(key)
                     except ValueError:

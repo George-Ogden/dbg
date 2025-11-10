@@ -15,10 +15,11 @@ from .format import strip_ansi
 
 @pytest.fixture(autouse=True, scope="module")
 def reload_modules() -> None:
-    importlib.reload(sys.modules["_debug.config"])
-    importlib.reload(sys.modules["_debug.format"])
-    importlib.reload(sys.modules["_debug"])
-    importlib.reload(sys.modules["debug"])
+    if "debug" in sys.modules:
+        importlib.reload(sys.modules["_debug.config"])
+        importlib.reload(sys.modules["_debug.format"])
+        importlib.reload(sys.modules["_debug"])
+        importlib.reload(sys.modules["debug"])
 
 
 @pytest.fixture(autouse=True)
@@ -81,18 +82,23 @@ def set_wide_indent() -> None:
             [multiline_arguments.py:7:7] z + 4 = -5
             """,
         ),
-        (
+        pytest.param(
             "string_literal",
             """
             foo
             bar
             ,:
+            None
+            ab
             """,
             """
             [string_literal.py:3:7] 'foo' = 'foo'
             [string_literal.py:4:7] "bar" = 'bar'
             [string_literal.py:5:7] ",:" = ',:'
+            [string_literal.py:6:7] f"{f'{None}'}" = 'None'
+            [string_literal.py:8:5] "a" "b" = 'ab'
             """,
+            marks=[pytest.mark.skip] if sys.version_info < (3, 12) else [],
         ),
         ("brackets", "()", "[brackets.py:3:7] ((())) = ()"),
         (
@@ -237,6 +243,12 @@ def set_wide_indent() -> None:
         ),
         ("pprint_sort", "{1: 3, 2: 2, 3: 1}", ""),
         ("comment", "3", "[comment.py:3:7] 1 + 2 = 3"),
+        pytest.param(
+            "t_string",
+            "",
+            """[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
+            marks=[pytest.mark.skip] if sys.version_info < (3, 14) else [],
+        ),
     ],
 )
 def test_samples(
@@ -245,7 +257,10 @@ def test_samples(
     cwd = os.getcwd()
 
     module = f"{SAMPLE_DIR}.{name}"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
+    with (
+        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
+        mock.patch("os.get_terminal_size", mock.Mock(return_value=(120, 100))),
+    ):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()

@@ -28,7 +28,7 @@ And the standard error displays (in color if you run it yourself):
 
 ## Installation
 
-This library is compatible with Python>=3.11.
+This library is compatible with Python 3.11-3.14.
 Install via `pip` from GitHub:
 
 ```bash
