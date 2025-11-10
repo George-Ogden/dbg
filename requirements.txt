@@ -1,5 +1,5 @@
-git+https://github.com/psf/black@f705197f57149b79ed83cccf22e4fed19b48a7bf
-libcst==1.8.5
+black>=25.11.0
+libcst>=1.8.4
 platformdirs
 pygments
 wcwidth
