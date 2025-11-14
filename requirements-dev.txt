@@ -4,6 +4,7 @@ colorama
 frozendict
 mypy==1.18.2
 numpy
+pip
 pre-commit
 pytest
 types-colorama
