@@ -1,6 +1,7 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 import functools
 import inspect
+import itertools
 import re
 import textwrap
 import token
@@ -49,12 +50,31 @@ def highlight_code(code: str, style: str) -> str:
     return code
 
 
+def token_separator(left: tokenize.TokenInfo, right: tokenize.TokenInfo) -> str:
+    if all(tok.type in {token.NAME, token.NUMBER} for tok in (left, right)):
+        return " "
+    return ""
+
+
+def tokens_to_string_parts(toks: Sequence[tokenize.TokenInfo]) -> Iterable[str]:
+    for left, right in itertools.pairwise(toks):
+        yield left.string
+        yield token_separator(left, right)
+    if toks:
+        yield toks[-1].string
+
+
+def is_comment(tok: tokenize.TokenInfo) -> bool:
+    return tok.type in (token.COMMENT, token.TYPE_IGNORE, token.TYPE_COMMENT)
+
+
 def format_code(code: str) -> str:
     if code is UNKNOWN_MESSAGE:
         return code
     lines = (line for line in code.splitlines() if line)
     toks = tokenize.generate_tokens(functools.partial(next, iter(lines)))
-    code = "".join(tok.string for tok in toks if tok.type != token.COMMENT)
+    displayed_toks = [tok for tok in toks if not is_comment(tok)]
+    code = "".join(tokens_to_string_parts(displayed_toks))
     black_formatted_code = black.format_str(
         f"({code})",
         mode=black.FileMode(string_normalization=False, line_length=len(code) * 2 + 2),

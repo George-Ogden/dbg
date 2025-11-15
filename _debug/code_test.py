@@ -127,6 +127,11 @@ def test_validate_style(style: str, error: str | None) -> None:
             "x  or  y",
             "x or y",
         ),
+        # if expression
+        (
+            "True   if 1  else not False",
+            "True if 1 else not False",
+        ),
     ],
 )
 def test_format_code(code: str, expected: str) -> None:
