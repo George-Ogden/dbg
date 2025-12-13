@@ -72,7 +72,7 @@ For more examples, see `test_samples/`.
 
 ## Pretty Printing
 
-The debug module now supports pretty printing!
+The debug module supports pretty printing!
 
 ```python
 from debug import pformat, pprint

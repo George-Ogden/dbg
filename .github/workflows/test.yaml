@@ -12,4 +12,4 @@ jobs:
   test:
     uses: George-Ogden/actions/.github/workflows/python-test.yaml@v3.1.3
     with:
-      python-versions: "['3.11', '3.12', '3.13']"
+      python-versions: "['3.11', '3.12', '3.13', '3.14']"

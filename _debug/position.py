@@ -8,6 +8,8 @@ from .code import UNKNOWN_MESSAGE, highlight_text
 
 Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
 
+cwd = os.getcwd()
+
 
 def get_position(frame: None | types.FrameType) -> Position:
     if frame is None:
@@ -16,7 +18,7 @@ def get_position(frame: None | types.FrameType) -> Position:
     if re.match(r"<.*>", filepath):
         path = filepath
     else:
-        root = os.getcwd()
+        root = cwd
         path = os.path.relpath(filepath, start=root)
     traceback = inspect.getframeinfo(frame, context=0)
     positions = traceback.positions
