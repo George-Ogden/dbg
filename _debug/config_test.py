@@ -38,16 +38,13 @@ def test_config_style_changes_code_highlighting(capsys: CaptureFixture) -> None:
     assert err_1.strip() != err_2.strip()
 
 
-def test_highlighting_avoided_with_ansi(capsys: CaptureFixture) -> None:
-    cwd = os.getcwd()
-
+def test_highlighting_avoided_with_ansi(capsys: CaptureFixture, test_sample_dir: None) -> None:
     module = f"{SAMPLE_DIR}.colored_repr"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        from debug import CONFIG
+    from debug import CONFIG
 
-        CONFIG.color = True
-        CONFIG.style = "solarized-dark"
-        importlib.import_module(module)
+    CONFIG.color = True
+    CONFIG.style = "solarized-dark"
+    importlib.import_module(module)
 
     expected_out = "\x1b[40m\x1b[97m[0]\x1b[0m"
     expected_err = "[colored_repr.py:8:7] ColoredRepr() = \x1b[40m\x1b[97m[0]\x1b[0m"

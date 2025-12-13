@@ -1,4 +1,8 @@
+from collections.abc import Generator
+import os
+from pathlib import Path
 import sys
+from unittest import mock
 
 import pytest
 
@@ -11,3 +15,11 @@ def reset_modules() -> None:
     for key in list(sys.modules.keys()):
         if key.startswith(SAMPLE_DIR):
             del sys.modules[key]
+
+
+@pytest.fixture
+def test_sample_dir() -> Generator[None]:
+    os.chdir(Path.cwd() / SAMPLE_DIR)
+    with mock.patch("_debug.position.cwd", Path.cwd()):
+        yield
+    os.chdir(Path.cwd() / "..")

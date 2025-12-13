@@ -249,18 +249,22 @@ def set_wide_indent() -> None:
             """[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
             marks=[pytest.mark.skip] if sys.version_info < (3, 14) else [],
         ),
+        (
+            "chdir",
+            "test_samples/chdir.py",
+            "[chdir.py:8:7] os.path.relpath(__file__) = 'test_samples/chdir.py'",
+        ),
     ],
 )
 def test_samples(
-    name: str, expected_out: str, expected_err: str | list[str], capsys: CaptureFixture
+    name: str,
+    expected_out: str,
+    expected_err: str | list[str],
+    capsys: CaptureFixture,
+    test_sample_dir: None,
 ) -> None:
-    cwd = os.getcwd()
-
     module = f"{SAMPLE_DIR}.{name}"
-    with (
-        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
-        mock.patch("os.get_terminal_size", mock.Mock(return_value=(120, 100))),
-    ):
+    with mock.patch("os.get_terminal_size", mock.Mock(return_value=(120, 100))):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
@@ -289,12 +293,11 @@ def patch_tempfile() -> Iterator[str]:
 
 
 @pytest.mark.parametrize("name, expected", [("many_files", "'tempfile'")])
-def test_write_to_tempfile(name: str, expected: str, patch_tempfile: str) -> None:
-    cwd = os.getcwd()
-
+def test_write_to_tempfile(
+    name: str, expected: str, patch_tempfile: str, test_sample_dir: None
+) -> None:
     module = f"{SAMPLE_DIR}.{name}"
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        importlib.import_module(module)
+    importlib.import_module(module)
 
     expected = textwrap.dedent(expected).strip()
     with open(patch_tempfile) as f:
@@ -317,16 +320,14 @@ def test_write_to_tempfile(name: str, expected: str, patch_tempfile: str) -> Non
     ],
 )
 def test_run_from_exec(
-    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
+    name: str, expected_out: str, expected_err: str, capsys: CaptureFixture, test_sample_dir: None
 ) -> None:
-    filepath = os.path.join(SAMPLE_DIR, *name.split("."))
+    filepath = os.path.join(*name.split("."))
     filepath += ".py"
     with open(filepath) as f:
         source = f.read()
 
-    cwd = os.getcwd()
-    with mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))):
-        exec(source)
+    exec(source)
 
     expected_out = textwrap.dedent(expected_out).strip()
     expected_err = textwrap.dedent(expected_err).strip()
@@ -354,11 +355,8 @@ def test_run_from_exec(
 def test_with_no_frames(
     name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
 ) -> None:
-    cwd = os.getcwd()
-
     module = f"{SAMPLE_DIR}.{name}"
     with (
-        mock.patch("os.getcwd", mock.Mock(return_value=os.path.join(cwd, SAMPLE_DIR))),
         mock.patch("inspect.currentframe", mock.Mock(return_value=None)),
     ):
         importlib.import_module(module)
