@@ -1,0 +1,18 @@
+repos:
+  - source: https://github.com/George-Ogden/mirror-config
+    files:
+      - .mirror.yaml: python.mirror.yaml
+      - .github/workflows/release.yaml: .github/python-release.yaml
+      - .github/workflows/test.yaml: .github/python-test.yaml
+      - .github/workflows/lint.yaml
+      - .gitignore: python.gitignore
+      - .pre-commit-config.yaml: python.pre-commit-config.yaml
+      - README.md: template-README.md
+      - LICENSE
+      - mypy.ini
+      - pyproject.toml
+      - pytest.ini
+      - requirements-dev.txt
+      - requirements.txt
+      - ruff.toml
+      - version.txt
