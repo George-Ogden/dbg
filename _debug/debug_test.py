@@ -4,6 +4,7 @@ import os
 import sys
 import tempfile
 import textwrap
+from typing import cast
 from unittest import mock
 
 from _pytest.capture import CaptureFixture
@@ -264,7 +265,9 @@ def test_samples(
     test_sample_dir: None,
 ) -> None:
     module = f"{SAMPLE_DIR}.{name}"
-    with mock.patch("os.get_terminal_size", mock.Mock(return_value=(120, 100))):
+    with mock.patch(
+        "os.get_terminal_size", mock.Mock(return_value=cast(os.terminal_size, (120, 100)))
+    ):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
@@ -286,7 +289,7 @@ def test_samples(
 def patch_tempfile() -> Iterator[str]:
     fd, filename = tempfile.mkstemp()
     try:
-        with mock.patch("tempfile.mkstemp", mock.Mock(return_value=(fd, filename))):
+        with mock.patch("tempfile.mkstemp", mock.Mock(return_value=(fd, filename))):  # type: ignore [call-overload]
             yield filename
     finally:
         os.remove(filename)
