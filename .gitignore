@@ -1,5 +1,8 @@
 # Specific Files
 tmp.py
+log.txt
+stdout.txt
+stderr.txt
 notes.txt
 TODO
 *.pseudo

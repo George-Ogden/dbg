@@ -2,7 +2,8 @@
 bidict
 colorama
 frozendict
-git+https://github.com/George-Ogden/mypy-pytest.git
+git+https://github.com/George-Ogden/mirror-rorrim
+git+https://github.com/George-Ogden/mypy-pytest
 mypy==1.18.2
 numpy
 pip
