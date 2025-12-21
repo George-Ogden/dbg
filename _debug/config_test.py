@@ -158,7 +158,8 @@ def test_creates_default_config() -> None:
     temp_dir = tempfile.mkdtemp()
     config_filename = os.path.join(temp_dir, "debug", "dbg.conf")
 
-    def user_config_dir(appname: str) -> str:
+    def user_config_dir(appname: str | None = None, *args: Any, **kwargs: Any) -> str:
+        assert appname is not None
         return os.path.join(temp_dir, appname)
 
     with mock.patch("platformdirs.user_config_dir", user_config_dir):
@@ -182,7 +183,8 @@ def test_loads_default_config() -> None:
     with open(config_filename, "w") as f:
         f.write("style = fruity")
 
-    def user_config_dir(appname: str) -> str:
+    def user_config_dir(appname: str | None = None, *args: Any, **kwargs: Any) -> str:
+        assert appname is not None
         return os.path.join(temp_dir, appname)
 
     with mock.patch("platformdirs.user_config_dir", user_config_dir):
@@ -206,7 +208,8 @@ def test_loads_default_config_over_user_config() -> None:
     with open(local_config_filename, "w") as f:
         f.write("style = vim")
 
-    def user_config_dir(appname: str) -> str:
+    def user_config_dir(appname: str | None = None, *args: Any, **kwargs: Any) -> str:
+        assert appname is not None
         return os.path.join(user_dir, appname)
 
     with (

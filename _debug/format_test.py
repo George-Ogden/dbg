@@ -416,17 +416,17 @@ else:
             "{}",
         ),
         (
-            {"a": 50, "b": 5},
+            dict(a=50, b=5),
             None,
             "{'a': 50, 'b': 5}",
         ),
         (
-            {"a": 50, "b": 5},
+            dict(a=50, b=5),
             17,
             "{'a': 50, 'b': 5}",
         ),
         (
-            {"a": 50, "b": 5},
+            dict(a=50, b=5),
             16,
             """
             {
@@ -437,7 +437,7 @@ else:
         ),
         ({0: 1}, None, "{0: 1}"),
         (
-            {"a": MultilineObject([3, 1, 3])},
+            dict(a=MultilineObject([3, 1, 3])),
             None,
             """
             {
@@ -448,7 +448,7 @@ else:
             """,
         ),
         (
-            {"a": MultilineObject([3, 3]), "aa": MultilineObject([2, 1])},
+            dict(a=MultilineObject([3, 3]), aa=MultilineObject([2, 1])),
             None,
             """
             {
@@ -512,10 +512,10 @@ else:
             }
             """,
         ),
-        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, None, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
-        ({1: {"a": {}}, 2: {"b": {}, "c": []}}, 37, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
+        ({1: dict(a={}), 2: dict(b={}, c=[])}, None, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
+        ({1: dict(a={}), 2: dict(b={}, c=[])}, 37, "{1: {'a': {}}, 2: {'b': {}, 'c': []}}"),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             36,
             """
             {
@@ -525,7 +525,7 @@ else:
             """,
         ),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             26,
             """
             {
@@ -535,7 +535,7 @@ else:
             """,
         ),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             25,
             """
             {
@@ -548,7 +548,7 @@ else:
             """,
         ),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             17,
             """
             {
@@ -561,7 +561,7 @@ else:
             """,
         ),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             16,
             """
             {
@@ -576,7 +576,7 @@ else:
             """,
         ),
         (
-            {1: {"a": {}}, 2: {"b": {}, "c": []}},
+            {1: dict(a={}), 2: dict(b={}, c=[])},
             1,
             """
             {
@@ -592,8 +592,8 @@ else:
         ),
         (
             {
-                1: {"a": MultilineObject([2, 2])},
-                2: {"b": MultilineObject([2, 2]), "c": MultilineObject([2, 2])},
+                1: dict(a=MultilineObject([2, 2])),
+                2: dict(b=MultilineObject([2, 2]), c=MultilineObject([2, 2])),
             },
             None,
             """
@@ -613,8 +613,8 @@ else:
         ),
         (
             {
-                1: {"a": MultilineObject([2, 2])},
-                2: {"b": MultilineObject([2, 2]), "c": MultilineObject([2, 2])},
+                1: dict(a=MultilineObject([2, 2])),
+                2: dict(b=MultilineObject([2, 2]), c=MultilineObject([2, 2])),
             },
             16,
             """
@@ -1300,10 +1300,10 @@ else:
             })
             """,
         ),
-        (frozendict({"long": list("long")}), None, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
-        (frozendict({"long": list("long")}), 42, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (frozendict(long=list("long")), None, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
+        (frozendict(long=list("long")), 42, "frozendict({'long': ['l', 'o', 'n', 'g']})"),
         (
-            frozendict({"long": list("long")}),
+            frozendict(long=list("long")),
             41,
             """
             frozendict({
@@ -1312,7 +1312,7 @@ else:
             """,
         ),
         (
-            frozendict({"long": list("long")}),
+            frozendict(long=list("long")),
             33,
             """
             frozendict({
@@ -1321,7 +1321,7 @@ else:
             """,
         ),
         (
-            frozendict({"long": list("long")}),
+            frozendict(long=list("long")),
             32,
             """
             frozendict({

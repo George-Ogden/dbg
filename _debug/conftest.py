@@ -20,6 +20,6 @@ def reset_modules() -> None:
 @pytest.fixture
 def test_sample_dir() -> Generator[None]:
     os.chdir(Path.cwd() / SAMPLE_DIR)
-    with mock.patch("_debug.position.cwd", Path.cwd()):
+    with mock.patch("_debug.position.cwd", Path.cwd()):  # type: ignore [name-defined]
         yield
     os.chdir(Path.cwd() / "..")

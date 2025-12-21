@@ -2,10 +2,14 @@
 bidict
 colorama
 frozendict
+git+https://github.com/George-Ogden/mirror-rorrim; python_version >= "3.12"
+git+https://github.com/George-Ogden/mypy-pytest; python_version >= "3.12"
 mypy==1.18.2
 numpy
 pip
 pre-commit
 pytest
+pytest-timeout
+pytest-xdist
 types-colorama
 types-pygments

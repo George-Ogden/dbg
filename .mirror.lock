@@ -1,0 +1,19 @@
+# DANGER: EDIT AT YOUR OWN RISK. Track this file in version control so that others can sync files correctly.
+- commit: b63618f3e930009594b11b2e015e127f7dee99dc
+  files:
+  - .github/python-release.yaml
+  - .github/python-test.yaml
+  - .github/workflows/lint.yaml
+  - LICENSE
+  - mypy.ini
+  - pyproject.toml
+  - pytest.ini
+  - python.gitignore
+  - python.mirror.yaml
+  - python.pre-commit-config.yaml
+  - requirements-dev.txt
+  - requirements.txt
+  - ruff.toml
+  - template-README.md
+  - version.txt
+  source: https://github.com/George-Ogden/mirror-config
