@@ -10,4 +10,4 @@ on:
 
 jobs:
   lint:
-    uses: George-Ogden/actions/.github/workflows/lint.yaml@v3.2.0
+    uses: George-Ogden/actions/.github/workflows/lint.yaml@v3.4.1

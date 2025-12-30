@@ -2,11 +2,14 @@
 tmp.py
 log.txt
 stdout.txt
+out.txt
 stderr.txt
+err.txt
 notes.txt
 TODO
 *.pseudo
 *.patch
+nohup*
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

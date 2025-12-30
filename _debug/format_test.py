@@ -1,12 +1,21 @@
 from array import array
 import ast
-from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
+from collections import (
+    ChainMap,
+    Counter,
+    OrderedDict,
+    UserDict,
+    UserList,
+    defaultdict,
+    deque,
+    namedtuple,
+)
 from dataclasses import dataclass, field
 import importlib
 import io
 import sys
 import textwrap
-from typing import Any, ClassVar, Final, Self
+from typing import Any, ClassVar, Final, NamedTuple, Self
 from unittest import mock
 
 import bidict
@@ -153,6 +162,14 @@ else:
             ctx=None,  # type: ignore
         )
     )
+
+
+class RecursiveNamedTuple(NamedTuple):
+    attr: list[Any]
+
+
+recursive_named_tuple = RecursiveNamedTuple([])
+recursive_named_tuple.attr.append(recursive_named_tuple)
 
 
 @pytest.mark.parametrize(
@@ -2011,6 +2028,77 @@ else:
                 }),
             })
             """,
+        ),
+        (namedtuple("Point", ["x", "y"])(0, 1), None, "Point(x=0, y=1)"),  # type: ignore [call-arg,arg-type]
+        (namedtuple("Point", ["x", "y"])(0, 1), 15, "Point(x=0, y=1)"),  # type: ignore [call-arg,arg-type]
+        (
+            namedtuple("Point", ["x", "y"])(0, 1),  # type: ignore [call-arg,arg-type]
+            14,
+            """
+            Point(
+                x=0,
+                y=1,
+            )
+            """,
+        ),
+        (
+            namedtuple("wrapper", ["list"])([1, 2, 3]),
+            None,
+            "wrapper(list=[1, 2, 3])",
+        ),
+        (
+            namedtuple("wrapper", ["list"])([1, 2, 3]),
+            23,
+            "wrapper(list=[1, 2, 3])",
+        ),
+        (
+            namedtuple("wrapper", ["list"])([1, 2, 3]),
+            22,
+            """
+            wrapper(
+                list=[1, 2, 3],
+            )
+            """,
+        ),
+        (
+            namedtuple("wrapper", ["list"])([1, 2, 3]),
+            19,
+            """
+            wrapper(
+                list=[1, 2, 3],
+            )
+            """,
+        ),
+        (
+            namedtuple("wrapper", ["list"])([1, 2, 3]),
+            18,
+            """
+            wrapper(
+                list=[
+                    1,
+                    2,
+                    3,
+                ],
+            )
+            """,
+        ),
+        (recursive_named_tuple, None, "RecursiveNamedTuple(attr=[RecursiveNamedTuple(...)])"),
+        (
+            custom_repr_cls(
+                "NamedTupleSubclassCustomRepr", namedtuple("namedtuple", ["field"]), "1"
+            ),
+            None,
+            "NamedTupleSubclassCustomRepr!",
+        ),
+        (
+            namedtuple("Empty", [])(),
+            None,
+            "Empty()",
+        ),
+        (
+            namedtuple("Empty", [])(),
+            0,
+            "Empty()",
         ),
     ],
 )
