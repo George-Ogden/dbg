@@ -1,9 +1,12 @@
 default_stages: ["pre-commit"]
 default_install_hook_types: ["pre-commit", "commit-msg"]
 
+ci:
+  skip: [mirror-check]
+
 repos:
   - repo: https://github.com/George-Ogden/mirror-rorrim/
-    rev: v0.4.1
+    rev: v0.4.2
     hooks:
       - id: mirror-check
         fail_fast: true
@@ -17,10 +20,16 @@ repos:
       - id: requirements-txt-fixer
 
   - repo: https://github.com/George-Ogden/linter/
-    rev: v1.2.1
+    rev: v1.2.2
     hooks:
       - id: lint
         args: [--fix]
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.11.0
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
     rev: v0.14.10
@@ -44,7 +53,7 @@ repos:
       - id: actionlint
 
   - repo: https://github.com/George-Ogden/pre-commit-hooks/
-    rev: v2.0.4
+    rev: v2.1.0
     hooks:
       - id: check-merge-conflict
       - id: todo-check
