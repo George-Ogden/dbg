@@ -3,7 +3,15 @@ from __future__ import annotations
 import abc
 from array import array
 import ast
-from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
+from collections import (
+    ChainMap,
+    Counter,
+    OrderedDict,
+    UserDict,
+    UserList,
+    defaultdict,
+    deque,
+)
 from collections.abc import (
     Callable,
     Collection,
@@ -146,7 +154,7 @@ class BaseFormat(abc.ABC):
                 if id(obj) in visited:
                     return NamedObjectFormat(obj_cls, None)
                 visited.add(id(obj))
-                dataclass_format = NamedObjectFormat(
+                named_tuple_format = NamedObjectFormat(
                     obj_cls,
                     [
                         AttrFormat(
@@ -162,8 +170,35 @@ class BaseFormat(abc.ABC):
                     ],
                 )
                 visited.remove(id(obj))
-                return dataclass_format
+                return named_tuple_format
             return ItemFormat(obj)
+
+        # namedtuple check modified from https://stackoverflow.com/a/62692640.
+        if (
+            isinstance(obj, tuple)
+            and hasattr(obj, "_asdict")
+            and hasattr(obj, "_fields")
+            and obj.__repr__.__module__ == "collections"
+        ):
+            if id(obj) in visited:
+                return NamedObjectFormat(obj_cls, None)
+            visited.add(id(obj))
+            named_tuple_format = NamedObjectFormat(
+                obj_cls,
+                [
+                    AttrFormat(
+                        field,
+                        cls._from(
+                            getattr(obj, field),
+                            visited,
+                            sort_unordered_collections=sort_unordered_collections,
+                        ),
+                    )
+                    for field in obj._fields
+                ],
+            )
+            visited.remove(id(obj))
+            return named_tuple_format
 
         if (
             isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)
