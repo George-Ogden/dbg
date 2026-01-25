@@ -7,7 +7,7 @@ git+https://github.com/George-Ogden/mypy-pytest; python_version >= "3.12"
 mypy==1.19.1
 numpy
 prek
-pytest
+pytest>=9.0.0
 pytest-timeout
 pytest-xdist
 types-colorama
