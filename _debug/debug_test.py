@@ -1,3 +1,4 @@
+import builtins
 from collections.abc import Iterator
 import importlib
 import os
@@ -9,7 +10,9 @@ from unittest import mock
 
 from _pytest.capture import CaptureFixture
 import pytest
+from pytest import Subtests
 
+from .builtins import install, uninstall
 from .conftest import SAMPLE_DIR
 from .format import strip_ansi
 
@@ -255,6 +258,7 @@ def set_wide_indent() -> None:
             "test_samples/chdir.py",
             "[chdir.py:8:7] os.path.relpath(__file__) = 'test_samples/chdir.py'",
         ),
+        ("install_uninstall", "success", """[install_uninstall.py:7:7] "success" = 'success'"""),
     ],
 )
 def test_samples(
@@ -359,9 +363,7 @@ def test_with_no_frames(
     name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
 ) -> None:
     module = f"{SAMPLE_DIR}.{name}"
-    with (
-        mock.patch("inspect.currentframe", mock.Mock(return_value=None)),
-    ):
+    with mock.patch("inspect.currentframe", mock.Mock(return_value=None)):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()
@@ -370,3 +372,19 @@ def test_with_no_frames(
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
     assert strip_ansi(err.strip()) == expected_err
+
+
+def test_install_uninstall(subtests: Subtests) -> None:
+    assert not hasattr(builtins, "dbg")
+    with subtests.test("install"):
+        install()
+        assert hasattr(builtins, "dbg")
+    with subtests.test("install again"):
+        install()
+        assert hasattr(builtins, "dbg")
+    with subtests.test("uninstall"):
+        uninstall()
+        assert not hasattr(builtins, "dbg")
+    with subtests.test("uninstall again"):
+        uninstall()
+        assert not hasattr(builtins, "dbg")

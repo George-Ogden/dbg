@@ -311,11 +311,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ]
             """,
         ),
-        (
-            {"a", "b"},
-            10,
-            ["{'a', 'b'}", "{'b', 'a'}"],
-        ),
+        ({"a", "b"}, 10, ["{'a', 'b'}", "{'b', 'a'}"]),
         (
             {"a", "b"},
             9,
@@ -346,11 +342,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ]
             """,
         ),
-        (
-            set(),
-            None,
-            "set()",
-        ),
+        (set(), None, "set()"),
         ([set(), set()], None, "[set(), set()]"),
         ([set(), set()], 14, "[set(), set()]"),
         (
@@ -363,21 +355,9 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ]
             """,
         ),
-        (
-            (),
-            None,
-            "()",
-        ),
-        (
-            (100,),
-            None,
-            "(100,)",
-        ),
-        (
-            (100,),
-            6,
-            "(100,)",
-        ),
+        ((), None, "()"),
+        ((100,), None, "(100,)"),
+        ((100,), 6, "(100,)"),
         (
             (100,),
             5,
@@ -387,16 +367,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             )
             """,
         ),
-        (
-            ("a", "b"),
-            None,
-            "('a', 'b')",
-        ),
-        (
-            ("a", "b"),
-            10,
-            "('a', 'b')",
-        ),
+        (("a", "b"), None, "('a', 'b')"),
+        (("a", "b"), 10, "('a', 'b')"),
         (
             ("a", "b"),
             9,
@@ -417,31 +389,11 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             )
             """,
         ),
-        (
-            {},
-            None,
-            "{}",
-        ),
-        (
-            set(),
-            1,
-            "set()",
-        ),
-        (
-            {},
-            1,
-            "{}",
-        ),
-        (
-            dict(a=50, b=5),
-            None,
-            "{'a': 50, 'b': 5}",
-        ),
-        (
-            dict(a=50, b=5),
-            17,
-            "{'a': 50, 'b': 5}",
-        ),
+        ({}, None, "{}"),
+        (set(), 1, "set()"),
+        ({}, 1, "{}"),
+        (dict(a=50, b=5), None, "{'a': 50, 'b': 5}"),
+        (dict(a=50, b=5), 17, "{'a': 50, 'b': 5}"),
         (
             dict(a=50, b=5),
             16,
@@ -1031,11 +983,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "ChainMapSubclassCustomRepr!",
         ),
-        (
-            custom_repr_cls("ASTNode", ast.Constant, 15),
-            None,
-            "ASTNode!",
-        ),
+        (custom_repr_cls("ASTNode", ast.Constant, 15), None, "ASTNode!"),
         (custom_repr_cls("DequeSubclassCustomRepr", deque), None, "DequeSubclassCustomRepr!"),
         (
             custom_repr_cls("NumpyArraySubclassCustomRepr", np.ndarray, ()),
@@ -1104,11 +1052,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             f"<_debug.format_test.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
-        (
-            DataclassCustomRepr(),
-            None,
-            "DataclassCustomRepr!",
-        ),
+        (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
         (frozenset(), None, "frozenset()"),
         (frozenset([10]), None, "frozenset({10})"),
         (
@@ -1175,11 +1119,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
                 """,
             ],
         ),
-        (
-            type("freezeset", (frozenset,), {})(),
-            None,
-            "freezeset()",
-        ),
+        (type("freezeset", (frozenset,), {})(), None, "freezeset()"),
         (
             {frozenset([1, 2, 3]): {frozenset([4, 5, 6]): None}},
             29,
@@ -1298,11 +1238,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             )
             """,
         ),
-        (
-            type("subarray", (array,), {})("h", [-2]),
-            None,
-            "subarray('h', [-2])",
-        ),
+        (type("subarray", (array,), {})("h", [-2]), None, "subarray('h', [-2])"),
         (frozendict(), None, "frozendict({})"),
         (frozendict(Counter("aaabbc")), None, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
         (frozendict(Counter("aaabbc")), 36, "frozendict({'a': 3, 'b': 2, 'c': 1})"),
@@ -1351,11 +1287,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             })
             """,
         ),
-        (
-            type("freezedict", (frozendict,), {})(),
-            None,
-            "freezedict({})",
-        ),
+        (type("freezedict", (frozendict,), {})(), None, "freezedict({})"),
         (EmptyRepr(), None, ""),
         (EmptyRepr(), 1, ""),
         (dict.fromkeys([8, 6, 4]).keys(), None, "dict_keys([8, 6, 4])"),
@@ -1687,11 +1619,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ])
             """,
         ),
-        (
-            ast.Load(),
-            None,
-            "Load()",
-        ),
+        (ast.Load(), None, "Load()"),
         (ast.Name("id", ctx=ast.Load()), None, ["Name(id='id', ctx=Load())", "Name(id='id')"]),
         (
             nested_ast_expression,
@@ -1769,11 +1697,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "Dict(keys=[None], values=[Name(id='d')])",
         ),
-        (
-            ast.List(elts=[]),
-            None,
-            "List()",
-        ),
+        (ast.List(elts=[]), None, "List()"),
         (
             ast.If(
                 ast.Constant(value=True),
@@ -1961,11 +1885,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             )
             """,
         ),
-        (
-            bidict.bidict(),
-            None,
-            "bidict()",
-        ),
+        (bidict.bidict(), None, "bidict()"),
         (bidict.bidict({1: 2}), None, "bidict({1: 2})"),
         (bidict.bidict({1: 2}), 14, "bidict({1: 2})"),
         (
@@ -2041,16 +1961,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             )
             """,
         ),
-        (
-            namedtuple("wrapper", ["list"])([1, 2, 3]),
-            None,
-            "wrapper(list=[1, 2, 3])",
-        ),
-        (
-            namedtuple("wrapper", ["list"])([1, 2, 3]),
-            23,
-            "wrapper(list=[1, 2, 3])",
-        ),
+        (namedtuple("wrapper", ["list"])([1, 2, 3]), None, "wrapper(list=[1, 2, 3])"),
+        (namedtuple("wrapper", ["list"])([1, 2, 3]), 23, "wrapper(list=[1, 2, 3])"),
         (
             namedtuple("wrapper", ["list"])([1, 2, 3]),
             22,
@@ -2090,16 +2002,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "NamedTupleSubclassCustomRepr!",
         ),
-        (
-            namedtuple("Empty", [])(),
-            None,
-            "Empty()",
-        ),
-        (
-            namedtuple("Empty", [])(),
-            0,
-            "Empty()",
-        ),
+        (namedtuple("Empty", [])(), None, "Empty()"),
+        (namedtuple("Empty", [])(), 0, "Empty()"),
     ],
 )
 def test_format(obj: Any, width: int | None, expected: list | str) -> None:
@@ -2183,10 +2087,7 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
         (
             {"a", "b", "c", 1.0, 2.0, 3.0},
             None,
-            [
-                "{'a', 'b', 'c', 1.0, 2.0, 3.0}",
-                "{1.0, 2.0, 3.0, 'a', 'b', 'c'}",
-            ],
+            ["{'a', 'b', 'c', 1.0, 2.0, 3.0}", "{1.0, 2.0, 3.0, 'a', 'b', 'c'}"],
         ),
     ],
 )

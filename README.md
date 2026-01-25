@@ -149,3 +149,19 @@ indent = 4 # increase the indent size
 ```
 
 That means that your favorite theme is always loaded or you can disable color if it is misdetected.
+
+### Auto Install
+
+You can install `dbg` into the builtins namespace using the `install` function.
+
+```python
+from debug import install, uninstall
+
+install()
+dbg() # It works without an extra import (here and in other files).
+
+uninstall()
+dbg() # Now it's undefined.
+```
+
+Put this in your `conftest.py` and access it from all your tests!

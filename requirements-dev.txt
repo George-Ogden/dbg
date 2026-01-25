@@ -6,9 +6,8 @@ git+https://github.com/George-Ogden/mirror-rorrim; python_version >= "3.12"
 git+https://github.com/George-Ogden/mypy-pytest; python_version >= "3.12"
 mypy==1.19.1
 numpy
-pip
-pre-commit
-pytest
+prek
+pytest>=9.0.0
 pytest-timeout
 pytest-xdist
 types-colorama

@@ -76,8 +76,7 @@ def format_code(code: str) -> str:
     displayed_toks = [tok for tok in toks if not is_comment(tok)]
     code = "".join(tokens_to_string_parts(displayed_toks))
     black_formatted_code = black.format_str(
-        f"({code})",
-        mode=black.FileMode(string_normalization=False, line_length=len(code) * 2 + 2),
+        f"({code})", mode=black.FileMode(string_normalization=False, line_length=len(code) * 2 + 2)
     ).strip()
     match = re.match(r"^\((.*)\)$", black_formatted_code, flags=re.MULTILINE | re.DOTALL)
     if match is None:

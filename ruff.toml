@@ -3,6 +3,7 @@ line-length = 100
 [format]
 quote-style = "double"
 indent-style = "space"
+skip-magic-trailing-comma = true
 
 [lint]
 extend-select = ["B", "E", "ERA", "F", "I", "N", "PT", "PYI", "RET", "RUF", "SIM", "UP", "W"]
@@ -11,6 +12,7 @@ extend-unfixable = ["B905"]
 
 [lint.isort]
 force-sort-within-sections = true
+split-on-trailing-comma=false
 
 [lint.flake8-pytest-style]
 parametrize-names-type = "csv"

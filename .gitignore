@@ -11,6 +11,16 @@ TODO
 *.patch
 nohup*
 
+### VisualStudioCode ###
+.vscode/*
+
+# Local History for Visual Studio Code
+.history
+.ionide
+
+# Built Visual Studio Code Extensions
+*.vsix
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -183,12 +193,5 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-### VisualStudioCode ###
-.vscode/*
-
-# Local History for Visual Studio Code
-.history
-.ionide
-
-# Built Visual Studio Code Extensions
-*.vsix
+### Pre-Commit Prettier ###
+node_modules/

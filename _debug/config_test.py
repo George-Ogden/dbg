@@ -120,10 +120,7 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
         ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
         ("syntax_error", "Unable to load config from $. (ParsingError)"),
         ("location_error", "Unable to load config from $. (FileNotFoundError)"),
-        (
-            "invalid_indent",
-            "Invalid value '\"----\"' found in field 'indent' (expected int) in $.",
-        ),
+        ("invalid_indent", "Invalid value '\"----\"' found in field 'indent' (expected int) in $."),
         (
             "invalid_color",
             "Invalid value 'bad-color' found in field 'color' (expected bool or 'auto') in $.",

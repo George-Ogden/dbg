@@ -1,4 +1,6 @@
+import builtins
 from collections.abc import Generator
+import contextlib
 import os
 from pathlib import Path
 import sys
@@ -23,3 +25,11 @@ def test_sample_dir() -> Generator[None]:
     with mock.patch("_debug.position.cwd", Path.cwd()):  # type: ignore [name-defined]
         yield
     os.chdir(Path.cwd() / "..")
+
+
+@pytest.fixture(autouse=True)
+def uninstall_from_builtins() -> Generator[None]:
+    assert not hasattr(builtins, "dbg")
+    yield
+    with contextlib.suppress(AttributeError):
+        delattr(builtins, "dbg")

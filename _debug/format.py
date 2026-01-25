@@ -3,15 +3,7 @@ from __future__ import annotations
 import abc
 from array import array
 import ast
-from collections import (
-    ChainMap,
-    Counter,
-    OrderedDict,
-    UserDict,
-    UserList,
-    defaultdict,
-    deque,
-)
+from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from collections.abc import (
     Callable,
     Collection,
@@ -322,10 +314,7 @@ class BaseFormat(abc.ABC):
                     or (isinstance(obj, ast.Constant | ast.MatchSingleton) and field == "value")
                 ]
 
-            ast_format = NamedObjectFormat(
-                obj_cls,
-                ast_subformat,
-            )
+            ast_format = NamedObjectFormat(obj_cls, ast_subformat)
             visited.remove(id(obj))
             return ast_format
 
@@ -463,11 +452,7 @@ class RoundSequenceFormat(SequenceFormat):
 
 
 class NamedObjectFormat(RoundSequenceFormat):
-    def __init__(
-        self,
-        type: type[Any],
-        objs: list[BaseFormat] | None,
-    ) -> None:
+    def __init__(self, type: type[Any], objs: list[BaseFormat] | None) -> None:
         self._name = type.__name__
         super().__init__(objs, None)
 
@@ -852,14 +837,7 @@ BaseFormat.KNOWN_WRAPPED_CLASSES = (
     np.ndarray,
 )
 
-BaseFormat.KNOWN_EXTRA_CLASSES = (
-    Counter,
-    frozendict,
-    BidictBase,
-    UserList,
-    UserDict,
-    ChainMap,
-)
+BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict, BidictBase, UserList, UserDict, ChainMap)
 
 
 @dataclass(repr=False, kw_only=True, frozen=True)
@@ -883,9 +861,7 @@ class FormatterConfig:
         if self.width_pair is None:
             return self
         used_width, terminal_width = self.width_pair
-        return self.replace(
-            width_pair=(used_width, terminal_width - self.indent_width),
-        )
+        return self.replace(width_pair=(used_width, terminal_width - self.indent_width))
 
     def replace(self, **kwargs: Any) -> Self:
         return dataclasses.replace(self, **kwargs)
@@ -900,9 +876,7 @@ class FormatterConfig:
         if self.width_pair is None:
             return self
         used_width, terminal_width = self.width_pair
-        return self.replace(
-            width_pair=(update(used_width), terminal_width),
-        )
+        return self.replace(width_pair=(update(used_width), terminal_width))
 
     def use_extra(self, space: int) -> Self:
         return self._update_used_space(lambda used_width: used_width + space)
@@ -988,7 +962,7 @@ def pprint(
     ):
         warnings.warn(
             f"`color` was set to {color!r}, but `style` was set to {style!r}. "
-            "The output will not be colored.",
+            "The output will not be colored."
         )
     if file is None:
         file = sys.stdout
