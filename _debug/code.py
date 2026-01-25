@@ -73,7 +73,7 @@ def format_code(code: str) -> str:
         return code
     lines = (line for line in code.splitlines() if line)
     toks = tokenize.generate_tokens(functools.partial(next, iter(lines)))
-    displayed_toks = [tok for tok in toks if not is_comment(tok)]
+    displayed_toks = [tok for tok in toks if not is_comment(tok) and tok.string]
     code = "".join(tokens_to_string_parts(displayed_toks))
     black_formatted_code = black.format_str(
         f"({code})", mode=black.FileMode(string_normalization=False, line_length=len(code) * 2 + 2)
