@@ -6,7 +6,7 @@ ci:
 
 repos:
   - repo: https://github.com/George-Ogden/mirror-rorrim/
-    rev: v0.4.2
+    rev: v0.4.5
     hooks:
       - id: mirror-check
         fail_fast: true
@@ -32,28 +32,28 @@ repos:
         args: ["--severity=warning"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
-    rev: v0.14.10
+    rev: v0.14.14
     hooks:
-      - id: ruff-format
-        exclude: ^test_samples
       - id: ruff-check
         args:
           - --fix
         exclude: ^test_samples
+      - id: ruff-format
+        exclude: ^test_samples
+        args: [--config, "format.skip-magic-trailing-comma = true"]
 
   - repo: https://github.com/pre-commit/mirrors-prettier/
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        additional_dependencies: [prettier]
 
   - repo: https://github.com/rhysd/actionlint/
-    rev: v1.7.9
+    rev: v1.7.10
     hooks:
       - id: actionlint
 
   - repo: https://github.com/George-Ogden/pre-commit-hooks/
-    rev: v2.1.0
+    rev: v2.1.1
     hooks:
       - id: check-merge-conflict
       - id: todo-check

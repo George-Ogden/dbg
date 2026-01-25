@@ -359,9 +359,7 @@ def test_with_no_frames(
     name: str, expected_out: str, expected_err: str, capsys: CaptureFixture
 ) -> None:
     module = f"{SAMPLE_DIR}.{name}"
-    with (
-        mock.patch("inspect.currentframe", mock.Mock(return_value=None)),
-    ):
+    with mock.patch("inspect.currentframe", mock.Mock(return_value=None)):
         importlib.import_module(module)
 
     expected_out = textwrap.dedent(expected_out).strip()

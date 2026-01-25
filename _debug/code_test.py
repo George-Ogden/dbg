@@ -67,15 +67,9 @@ def test_validate_style(style: str, error: str | None) -> None:
             """,
         ),
         # no trailing comma list with spaces
-        (
-            "[1, 2, 3]",
-            "[1, 2, 3]",
-        ),
+        ("[1, 2, 3]", "[1, 2, 3]"),
         # no trailing comma list no spaces
-        (
-            "[1,2,3]",
-            "[1, 2, 3]",
-        ),
+        ("[1,2,3]", "[1, 2, 3]"),
         # multiline addition with comment
         (
             """
@@ -108,30 +102,15 @@ def test_validate_style(style: str, error: str | None) -> None:
             """,
         ),
         # no trailing comma dict with spaces
-        (
-            "{1: 2, 3: 4}",
-            "{1: 2, 3: 4}",
-        ),
+        ("{1: 2, 3: 4}", "{1: 2, 3: 4}"),
         # no trailing comma dict no spaces
-        (
-            "{1:2,3:4}",
-            "{1: 2, 3: 4}",
-        ),
+        ("{1:2,3:4}", "{1: 2, 3: 4}"),
         # in expression
-        (
-            "x in y",
-            "x in y",
-        ),
+        ("x in y", "x in y"),
         # or expression
-        (
-            "x  or  y",
-            "x or y",
-        ),
+        ("x  or  y", "x or y"),
         # if expression
-        (
-            "True   if 1  else not False",
-            "True if 1 else not False",
-        ),
+        ("True   if 1  else not False", "True if 1 else not False"),
     ],
 )
 def test_format_code(code: str, expected: str) -> None:
