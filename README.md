@@ -93,6 +93,8 @@ Getting the debug information involves introspecting the code very heavily.
 You need a Python interpreter that allows this (which you probably have by default).
 If some information is unavailable, a placeholder will be shown, such as `<unknown>`.
 
+`dbg` will not display any output if `__debug__` is `False` (this happens when you run Python with the `-O` flag).
+
 ## Pytest Tips
 
 `dbg` automatically detects your terminal width when running so that it can display objects better.

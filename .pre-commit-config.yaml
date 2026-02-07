@@ -20,7 +20,7 @@ repos:
       - id: requirements-txt-fixer
 
   - repo: https://github.com/George-Ogden/linter/
-    rev: v1.2.2
+    rev: v2.0.0
     hooks:
       - id: lint
         args: [--fix]
@@ -32,7 +32,7 @@ repos:
         args: ["--severity=warning"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
-    rev: v0.14.14
+    rev: v0.15.0
     hooks:
       - id: ruff-check
         args:
