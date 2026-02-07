@@ -1,3 +1,4 @@
+import contextlib
 import inspect
 import sys
 from typing import TypeVar, TypeVarTuple, overload
@@ -45,7 +46,7 @@ def dbg(*values: object) -> object:
                         style="config",
                         indent="config",
                         width="auto",
-                        file="upper",  # type: ignore
+                        file="upper",  # type: ignore[arg-type]
                     )
     finally:
         del frame
@@ -53,3 +54,12 @@ def dbg(*values: object) -> object:
         [value] = values
         return value
     return values
+
+
+if not __debug__:
+
+    def dbg(*values: object) -> object:  # type: ignore [no-redef]
+        with contextlib.suppress(ValueError):
+            [value] = values
+            return value
+        return values
