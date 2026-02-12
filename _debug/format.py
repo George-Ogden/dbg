@@ -36,8 +36,6 @@ from typing import (
 import unicodedata
 import warnings
 
-from attr import AttrsInstance
-import attrs
 from wcwidth import wcswidth
 
 from . import defaults as defaults
@@ -64,6 +62,13 @@ try:
     import numpy as np
 except (ModuleNotFoundError, ImportError):
     from . import _numpy_backup as np  # type: ignore
+
+try:
+    import attrs
+    from attrs import AttrsInstance
+except (ModuleNotFoundError, ImportError):
+    from . import _attrs_backup as attrs  # type: ignore
+
 
 ANSI_PATTERN = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 

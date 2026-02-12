@@ -2271,6 +2271,17 @@ def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> Non
             """,
         ),
         ({}, "bidict", None, "{}"),
+        (AttrDataclassOneField("field"), "attrs", 0, "AttrDataclassOneField(single_field='field')"),
+        (
+            DataclassOneField("field"),
+            "attrs",
+            0,
+            """
+            DataclassOneField(
+                single_field='field',
+            )
+            """,
+        ),
     ],
 )
 def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
