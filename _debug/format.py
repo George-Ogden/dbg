@@ -26,10 +26,12 @@ from typing import (
     ClassVar,
     Generic,
     Literal,
+    NamedTuple,
     Protocol,
     Self,
     TypeAlias,
     TypeVar,
+    cast,
 )
 import unicodedata
 import warnings
@@ -42,7 +44,7 @@ from .config import CONFIG
 from .file import FileWrapper
 
 if TYPE_CHECKING:
-    from _typeshed import SupportsWrite
+    from _typeshed import DataclassInstance, SupportsWrite
 
 frozendict: type[Any]
 try:
@@ -134,36 +136,15 @@ class BaseFormat(abc.ABC):
         return wcswidth(cls.clean_string(string))
 
     @classmethod
-    def _from(cls, obj: Any, visited: Visited, *, sort_unordered_collections: bool) -> BaseFormat:
-        obj_cls = type(obj)
+    def _from(
+        cls, obj: object, visited: Visited, *, sort_unordered_collections: bool
+    ) -> BaseFormat:
         if dataclasses.is_dataclass(obj):
-            if (
-                not isinstance(obj, type)
-                and obj.__dataclass_params__.repr  # type: ignore
-                and hasattr(obj.__repr__, "__wrapped__")
-                and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
-            ):
-                if id(obj) in visited:
-                    return NamedObjectFormat(obj_cls, None)
-                visited.add(id(obj))
-                named_tuple_format = NamedObjectFormat(
-                    obj_cls,
-                    [
-                        AttrFormat(
-                            field.name,
-                            cls._from(
-                                getattr(obj, field.name),
-                                visited,
-                                sort_unordered_collections=sort_unordered_collections,
-                            ),
-                        )
-                        for field in dataclasses.fields(obj)
-                        if field.repr
-                    ],
-                )
-                visited.remove(id(obj))
-                return named_tuple_format
-            return ItemFormat(obj)
+            return cls._from_dataclass(
+                cast("DataclassInstance", obj),
+                visited,
+                sort_unordered_collections=sort_unordered_collections,
+            )
 
         # namedtuple check modified from https://stackoverflow.com/a/62692640.
         if (
@@ -172,25 +153,11 @@ class BaseFormat(abc.ABC):
             and hasattr(obj, "_fields")
             and obj.__repr__.__module__ == "collections"
         ):
-            if id(obj) in visited:
-                return NamedObjectFormat(obj_cls, None)
-            visited.add(id(obj))
-            named_tuple_format = NamedObjectFormat(
-                obj_cls,
-                [
-                    AttrFormat(
-                        field,
-                        cls._from(
-                            getattr(obj, field),
-                            visited,
-                            sort_unordered_collections=sort_unordered_collections,
-                        ),
-                    )
-                    for field in obj._fields
-                ],
+            return cls._from_named_tuple(
+                cast(NamedTuple, obj),
+                visited,
+                sort_unordered_collections=sort_unordered_collections,
             )
-            visited.remove(id(obj))
-            return named_tuple_format
 
         if (
             isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)
@@ -210,30 +177,98 @@ class BaseFormat(abc.ABC):
                 )
 
         if isinstance(obj, np.ndarray):
-            data = obj.tolist()
-            dtype = obj.dtype
-            if type(obj) is np.ndarray:
-                obj_cls = array
+            return cls._from_np_array(
+                obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
+
+        if isinstance(obj, array):
+            return cls._from_array(
+                obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
+
+        if isinstance(obj, ast.AST):
+            return cls._from_ast(
+                obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
+
+        if isinstance(obj, ChainMap):
+            return cls._from_chainmap(
+                obj, visited, sort_unordered_collections=sort_unordered_collections
+            )
+
+        return ItemFormat(obj)
+
+    @classmethod
+    def _from_dataclass(
+        cls, obj: DataclassInstance, visited: Visited, *, sort_unordered_collections: bool
+    ) -> BaseFormat:
+        obj_cls = type(obj)
+        if (
+            not isinstance(obj, type)
+            and obj.__dataclass_params__.repr  # type: ignore
+            and hasattr(obj.__repr__, "__wrapped__")
+            and "__create_fn__" in obj.__repr__.__wrapped__.__qualname__
+        ):
             if id(obj) in visited:
-                return NamedObjectFormat(
-                    obj_cls,
-                    [
-                        EllipsisFormat(),
-                        AttrFormat(
-                            "dtype",
-                            cls._from(
-                                dtype.name,
-                                visited,
-                                sort_unordered_collections=sort_unordered_collections,
-                            ),
-                        ),
-                    ],
-                )
+                return NamedObjectFormat(obj_cls, None)
             visited.add(id(obj))
-            np_array_format = NamedObjectFormat(
+            named_tuple_format = NamedObjectFormat(
                 obj_cls,
                 [
-                    cls._from(data, visited, sort_unordered_collections=sort_unordered_collections),
+                    AttrFormat(
+                        field.name,
+                        cls._from(
+                            getattr(obj, field.name),
+                            visited,
+                            sort_unordered_collections=sort_unordered_collections,
+                        ),
+                    )
+                    for field in dataclasses.fields(obj)
+                    if field.repr
+                ],
+            )
+            visited.remove(id(obj))
+            return named_tuple_format
+        return ItemFormat(obj)
+
+    @classmethod
+    def _from_named_tuple(
+        cls, obj: NamedTuple, visited: Visited, *, sort_unordered_collections: bool
+    ) -> NamedObjectFormat:
+        obj_cls = type(obj)
+        if id(obj) in visited:
+            return NamedObjectFormat(obj_cls, None)
+        visited.add(id(obj))
+        named_tuple_format = NamedObjectFormat(
+            obj_cls,
+            [
+                AttrFormat(
+                    field,
+                    cls._from(
+                        getattr(obj, field),
+                        visited,
+                        sort_unordered_collections=sort_unordered_collections,
+                    ),
+                )
+                for field in obj._fields
+            ],
+        )
+        visited.remove(id(obj))
+        return named_tuple_format
+
+    @classmethod
+    def _from_np_array(
+        cls, obj: np.ndarray, visited: Visited, *, sort_unordered_collections: bool
+    ) -> NamedObjectFormat:
+        data = obj.tolist()
+        dtype = obj.dtype
+        if type(obj) is np.ndarray:
+            obj_cls = array
+        if id(obj) in visited:
+            return NamedObjectFormat(
+                obj_cls,
+                [
+                    EllipsisFormat(),
                     AttrFormat(
                         "dtype",
                         cls._from(
@@ -244,95 +279,113 @@ class BaseFormat(abc.ABC):
                     ),
                 ],
             )
-            visited.remove(id(obj))
-            return np_array_format
-
-        if isinstance(obj, array):
-            body: Any
-            try:
-                string = obj.tounicode()
-            except ValueError:
-                body = obj.tolist()
-            else:
-                body = string
-            sub_objs = [obj.typecode]
-            if body:
-                sub_objs.append(body)
-            return NamedObjectFormat(
-                obj_cls,
-                [
+        visited.add(id(obj))
+        np_array_format = NamedObjectFormat(
+            obj_cls,
+            [
+                cls._from(data, visited, sort_unordered_collections=sort_unordered_collections),
+                AttrFormat(
+                    "dtype",
                     cls._from(
-                        sub_obj, visited, sort_unordered_collections=sort_unordered_collections
-                    )
-                    for sub_obj in sub_objs
-                ],
-            )
+                        dtype.name, visited, sort_unordered_collections=sort_unordered_collections
+                    ),
+                ),
+            ],
+        )
+        visited.remove(id(obj))
+        return np_array_format
 
-        if isinstance(obj, ast.AST):
-            if id(obj) in visited:
-                return NamedObjectFormat(obj_cls, None)
-            visited.add(id(obj))
-            ast_subformat: list[BaseFormat] = []
-            if hasattr(obj_cls, "_field_types"):
-                for field in obj._fields:
-                    try:
-                        value = getattr(obj, field)
-                    except AttributeError:
+    @classmethod
+    def _from_array(
+        cls, obj: array, visited: Visited, *, sort_unordered_collections: bool
+    ) -> NamedObjectFormat:
+        body: Any
+        try:
+            string = obj.tounicode()
+        except ValueError:
+            body = obj.tolist()
+        else:
+            body = string
+        sub_objs = [obj.typecode]
+        if body:
+            sub_objs.append(body)
+        return NamedObjectFormat(
+            type(obj),
+            [
+                cls._from(sub_obj, visited, sort_unordered_collections=sort_unordered_collections)
+                for sub_obj in sub_objs
+            ],
+        )
+
+    @classmethod
+    def _from_ast(
+        cls, obj: ast.AST, visited: Visited, *, sort_unordered_collections: bool
+    ) -> NamedObjectFormat:
+        obj_cls = type(obj)
+        if id(obj) in visited:
+            return NamedObjectFormat(obj_cls, None)
+        visited.add(id(obj))
+        ast_subformat: list[BaseFormat] = []
+        if hasattr(obj_cls, "_field_types"):
+            for field in obj._fields:
+                try:
+                    value = getattr(obj, field)
+                except AttributeError:
+                    continue
+                if value is None and getattr(obj_cls, field, ...) is None:
+                    continue
+                if value == []:
+                    field_type = obj_cls._field_types.get(field, object)
+                    if getattr(field_type, "__origin__", ...) is list:
                         continue
-                    if value is None and getattr(obj_cls, field, ...) is None:
+                elif isinstance(value, ast.Load):
+                    field_type = obj_cls._field_types.get(field, object)
+                    if field_type is ast.expr_context:
                         continue
-                    if value == []:
-                        field_type = obj_cls._field_types.get(field, object)
-                        if getattr(field_type, "__origin__", ...) is list:
-                            continue
-                    elif isinstance(value, ast.Load):
-                        field_type = obj_cls._field_types.get(field, object)
-                        if field_type is ast.expr_context:
-                            continue
-                    ast_subformat.append(
-                        AttrFormat(
-                            field,
-                            cls._from(
-                                value,
-                                visited,
-                                sort_unordered_collections=sort_unordered_collections,
-                            ),
-                        )
-                    )
-            else:
-                ast_subformat = [
+                ast_subformat.append(
                     AttrFormat(
                         field,
                         cls._from(
-                            getattr(obj, field),
-                            visited,
-                            sort_unordered_collections=sort_unordered_collections,
+                            value, visited, sort_unordered_collections=sort_unordered_collections
                         ),
                     )
-                    for field in obj._fields
-                    if getattr(obj, field, None) not in (None, [])
-                    or (isinstance(obj, ast.Constant | ast.MatchSingleton) and field == "value")
-                ]
+                )
+        else:
+            ast_subformat = [
+                AttrFormat(
+                    field,
+                    cls._from(
+                        getattr(obj, field),
+                        visited,
+                        sort_unordered_collections=sort_unordered_collections,
+                    ),
+                )
+                for field in obj._fields
+                if getattr(obj, field, None) not in (None, [])
+                or (isinstance(obj, ast.Constant | ast.MatchSingleton) and field == "value")
+            ]
 
-            ast_format = NamedObjectFormat(obj_cls, ast_subformat)
-            visited.remove(id(obj))
-            return ast_format
+        ast_format = NamedObjectFormat(obj_cls, ast_subformat)
+        visited.remove(id(obj))
+        return ast_format
 
-        if isinstance(obj, ChainMap):
-            if id(obj) in visited:
-                return NamedObjectFormat(obj_cls, None)
-            visited.add(id(obj))
-            chainmap_subformat = NamedObjectFormat(
-                obj_cls,
-                [
-                    cls._from(map, visited, sort_unordered_collections=sort_unordered_collections)
-                    for map in obj.maps
-                ],
-            )
-            visited.remove(id(obj))
-            return chainmap_subformat
-
-        return ItemFormat(obj)
+    @classmethod
+    def _from_chainmap(
+        cls, obj: ChainMap, visited: Visited, *, sort_unordered_collections: bool
+    ) -> NamedObjectFormat:
+        obj_cls = type(obj)
+        if id(obj) in visited:
+            return NamedObjectFormat(obj_cls, None)
+        visited.add(id(obj))
+        chainmap_subformat = NamedObjectFormat(
+            obj_cls,
+            [
+                cls._from(map, visited, sort_unordered_collections=sort_unordered_collections)
+                for map in obj.maps
+            ],
+        )
+        visited.remove(id(obj))
+        return chainmap_subformat
 
 
 class SequenceFormat(BaseFormat, abc.ABC):

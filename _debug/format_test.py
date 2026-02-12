@@ -996,6 +996,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             "BidictSubclassCustomRepr!",
         ),
         (DataclassNoField(), None, "DataclassNoField()"),
+        (DataclassNoField, None, "<class '_debug.format_test.DataclassNoField'>"),
         (DataclassNoField(), 0, "DataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
         (DataclassOneField("string"), 40, "DataclassOneField(single_field='string')"),
