@@ -18,6 +18,8 @@ import textwrap
 from typing import Any, ClassVar, Final, NamedTuple, Self
 from unittest import mock
 
+import attr
+import attrs
 import bidict
 from colorama import Fore
 from frozendict import frozendict
@@ -104,16 +106,39 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
 class DataclassNoField: ...
 
 
+@attrs.define
+class AttrsDataclassNoField: ...
+
+
 @dataclass
 class DataclassOneField:
     single_field: str
 
 
+@attr.s
+class AttrDataclassOneField:
+    single_field: str = attr.ib()
+
+
 @dataclass
 class DataclassMultipleFields:
     field1: int
-    hidden: None = field(default=None, repr=False)
+    _hidden: None = field(default=None, repr=False)
     field2: list[int] = field(default_factory=list)
+
+
+@attrs.define
+class AttrsDataclassMultipleFields:
+    field1: Any
+    _hidden: None = attr.ib(default=None, repr=False)
+    field2: list[int] = attr.field(default=attrs.Factory(list))
+
+
+@attrs.frozen
+class AttrsFrozenDataclassMultipleFields:
+    field1: int
+    _hidden: None = attrs.field(default=None, repr=False)
+    field2: list[int] = attr.ib(default=attrs.Factory(list))
 
 
 @dataclass(repr=False)
@@ -121,13 +146,25 @@ class DataclassNoRepr:
     instance: ClassVar[Self]
 
 
+@attrs.define(repr=False)
+class AttrsDataclassNoRepr:
+    instance: ClassVar[Self]
+
+
 DataclassNoRepr.instance = DataclassNoRepr()
+AttrsDataclassNoRepr.instance = AttrsDataclassNoRepr()
 
 
 @dataclass
 class DataclassCustomRepr:
     def __repr__(self) -> str:
         return "DataclassCustomRepr!"
+
+
+@attrs.define
+class AttrsDataclassCustomRepr:
+    def __repr__(self) -> str:
+        return "AttrsDataclassCustomRepr!"
 
 
 @dataclass
@@ -137,6 +174,15 @@ class RecursiveDataclass:
 
 recursive_dataclass = RecursiveDataclass(None)  # type: ignore
 recursive_dataclass.recursive = recursive_dataclass
+
+
+@attrs.mutable
+class RecursiveAttrsDataclass:
+    recursive: Self
+
+
+recursive_attrs_dataclass = RecursiveAttrsDataclass(None)  # type: ignore
+recursive_attrs_dataclass.recursive = recursive_attrs_dataclass
 
 recursive_ast = ast.Set([])
 recursive_ast.elts.append(recursive_ast)
@@ -746,6 +792,11 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             """,
         ),
         (recursive_dataclass, None, "RecursiveDataclass(recursive=RecursiveDataclass(...))"),
+        (
+            recursive_attrs_dataclass,
+            None,
+            "RecursiveAttrsDataclass(recursive=RecursiveAttrsDataclass(...))",
+        ),
         (recursive_ast, None, "Set(elts=[Set(...)])"),
         (
             [ColoredMultilineObject([3]), ColoredMultilineObject([4])],
@@ -995,8 +1046,14 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "BidictSubclassCustomRepr!",
         ),
+        (attrs.NOTHING, None, "NOTHING"),
+        (attrs.NOTHING, 0, "NOTHING"),
         (DataclassNoField(), None, "DataclassNoField()"),
+        (DataclassNoField, None, "<class '_debug.format_test.DataclassNoField'>"),
         (DataclassNoField(), 0, "DataclassNoField()"),
+        (AttrsDataclassNoField, None, "<class '_debug.format_test.AttrsDataclassNoField'>"),
+        (AttrsDataclassNoField(), None, "AttrsDataclassNoField()"),
+        (AttrsDataclassNoField(), 0, "AttrsDataclassNoField()"),
         (DataclassOneField("string"), None, "DataclassOneField(single_field='string')"),
         (DataclassOneField("string"), 40, "DataclassOneField(single_field='string')"),
         (
@@ -1004,6 +1061,17 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             39,
             """
             DataclassOneField(
+                single_field='string',
+            )
+            """,
+        ),
+        (AttrDataclassOneField("string"), None, "AttrDataclassOneField(single_field='string')"),
+        (AttrDataclassOneField("string"), 44, "AttrDataclassOneField(single_field='string')"),
+        (
+            AttrDataclassOneField("string"),
+            43,
+            """
+            AttrDataclassOneField(
                 single_field='string',
             )
             """,
@@ -1048,11 +1116,84 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             """,
         ),
         (
+            AttrsDataclassMultipleFields(attrs.NOTHING),
+            None,
+            "AttrsDataclassMultipleFields(field1=NOTHING, field2=[])",
+        ),
+        (
+            AttrsDataclassMultipleFields(attrs.NOTHING),
+            55,
+            "AttrsDataclassMultipleFields(field1=NOTHING, field2=[])",
+        ),
+        (
+            AttrsDataclassMultipleFields(attrs.NOTHING),
+            51,
+            """
+            AttrsDataclassMultipleFields(
+                field1=NOTHING,
+                field2=[],
+            )
+            """,
+        ),
+        (
+            AttrsDataclassMultipleFields(attrs.NOTHING, field2=[1, 2, 3, 4, 5, 6]),
+            30,
+            """
+            AttrsDataclassMultipleFields(
+                field1=NOTHING,
+                field2=[1, 2, 3, 4, 5, 6],
+            )
+            """,
+        ),
+        (
+            AttrsDataclassMultipleFields(attrs.NOTHING, field2=[1, 2, 3, 4, 5, 6]),
+            29,
+            """
+            AttrsDataclassMultipleFields(
+                field1=NOTHING,
+                field2=[
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                ],
+            )
+            """,
+        ),
+        (
+            AttrsFrozenDataclassMultipleFields(0),
+            None,
+            "AttrsFrozenDataclassMultipleFields(field1=0, field2=[])",
+        ),
+        (
+            AttrsFrozenDataclassMultipleFields(0),
+            55,
+            "AttrsFrozenDataclassMultipleFields(field1=0, field2=[])",
+        ),
+        (
+            AttrsFrozenDataclassMultipleFields(0),
+            54,
+            """
+            AttrsFrozenDataclassMultipleFields(
+                field1=0,
+                field2=[],
+            )
+            """,
+        ),
+        (
             DataclassNoRepr.instance,
             None,
             f"<_debug.format_test.DataclassNoRepr object at {id(DataclassNoRepr.instance):0>#12x}>",
         ),
+        (
+            AttrsDataclassNoRepr.instance,
+            None,
+            f"<_debug.format_test.AttrsDataclassNoRepr object at {id(AttrsDataclassNoRepr.instance):0>#12x}>",
+        ),
         (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
+        (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
         (frozenset(), None, "frozenset()"),
         (frozenset([10]), None, "frozenset({10})"),
         (
@@ -2130,6 +2271,17 @@ def test_sorted_format(obj: Any, width: int | None, expected: list | str) -> Non
             """,
         ),
         ({}, "bidict", None, "{}"),
+        (AttrDataclassOneField("field"), "attrs", 0, "AttrDataclassOneField(single_field='field')"),
+        (
+            DataclassOneField("field"),
+            "attrs",
+            0,
+            """
+            DataclassOneField(
+                single_field='field',
+            )
+            """,
+        ),
     ],
 )
 def test_format_without_module(obj: Any, module: str, width: int | None, expected: str) -> None:
