@@ -1057,7 +1057,7 @@ def pformat(
     *,
     width: int | None = defaults.DEFAULT_WIDTH,
     style: str | None = None,
-    conversion: Conversion = "repr",
+    conversion: Literal[Conversion, "auto"] = "repr",
     indent: int = defaults.DEFAULT_INDENT,
     sort_unordered_collections: bool = False,
     prefix: str = "",
@@ -1098,6 +1098,8 @@ def pformat(
     initial_offset = BaseFormat.len(last_line)
     width_pair = None if width is None else (initial_offset, width)
     config = FormatterConfig(width_pair=width_pair, indent_width=indent, style=style)
+    if conversion == "auto":
+        conversion = "str" if type(obj) is str else "repr"
     formatted_obj = BaseFormat._from(
         obj,
         set(),

@@ -2284,6 +2284,25 @@ def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
 
 
 @pytest.mark.parametrize(
+    "obj, expected",
+    [
+        # strings
+        ("abc", "abc"),
+        ("", ""),
+        # not a true string
+        (custom_repr_cls("String", str), "String!"),
+        (["a", "b"], "['a', 'b']"),
+        # other class
+        (np.array([1]), "array([1], dtype='int64')"),
+    ],
+)
+def test_auto_format(obj: Any, expected: str) -> None:
+    string = pformat(obj, style=None, width=None, indent=4, conversion="auto")
+    expected = textwrap.dedent(expected).strip()
+    assert string == expected
+
+
+@pytest.mark.parametrize(
     "obj, width, expected",
     [
         ({}, None, "{}"),
