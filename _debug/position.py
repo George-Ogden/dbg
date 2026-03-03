@@ -6,12 +6,12 @@ from typing import TypeAlias
 
 from .code import UNKNOWN_MESSAGE, highlight_text
 
-Position: TypeAlias = tuple[str, None | tuple[int, None | int]]
+Position: TypeAlias = tuple[str, tuple[int, int | None] | None]
 
 cwd = os.getcwd()
 
 
-def get_position(frame: None | types.FrameType) -> Position:
+def get_position(frame: types.FrameType | None) -> Position:
     if frame is None:
         return (UNKNOWN_MESSAGE, None)
     filepath = frame.f_code.co_filename
@@ -45,7 +45,7 @@ def highlight_position(position: str, style: str) -> str:
     return highlight_text(position, style)
 
 
-def display_position(frame: None | types.FrameType, style: str | None) -> str:
+def display_position(frame: types.FrameType | None, style: str | None) -> str:
     position = get_position(frame)
     position_text = format_position(position)
     if style is not None:

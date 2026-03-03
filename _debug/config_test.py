@@ -95,8 +95,10 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
     [
         (
             "extra_section",
-            "Extra section [extra] found in $. "
-            "Please, use no sections or one section called [dbg].",
+            (
+                "Extra section [extra] found in $. "
+                "Please, use no sections or one section called [dbg]."
+            ),
         ),
         ("unused_field", "Unused field 'extra' found in $."),
         (
@@ -109,13 +111,17 @@ def test_load_config(name: str, settings: dict[str, Any]) -> None:
         ),
         (
             "style_quotes",
-            'Quotes used around "algol" in $. '
-            "They will be ignored, but please remove to silence this warning.",
+            (
+                'Quotes used around "algol" in $. '
+                "They will be ignored, but please remove to silence this warning."
+            ),
         ),
         (
             "color_quotes",
-            "Quotes used around 'auto' in $. "
-            "They will be ignored, but please remove to silence this warning.",
+            (
+                "Quotes used around 'auto' in $. "
+                "They will be ignored, but please remove to silence this warning."
+            ),
         ),
         ("wrong_section", "Wrong section [debugging] used in $. Please, use [dbg] or no sections."),
         ("syntax_error", "Unable to load config from $. (ParsingError)"),

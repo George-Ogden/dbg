@@ -78,13 +78,13 @@ def strip_ansi(text: str) -> str:
 
 
 def not_first() -> Callable[..., bool]:
-    _first_time_call = True
+    first_time_call = True
 
     def fn(*_: Any) -> bool:
-        nonlocal _first_time_call
+        nonlocal first_time_call
 
-        res = not _first_time_call
-        _first_time_call = False
+        res = not first_time_call
+        first_time_call = False
         return res
 
     return fn
@@ -125,17 +125,20 @@ class BaseFormat(abc.ABC):
         return total_length
 
     @classmethod
-    def add(cls, a: None | int, b: None | int) -> int | None:
+    def add(cls, a: int | None, b: int | None) -> int | None:
         if a is None or b is None:
             return None
         return a + b
 
     @classmethod
     def clean_string(cls, string: str) -> str:
-        return "".join(
-            char
-            for char in strip_ansi(string)
-            if unicodedata.category(char)[0] != "C" and wcswidth(char) != -1
+        return str.join(
+            "",
+            (
+                char
+                for char in strip_ansi(string)
+                if unicodedata.category(char)[0] != "C" and wcswidth(char) != -1
+            ),
         )
 
     @classmethod
@@ -439,7 +442,7 @@ class SequenceFormat(BaseFormat, abc.ABC):
     def __init__(
         self,
         objs: list[BaseFormat] | None,
-        type: None | type[Any],
+        type: type[Any] | None,
         *,
         extra_trailing_comma: bool = False,
     ) -> None:
@@ -501,7 +504,7 @@ class SequenceFormat(BaseFormat, abc.ABC):
         config = config.flatten()
         return (
             open
-            + ", ".join(obj._format(not self._highlight_subitems, config) for obj in objs)
+            + str.join(", ", (obj._format(not self._highlight_subitems, config) for obj in objs))
             + ("," if self._extra_trailing_comma else "")
             + close
         )
@@ -513,9 +516,12 @@ class SequenceFormat(BaseFormat, abc.ABC):
         return (
             f"{open}\n"
             + textwrap.indent(
-                "\n".join(
-                    f"{obj._format(not self._highlight_subitems, config.use_only(1))},"
-                    for obj in objs
+                str.join(
+                    "\n",
+                    (
+                        f"{obj._format(not self._highlight_subitems, config.use_only(1))},"
+                        for obj in objs
+                    ),
                 ),
                 prefix=config.get_indent(),
             )
@@ -642,7 +648,7 @@ class EllipsisFormat(ItemFormat):
 
 class SequenceCallable(Protocol):
     def __call__(
-        self, sub_objs: None | list[BaseFormat], display_type: type | None, **kwargs: Any
+        self, sub_objs: list[BaseFormat] | None, display_type: type | None, **kwargs: Any
     ) -> BaseFormat: ...
 
 
@@ -720,7 +726,7 @@ class SequenceMaker(Generic[SequenceMakerT]):
             for sub_obj in sub_objs
         ]
 
-    def use_type(self, obj: SequenceMakerT) -> None | type:
+    def use_type(self, obj: SequenceMakerT) -> type | None:
         obj_type = type(obj)
         if not self._include_name and obj_type is self.base_cls:
             return None
@@ -810,7 +816,7 @@ class CounterMaker(OrderedDictMaker[Counter]):
 class DefaultDictMaker(DictMaker[defaultdict]):
     def sequence_init(self, obj: defaultdict) -> SequenceInit:
         def construct_default_dict(
-            sub_objs: None | list[BaseFormat], display_type: type | None, **kwargs: Any
+            sub_objs: list[BaseFormat] | None, display_type: type | None, **kwargs: Any
         ) -> BaseFormat:
             assert display_type is not None
             return NamedObjectFormat(
@@ -943,7 +949,7 @@ BaseFormat.KNOWN_EXTRA_CLASSES = (Counter, frozendict, BidictBase, UserList, Use
 @dataclass(repr=False, kw_only=True, frozen=True)
 class FormatterConfig:
     indent_width: int
-    width_pair: None | tuple[int, int]
+    width_pair: tuple[int, int] | None
     style: str | None
 
     def __post_init__(self) -> None:

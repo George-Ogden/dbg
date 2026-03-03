@@ -33,11 +33,12 @@ from .format import ANSI_PATTERN, pprint, strip_ansi
 
 class MultilineObject:
     def __init__(self, lengths: list[int]) -> None:
-        self._string = "\n".join(
+        self._string = str.join(
+            "\n",
             [
                 chr(i) * length
                 for i, length in zip(range(ord("A"), ord("A") + len(lengths)), lengths, strict=True)
-            ]
+            ],
         )
 
     def __repr__(self) -> str:
@@ -47,7 +48,8 @@ class MultilineObject:
 class ColoredMultilineObject:
     def __init__(self, lengths: list[int]) -> None:
         reset_character: Final[str] = "\033[39m"
-        self._string = "\n".join(
+        self._string = str.join(
+            "\n",
             [
                 f"{color}{chr(i) * length}{reset_character}"
                 for i, length, color in zip(
@@ -56,7 +58,7 @@ class ColoredMultilineObject:
                     [Fore.RED, Fore.BLUE, Fore.GREEN],
                     strict=False,
                 )
-            ]
+            ],
         )
 
     def __repr__(self) -> str:
@@ -2480,14 +2482,18 @@ def test_pprint_write_to_custom_file() -> None:
         ({}, None),
         (
             dict(color=True, style=None),
-            r"^`color` was set to True, but `style` was set to None\. "
-            r"The output will not be colored\.$",
+            (
+                r"^`color` was set to True, but `style` was set to None\. "
+                r"The output will not be colored\.$"
+            ),
         ),
         (dict(color=False, style=None), None),
         (
             dict(color=False, style="monokai"),
-            r"`color` was set to False, but `style` was set to 'monokai'\. "
-            r"The output will not be colored\.$",
+            (
+                r"`color` was set to False, but `style` was set to 'monokai'\. "
+                r"The output will not be colored\.$"
+            ),
         ),
         (dict(color=True, style="monokai"), None),
         (dict(color=False, style="config"), None),
@@ -2495,7 +2501,7 @@ def test_pprint_write_to_custom_file() -> None:
     ],
 )
 @pytest.mark.filterwarnings("error")
-def test_pprint_argument_validation(kwargs: dict[str, Any], warning: None | str) -> None:
+def test_pprint_argument_validation(kwargs: dict[str, Any], warning: str | None) -> None:
     if warning is None:
         pprint((), **kwargs)
     else:
