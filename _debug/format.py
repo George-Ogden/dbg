@@ -990,6 +990,14 @@ def pprint(
             If `None` is used, the output will not be colored.
             Defaults to `"config"`.
 
+        conversion (Literal["auto", "str", "repr"], optional):
+            How the object should displayed.
+            If `"auto"` is used, the conversion is set to `"str"` for string instances (not subclasses) and `"repr"` otherwise.
+            `"repr"` enables full pretty printing whenever the object is recognized and the `__repr__` method is not defined.
+            `"str"` attempts to call the `__str__` method on the object, but otherwise uses `"repr"` for sub-objects.
+            For example, using either conversion on a `tuple` would make no difference, as the elements will be formatted using the `"repr"` conversion.
+            Defaults to `"auto"`.
+
         color (bool | Literal["auto"] | Literal["config"], optional):
             Whether to use color when displaying the output.
             If `"config"` is used, highlighting is determined from the local `dbg.conf` files.
@@ -1081,6 +1089,14 @@ def pformat(
             See https://pygments.org/styles/ for the full list of styles.
             If `None` is used, the output will not be colored.
             Defaults to `None`.
+
+        conversion (Literal["auto", "str", "repr"], optional):
+            How the object should displayed.
+            If `"auto"` is used, the conversion is set to `"str"` for string instances (not subclasses) and `"repr"` otherwise.
+            `"repr"` enables full pretty printing whenever the object is recognized and the `__repr__` method is not defined.
+            `"str"` attempts to call the `__str__` method on the object, but otherwise uses `"repr"` for sub-objects.
+            For example, using either conversion on a `tuple` would make no difference, as the elements will be formatted using the `"repr"` conversion.
+            Defaults to `"auto"`.
 
         indent (int, optional):
             The number of spaces to use for indents when printing nested objects.
