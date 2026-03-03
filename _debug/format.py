@@ -158,7 +158,8 @@ class BaseFormat(abc.ABC):
             isinstance(obj, tuple)
             and hasattr(obj, "_asdict")
             and hasattr(obj, "_fields")
-            and obj.__repr__.__module__ == "collections"
+            and type(getattr(obj, config.conversion_dunder_name)) is not MethodWrapperType
+            and getattr(obj, config.conversion_dunder_name).__module__ == "collections"
         ):
             return cls._from_named_tuple(cast(NamedTuple, obj), visited, config=config.with_repr())
 

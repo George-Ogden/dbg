@@ -236,6 +236,16 @@ else:
     )
 
 
+class NamedTupleCustomRepr(NamedTuple):
+    def __repr__(self) -> str:
+        return "NamedTupleCustomRepr!"
+
+
+class NamedTupleCustomStr(NamedTuple):
+    def __str__(self) -> str:
+        return "NamedTupleCustomStr!"
+
+
 class RecursiveNamedTuple(NamedTuple):
     attr: list[Any]
 
@@ -1218,12 +1228,12 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             f"<_debug.format_test.AttrsDataclassNoRepr object at {id(AttrsDataclassNoRepr.instance):0>#12x}>",
         ),
-        (DataclassCustomStr(), None, "DataclassCustomStr()"),
-        (AttrsDataclassCustomStr(), None, "AttrsDataclassCustomStr()"),
-        (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
-        (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
-        (DataclassCustomStrOnly(), None, "DataclassCustomStrOnly()"),
-        (AttrsDataclassCustomStrOnly(), None, "AttrsDataclassCustomStrOnly()"),
+        (DataclassCustomStr(), None, repr(DataclassCustomStr())),
+        (AttrsDataclassCustomStr(), None, repr(AttrsDataclassCustomStr())),
+        (DataclassCustomRepr(), None, repr(DataclassCustomRepr())),
+        (AttrsDataclassCustomRepr(), None, repr(AttrsDataclassCustomRepr())),
+        (DataclassCustomStrOnly(), None, repr(DataclassCustomStrOnly())),
+        (AttrsDataclassCustomStrOnly(), None, repr(AttrsDataclassCustomStrOnly())),
         (frozenset(), None, "frozenset()"),
         (frozenset([10]), None, "frozenset({10})"),
         (
@@ -2166,6 +2176,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             """,
         ),
         (recursive_named_tuple, None, "RecursiveNamedTuple(attr=[RecursiveNamedTuple(...)])"),
+        (NamedTupleCustomRepr(), None, repr(NamedTupleCustomRepr())),
+        (NamedTupleCustomStr(), None, repr(NamedTupleCustomStr())),
         (
             custom_repr_cls(
                 "NamedTupleSubclassCustomRepr", namedtuple("namedtuple", ["field"]), "1"
@@ -2216,12 +2228,14 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         # named tuple
         (namedtuple("String", ["s"])("string"), None, "String(s='string')"),
         # custom repr and str
-        (DataclassCustomStr(), None, "DataclassCustomStr!"),
-        (AttrsDataclassCustomStr(), None, "AttrsDataclassCustomStr!"),
-        (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
-        (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
-        (DataclassCustomStrOnly(), None, "DataclassCustomStr!"),
-        (AttrsDataclassCustomStrOnly(), None, "AttrsDataclassCustomStr!"),
+        (DataclassCustomStr(), None, str(DataclassCustomStr())),
+        (AttrsDataclassCustomStr(), None, str(AttrsDataclassCustomStr())),
+        (DataclassCustomRepr(), None, str(DataclassCustomRepr())),
+        (AttrsDataclassCustomRepr(), None, str(AttrsDataclassCustomRepr())),
+        (DataclassCustomStrOnly(), None, str(DataclassCustomStrOnly())),
+        (AttrsDataclassCustomStrOnly(), None, str(AttrsDataclassCustomStrOnly())),
+        (NamedTupleCustomRepr(), None, str(NamedTupleCustomRepr())),
+        (NamedTupleCustomStr(), None, str(NamedTupleCustomStr())),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
