@@ -2149,10 +2149,30 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
         (namedtuple("Empty", [])(), 0, "Empty()"),
     ],
 )
-def test_format(obj: Any, width: int | None, expected: list | str) -> None:
-    string = pformat(obj, style="monokai", width=width, indent=4)
+def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style="monokai", width=width, indent=4, conversion="repr")
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
+    if not isinstance(expected, list):
+        expected = [expected]
+    expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        # string literal
+        ("abc", None, "abc"),
+        ("", None, ""),
+    ],
+)
+def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style=None, width=width, indent=4, conversion="str")
     if not isinstance(expected, list):
         expected = [expected]
     expected = [textwrap.dedent(output).strip() for output in expected]
