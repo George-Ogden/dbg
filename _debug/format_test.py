@@ -2578,7 +2578,7 @@ def test_format_offset(
 )
 def test_format_with_prefix(prefix: str, obj: Any, width: int, expected: str) -> None:
     expected = textwrap.dedent(expected).strip().replace("[ENTER]", "⏎")
-    assert pformat(obj, width=width, prefix=prefix, style=None) == expected
+    assert pformat(obj, width=width, prefix=prefix, style=None, conversion="repr") == expected
 
 
 def test_format_with_invalid_style() -> None:
@@ -2591,7 +2591,7 @@ def test_format_with_invalid_style() -> None:
 def test_pprint_default_file_is_stdout(capsys: pytest.CaptureFixture) -> None:
     pprint("test", color=False, style=None)
     out, err = capsys.readouterr()
-    assert out == "'test'\n"
+    assert out == "test\n"
     assert err == ""
 
 
@@ -2608,7 +2608,7 @@ def test_pprint_write_to_custom_file() -> None:
         with mock.patch("_debug.format.pformat", mock_pformat):
             pprint("test", color="auto", width="auto", file=file)
 
-        assert file.getvalue() == "'test'\n"
+        assert file.getvalue() == "test\n"
 
     assert saved_kwargs is not None
     assert saved_kwargs["style"] is None

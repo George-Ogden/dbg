@@ -259,6 +259,18 @@ def set_wide_indent() -> None:
             "[chdir.py:8:7] os.path.relpath(__file__) = 'test_samples/chdir.py'",
         ),
         ("install_uninstall", "success", """[install_uninstall.py:7:7] "success" = 'success'"""),
+        (
+            "conversion",
+            """
+            raw
+            ['quotes']
+            raw
+            ['quotes']
+            'quotes'
+            ['quotes']
+            """,
+            "",
+        ),
     ],
 )
 def test_samples(
