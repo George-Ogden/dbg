@@ -175,7 +175,7 @@ class BaseFormat(abc.ABC):
 
         for sequence_maker in cls.SEQUENCE_MAKERS:
             if isinstance(obj, sequence_maker.base_cls):
-                return sequence_maker.formatter(obj, visited=visited, config=config)
+                return sequence_maker.formatter(obj, visited=visited, config=config.with_repr())
 
         if isinstance(obj, np.ndarray):
             return cls._from_np_array(obj, visited, config=config)
@@ -274,21 +274,17 @@ class BaseFormat(abc.ABC):
         if type(obj) is np.ndarray:
             obj_cls = array
         if id(obj) in visited:
-            return NamedObjectFormat(
-                obj_cls,
-                [
-                    EllipsisFormat(),
-                    AttrFormat("dtype", cls._from(dtype.name, visited, config=config)),
-                ],
-            )
+            items: list[BaseFormat] = [EllipsisFormat()]
+            if config.repr:
+                items.append(AttrFormat("dtype", cls._from(dtype.name, visited, config=config)))
+            return NamedObjectFormat(obj_cls, items)
         visited.add(id(obj))
-        np_array_format = NamedObjectFormat(
-            obj_cls,
-            [
-                cls._from(data, visited, config=config),
-                AttrFormat("dtype", cls._from(dtype.name, visited, config=config)),
-            ],
-        )
+        items = [cls._from(data, visited, config=config)]
+        if config.repr:
+            items.append(
+                AttrFormat("dtype", cls._from(dtype.name, visited, config=config.with_repr()))
+            )
+        np_array_format = NamedObjectFormat(obj_cls, items)
         visited.remove(id(obj))
         return np_array_format
 
@@ -628,11 +624,9 @@ class SequenceMaker(Generic[SequenceMakerT]):
             visited.add(id(obj))
             sub_objs = self.format_sub_objs(obj, visited, config=config)
             visited.remove(id(obj))
-        return self.sequence_init(obj, conversion=config.conversion)(
-            sub_objs, display_type, **kwargs
-        )
+        return self.sequence_init(obj)(sub_objs, display_type, **kwargs)
 
-    def sequence_init(self, obj: SequenceMakerT, conversion: Conversion) -> SequenceInit:
+    def sequence_init(self, obj: SequenceMakerT) -> SequenceInit:
         return self._sequence_cls
 
     def format_empty(self, display_type: type | None) -> BaseFormat | None:
@@ -729,7 +723,7 @@ class CounterMaker(OrderedDictMaker[Counter]):
 
 
 class DefaultDictMaker(DictMaker[defaultdict]):
-    def sequence_init(self, obj: defaultdict, conversion: Conversion) -> SequenceInit:
+    def sequence_init(self, obj: defaultdict) -> SequenceInit:
         def construct_default_dict(
             sub_objs: list[BaseFormat] | None, display_type: type | None, **kwargs: Any
         ) -> BaseFormat:
@@ -737,7 +731,7 @@ class DefaultDictMaker(DictMaker[defaultdict]):
             return NamedObjectFormat(
                 display_type,
                 [
-                    ItemFormat(obj.default_factory, conversion=conversion),
+                    ItemFormat(obj.default_factory, conversion="repr"),
                     self._sequence_cls(sub_objs, None),
                 ],
                 **kwargs,
@@ -923,6 +917,17 @@ class FormatterConfig:
 class ConversionConfig:
     sort_unordered_collections: bool
     conversion: Conversion
+
+    @property
+    def repr(self) -> bool:
+        return self.conversion == "repr"
+
+    @property
+    def str(self) -> bool:
+        return self.conversion == "str"
+
+    def with_repr(self) -> Self:
+        return dataclasses.replace(self, conversion="repr")
 
 
 def pprint(

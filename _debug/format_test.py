@@ -2169,6 +2169,13 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         # string literal
         ("abc", None, "abc"),
         ("", None, ""),
+        # collections
+        (["abc", "def"], None, "['abc', 'def']"),
+        (set("ab"), None, ["{'a', 'b'}", "{'b', 'a'}"]),
+        (defaultdict(list, dict(a=["b"])), None, "defaultdict(<class 'list'>, {'a': ['b']})"),
+        # numpy array
+        (np.array([1, 2, 3]), None, "array([1, 2, 3])"),
+        (np.array(["a", "b", "c"]), None, "array(['a', 'b', 'c'])"),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
