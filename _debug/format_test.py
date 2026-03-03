@@ -158,9 +158,33 @@ AttrsDataclassNoRepr.instance = AttrsDataclassNoRepr()
 
 
 @dataclass
+class DataclassCustomStr:
+    def __str__(self) -> str:
+        return "DataclassCustomStr!"
+
+
+@dataclass(repr=True)
+class DataclassCustomStrOnly:
+    def __str__(self) -> str:
+        return "DataclassCustomStr!"
+
+
+@dataclass
 class DataclassCustomRepr:
     def __repr__(self) -> str:
         return "DataclassCustomRepr!"
+
+
+@attrs.define
+class AttrsDataclassCustomStr:
+    def __str__(self) -> str:
+        return "AttrsDataclassCustomStr!"
+
+
+@attrs.define(repr=True)
+class AttrsDataclassCustomStrOnly:
+    def __str__(self) -> str:
+        return "AttrsDataclassCustomStr!"
 
 
 @attrs.define
@@ -1194,8 +1218,12 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             f"<_debug.format_test.AttrsDataclassNoRepr object at {id(AttrsDataclassNoRepr.instance):0>#12x}>",
         ),
+        (DataclassCustomStr(), None, "DataclassCustomStr()"),
+        (AttrsDataclassCustomStr(), None, "AttrsDataclassCustomStr()"),
         (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
         (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
+        (DataclassCustomStrOnly(), None, "DataclassCustomStrOnly()"),
+        (AttrsDataclassCustomStrOnly(), None, "AttrsDataclassCustomStrOnly()"),
         (frozenset(), None, "frozenset()"),
         (frozenset([10]), None, "frozenset({10})"),
         (
@@ -2187,6 +2215,13 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         (AttrDataclassOneField("abc"), None, "AttrDataclassOneField(single_field='abc')"),
         # named tuple
         (namedtuple("String", ["s"])("string"), None, "String(s='string')"),
+        # custom repr and str
+        (DataclassCustomStr(), None, "DataclassCustomStr!"),
+        (AttrsDataclassCustomStr(), None, "AttrsDataclassCustomStr!"),
+        (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
+        (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
+        (DataclassCustomStrOnly(), None, "DataclassCustomStr!"),
+        (AttrsDataclassCustomStrOnly(), None, "AttrsDataclassCustomStr!"),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
