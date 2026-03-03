@@ -2176,6 +2176,12 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         # numpy array
         (np.array([1, 2, 3]), None, "array([1, 2, 3])"),
         (np.array(["a", "b", "c"]), None, "array(['a', 'b', 'c'])"),
+        # array
+        (array("u", ["b", "u"]), None, "array('u', 'bu')"),
+        # AST
+        (ast.Constant("a"), None, "Constant(value='a')"),
+        # chain map
+        (ChainMap(dict(a=["b", "c"])), None, "ChainMap({'a': ['b', 'c']})"),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:

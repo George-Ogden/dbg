@@ -181,13 +181,13 @@ class BaseFormat(abc.ABC):
             return cls._from_np_array(obj, visited, config=config)
 
         if isinstance(obj, array):
-            return cls._from_array(obj, visited, config=config)
+            return cls._from_array(obj, visited, config=config.with_repr())
 
         if isinstance(obj, ast.AST):
-            return cls._from_ast(obj, visited, config=config)
+            return cls._from_ast(obj, visited, config=config.with_repr())
 
         if isinstance(obj, ChainMap):
-            return cls._from_chainmap(obj, visited, config=config)
+            return cls._from_chainmap(obj, visited, config=config.with_repr())
 
         return ItemFormat(obj, conversion=config.conversion)
 
