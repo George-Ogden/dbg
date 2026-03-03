@@ -2236,6 +2236,20 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         (AttrsDataclassCustomStrOnly(), None, str(AttrsDataclassCustomStrOnly())),
         (NamedTupleCustomRepr(), None, str(NamedTupleCustomRepr())),
         (NamedTupleCustomStr(), None, str(NamedTupleCustomStr())),
+        # correct line wrap
+        (["a", "b", "c"], None, "['a', 'b', 'c']"),
+        (["a", "b", "c"], 15, "['a', 'b', 'c']"),
+        (
+            ["a", "b", "c"],
+            14,
+            """
+            [
+                'a',
+                'b',
+                'c',
+            ]
+            """,
+        ),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
