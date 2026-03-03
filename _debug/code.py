@@ -74,7 +74,7 @@ def format_code(code: str) -> str:
     lines = (line for line in code.splitlines() if line)
     toks = tokenize.generate_tokens(functools.partial(next, iter(lines)))
     displayed_toks = [tok for tok in toks if not is_comment(tok) and tok.string]
-    code = "".join(tokens_to_string_parts(displayed_toks))
+    code = str.join("", tokens_to_string_parts(displayed_toks))
     black_formatted_code = black.format_str(
         f"({code})", mode=black.FileMode(string_normalization=False, line_length=len(code) * 2 + 2)
     ).strip()
@@ -92,7 +92,7 @@ def display_code(code: str, style: str | None) -> str:
     return code
 
 
-def get_source_segments(source: str) -> None | Iterable[str]:
+def get_source_segments(source: str) -> Iterable[str] | None:
     tree = cst.parse_expression(source)
     module = cst.Module([])
     if not isinstance(tree, cst.Call):
@@ -103,7 +103,7 @@ def get_source_segments(source: str) -> None | Iterable[str]:
     return args
 
 
-def get_source(frame: types.FrameType) -> None | str:
+def get_source(frame: types.FrameType) -> str | None:
     try:
         lines, offset = inspect.getsourcelines(frame)
     except OSError:
@@ -135,7 +135,7 @@ def get_source(frame: types.FrameType) -> None | str:
 
 def add_symbol_to_source_segments(
     segments: list[str], num_codes: int
-) -> None | list[tuple[str, str]]:
+) -> list[tuple[str, str]] | None:
     low_correct_index = -1
     for i, segment in enumerate(segments):
         if segment.startswith("*"):
@@ -149,7 +149,9 @@ def add_symbol_to_source_segments(
         if segment.startswith("*"):
             break
         high_correct_index = i
-    unmapped_code = ", ".join(segments[low_correct_index + 1 : len(segments) - high_correct_index])
+    unmapped_code = str.join(
+        ", ", segments[low_correct_index + 1 : len(segments) - high_correct_index]
+    )
     return [
         (segments[i], "=")
         if i <= low_correct_index
@@ -163,7 +165,7 @@ def add_symbol_to_source_segments(
 
 
 def display_codes(
-    frame: None | types.FrameType, *, num_codes: int, style: str | None
+    frame: types.FrameType | None, *, num_codes: int, style: str | None
 ) -> list[tuple[str, str]]:
     """Return code and symbols used to represent it."""
     unknown_codes = [(display_code(UNKNOWN_MESSAGE, style), "=")] * num_codes

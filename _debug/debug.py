@@ -47,6 +47,7 @@ def dbg(*values: object) -> object:
                         indent="config",
                         width="auto",
                         file="upper",  # type: ignore[arg-type]
+                        conversion="repr",
                     )
     finally:
         del frame

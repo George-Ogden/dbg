@@ -33,11 +33,12 @@ from .format import ANSI_PATTERN, pprint, strip_ansi
 
 class MultilineObject:
     def __init__(self, lengths: list[int]) -> None:
-        self._string = "\n".join(
+        self._string = str.join(
+            "\n",
             [
                 chr(i) * length
                 for i, length in zip(range(ord("A"), ord("A") + len(lengths)), lengths, strict=True)
-            ]
+            ],
         )
 
     def __repr__(self) -> str:
@@ -47,7 +48,8 @@ class MultilineObject:
 class ColoredMultilineObject:
     def __init__(self, lengths: list[int]) -> None:
         reset_character: Final[str] = "\033[39m"
-        self._string = "\n".join(
+        self._string = str.join(
+            "\n",
             [
                 f"{color}{chr(i) * length}{reset_character}"
                 for i, length, color in zip(
@@ -56,7 +58,7 @@ class ColoredMultilineObject:
                     [Fore.RED, Fore.BLUE, Fore.GREEN],
                     strict=False,
                 )
-            ]
+            ],
         )
 
     def __repr__(self) -> str:
@@ -100,6 +102,16 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
         return f"{name}!"
 
     return type(name, bases, dict(__repr__=__repr__))(*args)
+
+
+def custom_str_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
+    if not isinstance(bases, tuple):
+        bases = (bases,)
+
+    def __str__(self: Any) -> str:  # noqa: N807
+        return f"{name}!"
+
+    return type(name, bases, dict(__str__=__str__))(*args)
 
 
 @dataclass
@@ -156,9 +168,33 @@ AttrsDataclassNoRepr.instance = AttrsDataclassNoRepr()
 
 
 @dataclass
+class DataclassCustomStr:
+    def __str__(self) -> str:
+        return "DataclassCustomStr!"
+
+
+@dataclass(repr=True)
+class DataclassCustomStrOnly:
+    def __str__(self) -> str:
+        return "DataclassCustomStr!"
+
+
+@dataclass
 class DataclassCustomRepr:
     def __repr__(self) -> str:
         return "DataclassCustomRepr!"
+
+
+@attrs.define
+class AttrsDataclassCustomStr:
+    def __str__(self) -> str:
+        return "AttrsDataclassCustomStr!"
+
+
+@attrs.define(repr=True)
+class AttrsDataclassCustomStrOnly:
+    def __str__(self) -> str:
+        return "AttrsDataclassCustomStr!"
 
 
 @attrs.define
@@ -208,6 +244,16 @@ else:
             ctx=None,  # type: ignore
         )
     )
+
+
+class NamedTupleCustomRepr(NamedTuple):
+    def __repr__(self) -> str:
+        return "NamedTupleCustomRepr!"
+
+
+class NamedTupleCustomStr(NamedTuple):
+    def __str__(self) -> str:
+        return "NamedTupleCustomStr!"
 
 
 class RecursiveNamedTuple(NamedTuple):
@@ -998,6 +1044,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ])
             """,
         ),
+        (custom_str_cls("SetSubclassCustomStr", set), None, "SetSubclassCustomStr()"),
         (custom_repr_cls("SetSubclassCustomRepr", set), None, "SetSubclassCustomRepr!"),
         (custom_repr_cls("SetSubclassCustomRepr", set, [10, 20]), None, "SetSubclassCustomRepr!"),
         (custom_repr_cls("ListSubclassCustomRepr", list), None, "ListSubclassCustomRepr!"),
@@ -1007,6 +1054,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "DefaultDictSubclassCustomRepr!",
         ),
+        (custom_str_cls("CounterSubclassCustomStr", Counter), None, "CounterSubclassCustomStr()"),
         (custom_repr_cls("CounterSubclassCustomRepr", Counter), None, "CounterSubclassCustomRepr!"),
         (
             custom_repr_cls("FrozenSetSubclassCustomRepr", frozenset),
@@ -1192,8 +1240,12 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             f"<_debug.format_test.AttrsDataclassNoRepr object at {id(AttrsDataclassNoRepr.instance):0>#12x}>",
         ),
-        (DataclassCustomRepr(), None, "DataclassCustomRepr!"),
-        (AttrsDataclassCustomRepr(), None, "AttrsDataclassCustomRepr!"),
+        (DataclassCustomStr(), None, repr(DataclassCustomStr())),
+        (AttrsDataclassCustomStr(), None, repr(AttrsDataclassCustomStr())),
+        (DataclassCustomRepr(), None, repr(DataclassCustomRepr())),
+        (AttrsDataclassCustomRepr(), None, repr(AttrsDataclassCustomRepr())),
+        (DataclassCustomStrOnly(), None, repr(DataclassCustomStrOnly())),
+        (AttrsDataclassCustomStrOnly(), None, repr(AttrsDataclassCustomStrOnly())),
         (frozenset(), None, "frozenset()"),
         (frozenset([10]), None, "frozenset({10})"),
         (
@@ -2136,6 +2188,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             """,
         ),
         (recursive_named_tuple, None, "RecursiveNamedTuple(attr=[RecursiveNamedTuple(...)])"),
+        (NamedTupleCustomRepr(), None, repr(NamedTupleCustomRepr())),
+        (NamedTupleCustomStr(), None, repr(NamedTupleCustomStr())),
         (
             custom_repr_cls(
                 "NamedTupleSubclassCustomRepr", namedtuple("namedtuple", ["field"]), "1"
@@ -2147,8 +2201,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
         (namedtuple("Empty", [])(), 0, "Empty()"),
     ],
 )
-def test_format(obj: Any, width: int | None, expected: list | str) -> None:
-    string = pformat(obj, style="monokai", width=width, indent=4)
+def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style="monokai", width=width, indent=4, conversion="repr")
     if not isinstance(expected, str) or not ANSI_PATTERN.search(expected):
         string = strip_ansi(string)
     if not isinstance(expected, list):
@@ -2159,6 +2213,93 @@ def test_format(obj: Any, width: int | None, expected: list | str) -> None:
         assert string == expected
     else:
         assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, width, expected",
+    [
+        # string literal
+        ("abc", None, "abc"),
+        ("", None, ""),
+        # collections
+        (["abc", "def"], None, "['abc', 'def']"),
+        (set("ab"), None, ["{'a', 'b'}", "{'b', 'a'}"]),
+        (defaultdict(list, dict(a=["b"])), None, "defaultdict(<class 'list'>, {'a': ['b']})"),
+        # numpy array
+        (np.array([1, 2, 3]), None, "array([1, 2, 3])"),
+        (np.array(["a", "b", "c"]), None, "array(['a', 'b', 'c'])"),
+        # array
+        (array("u", ["b", "u"]), None, "array('u', 'bu')"),
+        # AST
+        (ast.Constant("a"), None, "Constant(value='a')"),
+        # chain map
+        (ChainMap(dict(a=["b", "c"])), None, "ChainMap({'a': ['b', 'c']})"),
+        # dataclasses
+        (DataclassOneField("abc"), None, "DataclassOneField(single_field='abc')"),
+        (AttrDataclassOneField("abc"), None, "AttrDataclassOneField(single_field='abc')"),
+        # named tuple
+        (namedtuple("String", ["s"])("string"), None, "String(s='string')"),
+        # custom repr and str
+        (DataclassCustomStr(), None, str(DataclassCustomStr())),
+        (AttrsDataclassCustomStr(), None, str(AttrsDataclassCustomStr())),
+        (DataclassCustomRepr(), None, str(DataclassCustomRepr())),
+        (AttrsDataclassCustomRepr(), None, str(AttrsDataclassCustomRepr())),
+        (DataclassCustomStrOnly(), None, str(DataclassCustomStrOnly())),
+        (AttrsDataclassCustomStrOnly(), None, str(AttrsDataclassCustomStrOnly())),
+        (NamedTupleCustomRepr(), None, str(NamedTupleCustomRepr())),
+        (NamedTupleCustomStr(), None, str(NamedTupleCustomStr())),
+        # correct line wrap
+        (["a", "b", "c"], None, "['a', 'b', 'c']"),
+        (["a", "b", "c"], 15, "['a', 'b', 'c']"),
+        (
+            ["a", "b", "c"],
+            14,
+            """
+            [
+                'a',
+                'b',
+                'c',
+            ]
+            """,
+        ),
+        # custom wrapped classes
+        (custom_str_cls("Tuple", tuple), None, "Tuple!"),
+        (custom_str_cls("List", list), None, "List!"),
+        (custom_repr_cls("Int", int), None, "Int!"),
+        (custom_repr_cls("Set", set), None, "Set!"),
+        (custom_repr_cls("Counter", Counter), None, "Counter!"),
+        (custom_str_cls("Counter", Counter), None, "Counter!"),
+    ],
+)
+def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
+    string = pformat(obj, style=None, width=width, indent=4, conversion="str")
+    if not isinstance(expected, list):
+        expected = [expected]
+    expected = [textwrap.dedent(output).strip() for output in expected]
+    if len(expected) == 1:
+        [expected] = expected
+        assert string == expected
+    else:
+        assert string in expected
+
+
+@pytest.mark.parametrize(
+    "obj, expected",
+    [
+        # strings
+        ("abc", "abc"),
+        ("", ""),
+        # not a true string
+        (custom_repr_cls("String", str), "String!"),
+        (["a", "b"], "['a', 'b']"),
+        # other class
+        (np.array([1]), "array([1], dtype='int64')"),
+    ],
+)
+def test_auto_format(obj: Any, expected: str) -> None:
+    string = pformat(obj, style=None, width=None, indent=4, conversion="auto")
+    expected = textwrap.dedent(expected).strip()
+    assert string == expected
 
 
 @pytest.mark.parametrize(
@@ -2437,7 +2578,7 @@ def test_format_offset(
 )
 def test_format_with_prefix(prefix: str, obj: Any, width: int, expected: str) -> None:
     expected = textwrap.dedent(expected).strip().replace("[ENTER]", "⏎")
-    assert pformat(obj, width=width, prefix=prefix, style=None) == expected
+    assert pformat(obj, width=width, prefix=prefix, style=None, conversion="repr") == expected
 
 
 def test_format_with_invalid_style() -> None:
@@ -2450,7 +2591,7 @@ def test_format_with_invalid_style() -> None:
 def test_pprint_default_file_is_stdout(capsys: pytest.CaptureFixture) -> None:
     pprint("test", color=False, style=None)
     out, err = capsys.readouterr()
-    assert out == "'test'\n"
+    assert out == "test\n"
     assert err == ""
 
 
@@ -2467,7 +2608,7 @@ def test_pprint_write_to_custom_file() -> None:
         with mock.patch("_debug.format.pformat", mock_pformat):
             pprint("test", color="auto", width="auto", file=file)
 
-        assert file.getvalue() == "'test'\n"
+        assert file.getvalue() == "test\n"
 
     assert saved_kwargs is not None
     assert saved_kwargs["style"] is None
@@ -2480,14 +2621,18 @@ def test_pprint_write_to_custom_file() -> None:
         ({}, None),
         (
             dict(color=True, style=None),
-            r"^`color` was set to True, but `style` was set to None\. "
-            r"The output will not be colored\.$",
+            (
+                r"^`color` was set to True, but `style` was set to None\. "
+                r"The output will not be colored\.$"
+            ),
         ),
         (dict(color=False, style=None), None),
         (
             dict(color=False, style="monokai"),
-            r"`color` was set to False, but `style` was set to 'monokai'\. "
-            r"The output will not be colored\.$",
+            (
+                r"`color` was set to False, but `style` was set to 'monokai'\. "
+                r"The output will not be colored\.$"
+            ),
         ),
         (dict(color=True, style="monokai"), None),
         (dict(color=False, style="config"), None),
@@ -2495,7 +2640,7 @@ def test_pprint_write_to_custom_file() -> None:
     ],
 )
 @pytest.mark.filterwarnings("error")
-def test_pprint_argument_validation(kwargs: dict[str, Any], warning: None | str) -> None:
+def test_pprint_argument_validation(kwargs: dict[str, Any], warning: str | None) -> None:
     if warning is None:
         pprint((), **kwargs)
     else:
