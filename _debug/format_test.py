@@ -104,6 +104,16 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     return type(name, bases, dict(__repr__=__repr__))(*args)
 
 
+def custom_str_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
+    if not isinstance(bases, tuple):
+        bases = (bases,)
+
+    def __str__(self: Any) -> str:  # noqa: N807
+        return f"{name}!"
+
+    return type(name, bases, dict(__str__=__str__))(*args)
+
+
 @dataclass
 class DataclassNoField: ...
 
@@ -1034,6 +1044,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             ])
             """,
         ),
+        (custom_str_cls("SetSubclassCustomStr", set), None, "SetSubclassCustomStr()"),
         (custom_repr_cls("SetSubclassCustomRepr", set), None, "SetSubclassCustomRepr!"),
         (custom_repr_cls("SetSubclassCustomRepr", set, [10, 20]), None, "SetSubclassCustomRepr!"),
         (custom_repr_cls("ListSubclassCustomRepr", list), None, "ListSubclassCustomRepr!"),
@@ -1043,6 +1054,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             None,
             "DefaultDictSubclassCustomRepr!",
         ),
+        (custom_str_cls("CounterSubclassCustomStr", Counter), None, "CounterSubclassCustomStr()"),
         (custom_repr_cls("CounterSubclassCustomRepr", Counter), None, "CounterSubclassCustomRepr!"),
         (
             custom_repr_cls("FrozenSetSubclassCustomRepr", frozenset),
@@ -2250,6 +2262,13 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
             ]
             """,
         ),
+        # custom wrapped classes
+        (custom_str_cls("Tuple", tuple), None, "Tuple!"),
+        (custom_str_cls("List", list), None, "List!"),
+        (custom_repr_cls("Int", int), None, "Int!"),
+        (custom_repr_cls("Set", set), None, "Set!"),
+        (custom_repr_cls("Counter", Counter), None, "Counter!"),
+        (custom_str_cls("Counter", Counter), None, "Counter!"),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
