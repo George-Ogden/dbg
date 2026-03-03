@@ -148,10 +148,14 @@ class BaseFormat(abc.ABC):
     @classmethod
     def _from(cls, obj: object, visited: Visited, *, config: ConversionConfig) -> BaseFormat:
         if dataclasses.is_dataclass(obj):
-            return cls._from_dataclass(cast("DataclassInstance", obj), visited, config=config)
+            return cls._from_dataclass(
+                cast("DataclassInstance", obj), visited, config=config.with_repr()
+            )
 
         if attrs.has(type(obj)):
-            return cls._from_attrs_dataclass(cast(AttrsInstance, obj), visited, config=config)
+            return cls._from_attrs_dataclass(
+                cast(AttrsInstance, obj), visited, config=config.with_repr()
+            )
 
         # namedtuple check modified from https://stackoverflow.com/a/62692640.
         if (
@@ -160,7 +164,7 @@ class BaseFormat(abc.ABC):
             and hasattr(obj, "_fields")
             and obj.__repr__.__module__ == "collections"
         ):
-            return cls._from_named_tuple(cast(NamedTuple, obj), visited, config=config)
+            return cls._from_named_tuple(cast(NamedTuple, obj), visited, config=config.with_repr())
 
         if (
             isinstance(obj, cls.KNOWN_WRAPPED_CLASSES)

@@ -2182,6 +2182,11 @@ def test_repr_format(obj: Any, width: int | None, expected: list | str) -> None:
         (ast.Constant("a"), None, "Constant(value='a')"),
         # chain map
         (ChainMap(dict(a=["b", "c"])), None, "ChainMap({'a': ['b', 'c']})"),
+        # dataclasses
+        (DataclassOneField("abc"), None, "DataclassOneField(single_field='abc')"),
+        (AttrDataclassOneField("abc"), None, "AttrDataclassOneField(single_field='abc')"),
+        # named tuple
+        (namedtuple("String", ["s"])("string"), None, "String(s='string')"),
     ],
 )
 def test_str_format(obj: Any, width: int | None, expected: list | str) -> None:
