@@ -1,5 +1,5 @@
 default_stages: [pre-commit]
-default_install_hook_types: [pre-commit, commit-msg]
+default_install_hook_types: [pre-commit, prepare-commit-msg, commit-msg]
 
 ci:
   skip:
@@ -8,7 +8,7 @@ ci:
 
 repos:
   - repo: https://github.com/George-Ogden/mirror-rorrim/
-    rev: v0.4.5
+    rev: v0.4.6
     hooks:
       - id: mirror-check
         fail_fast: true
@@ -24,19 +24,19 @@ repos:
       - id: requirements-txt-fixer
 
   - repo: https://github.com/George-Ogden/linter/
-    rev: v2.0.0
+    rev: v2.1.0
     hooks:
       - id: lint
         args: [--fix]
 
-  - repo: https://github.com/koalaman/shellcheck-precommit
+  - repo: https://github.com/koalaman/shellcheck-precommit/
     rev: v0.11.0
     hooks:
       - id: shellcheck
         args: [--severity=warning]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
-    rev: v0.15.0
+    rev: v0.15.4
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -51,12 +51,17 @@ repos:
       - id: prettier
 
   - repo: https://github.com/rhysd/actionlint/
-    rev: v1.7.10
+    rev: v1.7.11
     hooks:
       - id: actionlint
 
+  - repo: https://github.com/codespell-project/codespell/
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+
   - repo: https://github.com/George-Ogden/pre-commit-hooks/
-    rev: v2.2.0
+    rev: v2.4.0
     hooks:
       - id: check-merge-conflict
       - id: todo-check
@@ -68,3 +73,5 @@ repos:
         args: [-r, requirements-dev.txt, --show-traceback]
         exclude: ^test_samples
       - id: spell-check-commit-msgs
+      - id: mirror-auto-msg
+      - id: version-txt-auto-msg

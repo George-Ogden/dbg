@@ -10,6 +10,6 @@ numpy
 prek
 pytest>=9.0.0
 pytest-timeout
-pytest-xdist
+ruff
 types-colorama
 types-pygments
