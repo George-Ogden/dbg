@@ -5,11 +5,13 @@ colorama
 frozendict
 git+https://github.com/George-Ogden/mirror-rorrim; python_version >= "3.12"
 git+https://github.com/George-Ogden/mypy-pytest; python_version >= "3.12"
+inline-snapshot
 mypy==1.19.1
 numpy
 prek
+py-spy
 pytest>=9.0.0
 pytest-timeout
-ruff
+ruff==0.15.8
 types-colorama
 types-pygments

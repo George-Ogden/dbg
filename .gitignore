@@ -6,6 +6,7 @@ out.txt
 stderr.txt
 err.txt
 notes.txt
+refactor.list
 profile*.svg
 TODO
 *.pseudo
@@ -21,6 +22,9 @@ nohup*
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+### PyCharm ###
+.idea/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
