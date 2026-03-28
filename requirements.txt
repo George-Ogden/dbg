@@ -1,5 +1,5 @@
-black>=25.11.0
-libcst>=1.8.4
-platformdirs
-pygments
-wcwidth
+black>=25.11.0,<27
+libcst>=1.8.4,<2
+platformdirs>=4.9.2,<5
+pygments>=2.19.2,<3
+wcwidth>=0.6.0,<0.7

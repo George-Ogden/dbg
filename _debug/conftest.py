@@ -8,6 +8,8 @@ from unittest import mock
 
 import pytest
 
+from _debug import position as position
+
 SAMPLE_DIR = "test_samples"
 TEST_DATA_DIR = "test_data"
 
@@ -22,7 +24,7 @@ def reset_modules() -> None:
 @pytest.fixture
 def test_sample_dir() -> Generator[None]:
     os.chdir(Path.cwd() / SAMPLE_DIR)
-    with mock.patch("_debug.position.cwd", Path.cwd()):  # type: ignore [name-defined]
+    with mock.patch("_debug.position.cwd", Path.cwd()):  # type: ignore[call-overload]
         yield
     os.chdir(Path.cwd() / "..")
 
@@ -32,4 +34,4 @@ def uninstall_from_builtins() -> Generator[None]:
     assert not hasattr(builtins, "dbg")
     yield
     with contextlib.suppress(AttributeError):
-        delattr(builtins, "dbg")
+        del builtins.dbg  # type:ignore[attr-defined]
