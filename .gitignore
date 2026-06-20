@@ -1,17 +1,27 @@
 # Specific Files
-tmp.py
-log.txt
-stdout.txt
-out.txt
-stderr.txt
-err.txt
-notes.txt
-refactor.list
-profile*.svg
-TODO
-*.pseudo
+
+# Common Files
 *.patch
+*.pseudo
+*.snap.new
+.harper-dictionary.txt
+.merge_file*
+TODO
+err.txt
+experiments/
+log.txt
+logs/
 nohup*
+notes.txt
+out.txt
+perf.data*
+plot*.pdf
+profile*.svg
+refactor.list
+scratch*
+stderr.txt
+stdout.txt
+tmp.py
 
 ### VisualStudioCode ###
 .vscode/*
@@ -23,8 +33,8 @@ nohup*
 # Built Visual Studio Code Extensions
 *.vsix
 
-### PyCharm ###
-.idea/
+### Pre-Commit Prettier ###
+node_modules/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -197,6 +207,3 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
-
-### Pre-Commit Prettier ###
-node_modules/

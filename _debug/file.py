@@ -70,7 +70,7 @@ class FileWrapper:
     def back(cls) -> Self:
         return cls._current[-1]
 
-    class lock:  # noqa: N801
+    class lock:
         def __init__(self, file: SupportsWrite[str]) -> None:
             self._file = file
 

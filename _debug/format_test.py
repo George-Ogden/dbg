@@ -98,7 +98,7 @@ def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __repr__(self: Any) -> str:  # noqa: N807
+    def __repr__(self: Any) -> str:
         return f"{name}!"
 
     return type(name, bases, dict(__repr__=__repr__))(*args)
@@ -108,7 +108,7 @@ def custom_str_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __str__(self: Any) -> str:  # noqa: N807
+    def __str__(self: Any) -> str:
         return f"{name}!"
 
     return type(name, bases, dict(__str__=__str__))(*args)

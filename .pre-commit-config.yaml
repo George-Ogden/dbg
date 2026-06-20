@@ -14,14 +14,25 @@ repos:
       - id: mirror-check
         fail_fast: true
 
-  - repo: https://github.com/pre-commit/pre-commit-hooks/
-    rev: v6.0.0
+  - repo: builtin
     hooks:
       - id: no-commit-to-branch
         fail_fast: true
       - id: end-of-file-fixer
+        stages: [pre-commit]
       - id: mixed-line-ending
+        stages: [pre-commit]
       - id: trailing-whitespace
+        stages: [pre-commit]
+      - id: check-added-large-files
+        stages: [pre-commit]
+      - id: check-merge-conflict
+        stages: [pre-commit]
+        args: [--assume-in-merge]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks/
+    rev: v6.0.0
+    hooks:
       - id: requirements-txt-fixer
 
   - repo: https://github.com/George-Ogden/linter/
@@ -37,7 +48,7 @@ repos:
         args: [--severity=warning]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
-    rev: v0.15.8
+    rev: v0.15.18
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -52,7 +63,7 @@ repos:
       - id: prettier
 
   - repo: https://github.com/rhysd/actionlint/
-    rev: v1.7.11
+    rev: v1.7.12
     hooks:
       - id: actionlint
 
@@ -62,9 +73,8 @@ repos:
       - id: codespell
 
   - repo: https://github.com/George-Ogden/pre-commit-hooks/
-    rev: v3.0.2
+    rev: v4.1.1
     hooks:
-      - id: check-merge-conflict
       - id: todo-check
         exclude: (?x)^(
           .pre-commit-config.yaml|
@@ -76,3 +86,4 @@ repos:
       - id: spell-check-commit-msgs
       - id: mirror-auto-msg
       - id: version-txt-auto-msg
+      - id: list-untracked-files

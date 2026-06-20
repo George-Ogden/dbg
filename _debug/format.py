@@ -605,7 +605,7 @@ class SafeSortItem:
             return (str(type(self._obj)), id(self._obj)) < (str(type(other._obj)), id(other._obj))
 
 
-def SafeSortTuple(objs: Sequence[Any], /) -> tuple[SafeSortItem, ...]:  # noqa: N802
+def SafeSortTuple(objs: Sequence[Any], /) -> tuple[SafeSortItem, ...]:
     return tuple(SafeSortItem(obj) for obj in objs)
 
 
@@ -957,7 +957,7 @@ def pprint(
     *,
     file: SupportsWrite[str] | None = None,
     width: int | Literal["auto"] | None = "auto",
-    style: str | Literal["config"] | None = "config",  # noqa: PYI051
+    style: str | Literal["config"] | None = "config",
     conversion: Literal[Conversion, "auto"] = "auto",
     color: Literal["auto", "config"] | bool = "config",
     indent: int | Literal["config"] = "config",
