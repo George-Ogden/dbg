@@ -15,4 +15,4 @@ jobs:
     uses: George-Ogden/actions/.github/workflows/python-release.yaml@v4.7.2
     with:
       validation-code: "from debug import dbg; assert callable(dbg)"
-      python-version: "3.14"
+      python-version: "3.15"
