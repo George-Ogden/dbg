@@ -1,5 +1,6 @@
 from array import array
 import ast
+import builtins
 from collections import (
     ChainMap,
     Counter,
@@ -69,7 +70,7 @@ recursive_list: list[Any] = []
 recursive_list.append(recursive_list)
 
 recursive_tree: list[Any] = []
-recursive_tree.append((recursive_tree, recursive_tree))
+recursive_tree.extend((recursive_tree, recursive_tree))
 
 recursive_dict: dict[Any, Any] = {}
 recursive_dict[dict] = recursive_dict
@@ -1478,6 +1479,26 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
                 ],
             })
             """,
+        ),
+        *(
+            []
+            if sys.version_info < (3, 15)
+            else [
+                (
+                    builtins.frozendict(long=list("long")),  # type: ignore[attr-defined]
+                    32,
+                    """
+            frozendict({
+                'long': [
+                    'l',
+                    'o',
+                    'n',
+                    'g',
+                ],
+            })
+            """,
+                )
+            ]
         ),
         (type("freezedict", (frozendict,), {})(), None, "freezedict({})"),
         (EmptyRepr(), None, ""),

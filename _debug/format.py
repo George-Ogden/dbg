@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 from array import array
 import ast
+import builtins
 from collections import ChainMap, Counter, OrderedDict, UserDict, UserList, defaultdict, deque
 from collections.abc import (
     Callable,
@@ -13,6 +14,7 @@ from collections.abc import (
     Sequence,
     ValuesView,
 )
+import contextlib
 import dataclasses
 from dataclasses import dataclass
 import functools
@@ -851,6 +853,17 @@ BaseFormat.SEQUENCE_MAKERS = [
         show_braces_when_empty=True,
     ),
 ]
+
+with contextlib.suppress(AttributeError):
+    BaseFormat.SEQUENCE_MAKERS.append(
+        DictMaker(
+            include_name=True,
+            base_cls=builtins.frozendict,  # type: ignore[attr-defined]
+            sequence_cls=CurlySequenceFormat,
+            show_braces_when_empty=True,
+        )
+    )
+
 
 BaseFormat.KNOWN_WRAPPED_CLASSES = (
     list,
