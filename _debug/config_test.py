@@ -51,7 +51,7 @@ def test_highlighting_avoided_with_ansi(capsys: CaptureFixture, test_sample_dir:
 
     out, err = capsys.readouterr()
     assert out.strip() == expected_out
-    assert strip_ansi(err.strip().split(" = ")[0]) == expected_err.split(" = ")[0]
+    assert strip_ansi(err.strip().split(" = ")[0]) == expected_err.split(" = ", maxsplit=1)[0]
     assert err.strip().split(" = ")[1] == expected_err.split(" = ")[1]
 
 

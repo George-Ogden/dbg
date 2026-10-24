@@ -32,7 +32,7 @@ class DbgConfig:
     _USER_FILENAME: ClassVar[str] = os.path.join(platformdirs.user_config_dir("debug"), _FILENAME)
     _LOCAL_FILENAME: ClassVar[str] = os.path.join(os.getcwd(), _FILENAME)
 
-    @property  # type: ignore
+    @property  # type: ignore[no-redef]
     def style(self) -> str:
         return self._style
 

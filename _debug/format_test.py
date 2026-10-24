@@ -69,8 +69,7 @@ recursive_list: list[Any] = []
 recursive_list.append(recursive_list)
 
 recursive_tree: list[Any] = []
-recursive_tree.append(recursive_tree)
-recursive_tree.append(recursive_tree)
+recursive_tree.append((recursive_tree, recursive_tree))
 
 recursive_dict: dict[Any, Any] = {}
 recursive_dict[dict] = recursive_dict
@@ -91,14 +90,14 @@ recursive_numpy_array = np.array([None], dtype=object)
 recursive_numpy_array[0] = recursive_numpy_array
 
 
-class ListSubclass(list): ...
+class ListSubclass(list): ...  # ruff: ignore[subclass-builtin]
 
 
 def custom_repr_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __repr__(self: Any) -> str:
+    def __repr__(self: Any) -> str:  # ruff: ignore[dunder-function-name]
         return f"{name}!"
 
     return type(name, bases, dict(__repr__=__repr__))(*args)
@@ -108,7 +107,7 @@ def custom_str_cls(name: str, bases: type | tuple[type], *args: Any) -> Any:
     if not isinstance(bases, tuple):
         bases = (bases,)
 
-    def __str__(self: Any) -> str:
+    def __str__(self: Any) -> str:  # ruff: ignore[dunder-function-name]
         return f"{name}!"
 
     return type(name, bases, dict(__str__=__str__))(*args)
@@ -208,7 +207,7 @@ class RecursiveDataclass:
     recursive: Self
 
 
-recursive_dataclass = RecursiveDataclass(None)  # type: ignore
+recursive_dataclass = RecursiveDataclass(None)  # type: ignore[arg-type]
 recursive_dataclass.recursive = recursive_dataclass
 
 
@@ -217,7 +216,7 @@ class RecursiveAttrsDataclass:
     recursive: Self
 
 
-recursive_attrs_dataclass = RecursiveAttrsDataclass(None)  # type: ignore
+recursive_attrs_dataclass = RecursiveAttrsDataclass(None)  # type: ignore[arg-type]
 recursive_attrs_dataclass.recursive = recursive_attrs_dataclass
 
 recursive_ast = ast.Set([])
@@ -240,8 +239,8 @@ if hasattr(ast.Constant, "_field_types"):
 else:
     nested_ast_expression = ast.Expression(
         body=ast.List(
-            elts=[ast.Constant(1), ast.Name("x", ctx=None)],  # type: ignore
-            ctx=None,  # type: ignore
+            elts=[ast.Constant(1), ast.Name("x", ctx=None)],  # type: ignore[arg-type]
+            ctx=None,  # type: ignore[arg-type]
         )
     )
 
@@ -1883,8 +1882,8 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
         (ast.Constant(None), None, "Constant(value=None)"),
         (ast.MatchSingleton(None), None, "MatchSingleton(value=None)"),
         (ast.MatchSingleton(False), None, "MatchSingleton(value=False)"),
-        (ast.MatchSingleton([]), None, "MatchSingleton(value=[])"),  # type: ignore
-        (ast.Constant([]), None, "Constant(value=[])"),  # type: ignore
+        (ast.MatchSingleton([]), None, "MatchSingleton(value=[])"),  # type: ignore[arg-type]
+        (ast.Constant([]), None, "Constant(value=[])"),  # type: ignore[arg-type]
         (
             ast.Dict(keys=[None], values=[ast.Name("d")]),
             None,

@@ -52,7 +52,7 @@ class FileWrapper:
     def terminal_width(self) -> int:
         width = defaults.DEFAULT_WIDTH
         try:
-            width, _ = os.get_terminal_size(self._file.fileno())  # type: ignore
+            width, _ = os.get_terminal_size(self._file.fileno())  # type: ignore[attr-defined]
         except (OSError, AttributeError):
             if self._pytest_enabled():
                 fallback_file = self._fallback_file(self._file)
@@ -70,7 +70,7 @@ class FileWrapper:
     def back(cls) -> Self:
         return cls._current[-1]
 
-    class lock:
+    class lock:  # ruff: ignore[invalid-class-name]
         def __init__(self, file: SupportsWrite[str]) -> None:
             self._file = file
 

@@ -41,31 +41,31 @@ pip install git+https://github.com/George-Ogden/dbg.git
 from debug import dbg
 
 # Literals
-dbg(8.0) # [main.py:4:1] 8.0 = 8.0
+dbg(8.0)  # [main.py:4:1] 8.0 = 8.0
 
 # Variables
 x = 4
-dbg(x) # [main.py:8:1] x = 4
+dbg(x)  # [main.py:8:1] x = 4
 
 # Expressions
 y = 5
-dbg(y + 8) # [main.py:11:1] y + 8 = 13
+dbg(y + 8)  # [main.py:11:1] y + 8 = 13
 
 # Return the input
 z = True
-z = dbg(not z) # [main.py:16:5] not z = False
+z = dbg(not z)  # [main.py:16:5] not z = False
 assert not z
 
 # Pretty print items and code (on larger examples)
-dbg([1] * 2) # [main.py:20:1] [1] * 2 = [1, 1]
+dbg([1] * 2)  # [main.py:20:1] [1] * 2 = [1, 1]
 
 # Debug current line/col number
-dbg() # [main.py:20:1]
+dbg()  # [main.py:20:1]
 
 # Multiple arguments
 minus_two = -2
-result = dbg('Foo', minus_two) # [main.py:24:10] 'Foo' = 'Foo' // [main.py:24:10] minus_two = -2
-assert result == ('Foo', -2)
+result = dbg("Foo", minus_two)  # [main.py:24:10] 'Foo' = 'Foo' // [main.py:24:10] minus_two = -2
+assert result == ("Foo", -2)
 ```
 
 For more examples, see `test_samples/`.
@@ -77,8 +77,8 @@ The debug module supports pretty printing!
 ```python
 from debug import pformat, pprint
 
-pprint(list(range(5)), style="github-dark", prefix = "0..5 -> ")
-print(pformat(list(range(5)), style="github-dark", prefix= "0..5 -> "))
+pprint(list(range(5)), style="github-dark", prefix="0..5 -> ")
+print(pformat(list(range(5)), style="github-dark", prefix="0..5 -> "))
 ```
 
 Both of these give the same output (even better in color):
@@ -115,8 +115,8 @@ This detection may occasionally fail and you can override it like this:
 ```python
 from debug import CONFIG
 
-CONFIG.color = True # enable
-CONFIG.color = False # disable
+CONFIG.color = True  # enable
+CONFIG.color = False  # disable
 ```
 
 Additionally, if you want to change the color scheme:
@@ -160,10 +160,10 @@ You can install `dbg` into the builtins namespace using the `install` function.
 from debug import install, uninstall
 
 install()
-dbg() # It works without an extra import (here and in other files).
+dbg()  # It works without an extra import (here and in other files).
 
 uninstall()
-dbg() # Now it's undefined.
+dbg()  # Now it's undefined.
 ```
 
 Put this in your `conftest.py` and access it from all your tests!
