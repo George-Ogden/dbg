@@ -4,14 +4,49 @@ requires-python = ">=3.11,<3.16"
 authors = [{ name = "George Ogden" }]
 license = { file = "LICENSE" }
 readme = "README.md"
-dynamic = ["dependencies", "version"]
+dynamic = ["version"]
+dependencies = [
+  "black>=26.5.0,<27",
+  "libcst>=1.9.0,<2",
+  "platformdirs>=4.9.2,<5",
+  "pygments>=2.19.2,<3",
+  "wcwidth>=0.6.0,<0.10",
+]
+
+[dependency-groups]
+dev = [{ include-group = "lint" }, { include-group = "test" }, { include-group = "types" }]
+test = [
+  "attrs",
+  "bidict",
+  "colorama",
+  "frozendict",
+  "inline-snapshot",
+  "numpy",
+  "py-spy",
+  "pytest>=9.0.0",
+  "pytest-timeout",
+]
+lint = [
+  "mirror-rorrim ; python_full_version >= '3.12'",
+  "prek",
+  "ruff==0.17.2",
+]
+types = [
+  "mypy",
+  "mypy-pytest-plugin ; python_full_version >= '3.12'",
+  "types-colorama",
+  "types-pygments",
+]
+
+[tool.uv.sources]
+mirror-rorrim = { git = "https://github.com/George-Ogden/mirror-rorrim" }
+mypy-pytest-plugin = { git = "https://github.com/George-Ogden/mypy-pytest" }
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
 version = { file = ["version.txt"] }
 
 [tool.setuptools.packages.find]
