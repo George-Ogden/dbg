@@ -1,0 +1,46 @@
+rules:
+  - id: dataclass-brackets
+    languages:
+      - python
+    severity: ERROR
+    message: Remove brackets from `@dataclass` usage.
+    patterns:
+      - pattern-inside: |
+          @dataclass()
+          class $X:
+            ...
+      - pattern-regex: '@dataclass\(\)'
+    fix: "@dataclass"
+
+  - id: more-itertools-flatten
+    message: Replace calls to `itertools.chain.from_iterable` with
+      `more_itertools.flatten`.
+    languages:
+      - python
+    severity: ERROR
+    pattern: |
+      itertools.chain.from_iterable($X)
+    fix: |
+      mit.flatten($X)
+
+  - id: more-itertools-import
+    message: Alias `more_itertools` as `mit` during import.
+    languages:
+      - python
+    severity: ERROR
+    patterns:
+      - pattern: import more_itertools
+      - pattern-not: import more_itertools as $X
+      - pattern-not: from more_itertools import $X
+    fix: import more_itertools as mit
+
+  - id: more-itertools-alias
+    message: Alias `more_itertools` as `mit`.
+    languages:
+      - python
+    severity: ERROR
+    patterns:
+      - pattern: more_itertools.$X
+      - pattern-regex: '\bmore_itertools\b'
+    fix: |
+      mit

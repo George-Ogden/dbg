@@ -3,13 +3,13 @@ name: Run Python Tests
 on:
   push:
     branches:
-      - master
+      - m
   pull_request:
     branches:
-      - master
+      - m
 
 jobs:
   run-pytest:
-    uses: George-Ogden/actions/.github/workflows/python-test.yaml@v4.6.3
+    uses: George-Ogden/actions/.github/workflows/python-test.yaml@v4.7.2
     with:
       python-versions: "['3.11', '3.12', '3.13', '3.14']"

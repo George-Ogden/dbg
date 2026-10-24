@@ -1,6 +1,9 @@
 # Specific Files
 
 # Common Files
+*.sqlite
+*.sqlite-journal
+*.db
 *.patch
 *.pseudo
 *.snap.new

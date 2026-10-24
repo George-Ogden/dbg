@@ -1,19 +1,18 @@
 [project]
 name = "debug"
 requires-python = ">=3.11,<3.15"
-authors = [{name = "George Ogden"}]
-license = {file = "LICENSE"}
+authors = [{ name = "George Ogden" }]
+license = { file = "LICENSE" }
 readme = "README.md"
 dynamic = ["dependencies", "version"]
-
-
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-version = {file = ["version.txt"]}
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+version = { file = ["version.txt"] }
 
 [tool.setuptools.packages.find]
 where = ["."]

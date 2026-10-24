@@ -12,6 +12,6 @@ prek
 py-spy
 pytest>=9.0.0
 pytest-timeout
-ruff==0.15.18
+ruff==0.17.2
 types-colorama
 types-pygments

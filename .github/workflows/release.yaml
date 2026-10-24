@@ -3,15 +3,16 @@ name: Tag New Version and Release
 on:
   push:
     branches:
-      - master
+      - m
   workflow_dispatch:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   tag-and-release:
-    uses: George-Ogden/actions/.github/workflows/python-release.yaml@v4.6.3
+    uses: George-Ogden/actions/.github/workflows/python-release.yaml@v4.7.2
     with:
       validation-code: "from debug import dbg; assert callable(dbg)"
       python-version: "3.14"
