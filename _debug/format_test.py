@@ -1,5 +1,6 @@
 from array import array
 import ast
+import builtins
 from collections import (
     ChainMap,
     Counter,
@@ -1478,6 +1479,26 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
                 ],
             })
             """,
+        ),
+        *(
+            []
+            if sys.version_info < (3, 15)
+            else [
+                (
+                    builtins.frozendict(long=list("long")),  # type: ignore[attr-defined]
+                    32,
+                    """
+            frozendict({
+                'long': [
+                    'l',
+                    'o',
+                    'n',
+                    'g',
+                ],
+            })
+            """,
+                )
+            ]
         ),
         (type("freezedict", (frozendict,), {})(), None, "freezedict({})"),
         (EmptyRepr(), None, ""),
