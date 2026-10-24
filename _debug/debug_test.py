@@ -253,6 +253,12 @@ def set_wide_indent() -> None:
             """[t_string.py:3:1] t"{3.14}" = Template(strings=('', ''), interpolations=(Interpolation(3.14, '3.14', None, ''),))""",
             marks=[pytest.mark.skip] if sys.version_info < (3, 14) else [],
         ),
+        pytest.param(
+            "splat_generator",
+            "",
+            """[splat_generator.py:3:1] [*sublist for sublist in [[1], [2, 3], []]] = [1, 2, 3]""",
+            marks=[pytest.mark.skip] if sys.version_info < (3, 15) else [],
+        ),
         (
             "chdir",
             "test_samples/chdir.py",
