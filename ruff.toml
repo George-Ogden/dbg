@@ -1,12 +1,55 @@
 line-length = 100
+src = ["."]
 
 [format]
 quote-style = "double"
 indent-style = "space"
 
 [lint]
-extend-ignore = ["ANN401","B028","C408","E501", "F811", "N812", "PLC0414", "PT011", "PT012", "PT013", "PYI024", "PYI041", "RET504", "S", "SIM118", "TRY"]
-extend-unfixable = ["B905", "B911", "B912", "PT006"]
+extend-select = [
+  "ANN",  # flake8-annotations
+  "B",  # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "ERA",  # eradicate
+  "F",  # Pyflakes
+  "I",  # isort
+  "ISC",  # flake8-implicit-str-concat
+  "N",  # pep8-naming
+  "PGH",  # pygrep-hooks
+  "PT",  # flake8-pytest-style
+  "PYI",  # flake8-pyi
+  "RET",  # flake8-return
+  "RUF",  # Ruff-specific rules
+  "SIM",  # flake8-simplify
+  "UP",  # pyupgrade
+  "W",  # Warning (whitespace)
+  "trailing-comma-on-bare-tuple",
+]
+
+ignore = [
+  "S",  # "flake8-bandit"
+  "TRY",  # tryceratops
+  "any-type",
+  "collections-named-tuple",
+  "in-dict-keys",
+  "line-too-long",
+  "lowercase-imported-as-non-lowercase",
+  "no-explicit-stacklevel",
+  "pytest-incorrect-pytest-import",
+  "pytest-raises-too-broad",
+  "pytest-raises-with-multiple-statements",
+  "redefined-while-unused",
+  "redundant-numeric-union",
+  "unnecessary-assign",
+  "unnecessary-collection-call",
+  "useless-import-alias",
+]
+
+unfixable = [
+  "batched-without-explicit-strict",
+  "map-without-explicit-strict",
+  "zip-without-explicit-strict",
+]
 preview = true
 
 [lint.isort]

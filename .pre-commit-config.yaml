@@ -9,7 +9,7 @@ ci:
 
 repos:
   - repo: https://github.com/George-Ogden/mirror-rorrim/
-    rev: v0.4.9
+    rev: v0.4.10
     hooks:
       - id: mirror-check
         fail_fast: true
@@ -18,6 +18,7 @@ repos:
     hooks:
       - id: no-commit-to-branch
         fail_fast: true
+        args: [-b, m]
       - id: end-of-file-fixer
         stages: [pre-commit]
       - id: mixed-line-ending
@@ -30,6 +31,25 @@ repos:
         stages: [pre-commit]
         args: [--assume-in-merge]
 
+  - repo: https://github.com/semgrep/pre-commit/
+    rev: v1.181.1
+    hooks:
+      - id: semgrep
+        require_serial: true
+        args:
+          [
+            --config,
+            .semgrep-rules/python.yaml,
+            --config,
+            .semgrep-rules/pre-commit.yaml,
+            --autofix,
+            --quiet,
+            --error,
+            --skip-unknown-extensions,
+            --disable-version-check,
+          ]
+        exclude: ^\.semgrep-rules/
+
   - repo: https://github.com/pre-commit/pre-commit-hooks/
     rev: v6.0.0
     hooks:
@@ -41,6 +61,12 @@ repos:
       - id: lint
         args: [--fix]
 
+  - repo: https://github.com/scop/pre-commit-shfmt/
+    rev: v3.14.1-1
+    hooks:
+      - id: shfmt
+        stages: [pre-commit]
+
   - repo: https://github.com/koalaman/shellcheck-precommit/
     rev: v0.11.0
     hooks:
@@ -48,7 +74,7 @@ repos:
         args: [--severity=warning]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit/
-    rev: v0.15.18
+    rev: v0.17.2
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -57,10 +83,17 @@ repos:
         exclude: ^test_samples
         args: [--config, format.skip-magic-trailing-comma = true]
 
-  - repo: https://github.com/pre-commit/mirrors-prettier/
-    rev: v4.0.0-alpha.8
+  - repo: https://github.com/rbubley/mirrors-prettier/
+    rev: v3.9.10
     hooks:
       - id: prettier
+
+  - repo: https://github.com/tombi-toml/tombi-pre-commit/
+    rev: v1.9.1
+    hooks:
+      - id: tombi-format
+        alias: tombi
+        exclude: \.lock$
 
   - repo: https://github.com/rhysd/actionlint/
     rev: v1.7.12
@@ -68,17 +101,25 @@ repos:
       - id: actionlint
 
   - repo: https://github.com/codespell-project/codespell/
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
       - id: codespell
+        exclude: \.lock$
+        args:
+          - -f
+          - --regex
+          # Copied from https://github.com/codespell-project/codespell/issues/2730#issuecomment-1657006554.
+          - |
+            (?<![a-zà-öø-ÿ])[a-zà-öø-ÿ'`]+|[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿ'`]*|[a-zà-öø-ÿ]+'[a-zà-öø-ÿ]*|[a-zà-öø-ÿ]+(?=[_-])|[a-zà-öø-ÿ]+(?=[A-ZÀ-ÖØ-Þ])|\d+
 
   - repo: https://github.com/George-Ogden/pre-commit-hooks/
     rev: v4.1.1
     hooks:
+      - id: absolute-imports-check
       - id: todo-check
         exclude: (?x)^(
-          .pre-commit-config.yaml|
-          .gitignore
+          \.pre-commit-config\.yaml|
+          \.gitignore
           )$
       - id: mypy
         args: [-r, requirements-dev.txt, --show-traceback]
