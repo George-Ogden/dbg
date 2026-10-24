@@ -69,7 +69,7 @@ recursive_list: list[Any] = []
 recursive_list.append(recursive_list)
 
 recursive_tree: list[Any] = []
-recursive_tree.append((recursive_tree, recursive_tree))
+recursive_tree.extend((recursive_tree, recursive_tree))
 
 recursive_dict: dict[Any, Any] = {}
 recursive_dict[dict] = recursive_dict
