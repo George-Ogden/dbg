@@ -10,6 +10,6 @@ on:
 
 jobs:
   run-pytest:
-    uses: George-Ogden/actions/.github/workflows/python-test.yaml@uv-sync
+    uses: George-Ogden/actions/.github/workflows/python-test.yaml@v5.0.0
     with:
       python-versions: "['3.11', '3.12', '3.13', '3.14', '3.15']"

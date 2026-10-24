@@ -10,4 +10,4 @@ on:
 
 jobs:
   run-prek:
-    uses: George-Ogden/actions/.github/workflows/lint.yaml@uv-sync
+    uses: George-Ogden/actions/.github/workflows/lint.yaml@v5.0.0
