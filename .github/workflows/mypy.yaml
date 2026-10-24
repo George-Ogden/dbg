@@ -1,0 +1,16 @@
+name: Run Mypy
+
+on:
+  push:
+    branches:
+      - m
+  pull_request:
+    branches:
+      - m
+
+jobs:
+  run-mypy:
+    uses: George-Ogden/actions/.github/workflows/mypy.yaml@mypy-action
+    with:
+      python-version: "3.15"
+      mypy-flags: . --exclude test_samples/ --show-traceback
