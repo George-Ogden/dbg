@@ -162,7 +162,6 @@ wheels = [
 name = "debug"
 source = { editable = "." }
 dependencies = [
-    { name = "attrs" },
     { name = "black" },
     { name = "libcst" },
     { name = "platformdirs" },
@@ -216,7 +215,6 @@ types = [
 
 [package.metadata]
 requires-dist = [
-    { name = "attrs", specifier = ">=26.1.0" },
     { name = "black", specifier = ">=26.5.0,<27" },
     { name = "libcst", specifier = ">=1.9.0,<2" },
     { name = "platformdirs", specifier = ">=4.9.2,<5" },
@@ -226,44 +224,44 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "attrs", specifier = ">=26.1.0" },
-    { name = "bidict", specifier = ">=0.24.1" },
-    { name = "colorama", specifier = ">=0.4.6" },
-    { name = "frozendict", specifier = ">=2.4.7" },
-    { name = "inline-snapshot", specifier = ">=0.36.1" },
+    { name = "attrs" },
+    { name = "bidict" },
+    { name = "colorama" },
+    { name = "frozendict" },
+    { name = "inline-snapshot" },
     { name = "mirror-rorrim", marker = "python_full_version >= '3.12'", git = "https://github.com/George-Ogden/mirror-rorrim" },
-    { name = "mypy", specifier = ">=2.4.0" },
+    { name = "mypy" },
     { name = "mypy-pytest-plugin", marker = "python_full_version >= '3.12'", git = "https://github.com/George-Ogden/mypy-pytest" },
-    { name = "numpy", specifier = ">=2.4.6" },
-    { name = "prek", specifier = ">=0.5.7" },
-    { name = "py-spy", specifier = ">=0.4.2" },
+    { name = "numpy" },
+    { name = "prek" },
+    { name = "py-spy" },
     { name = "pytest", specifier = ">=9.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "pytest-timeout" },
     { name = "ruff", specifier = "==0.17.2" },
-    { name = "types-colorama", specifier = ">=0.4.15.20260508" },
-    { name = "types-pygments", specifier = ">=2.21.0.20260819" },
+    { name = "types-colorama" },
+    { name = "types-pygments" },
 ]
 lint = [
     { name = "mirror-rorrim", marker = "python_full_version >= '3.12'", git = "https://github.com/George-Ogden/mirror-rorrim" },
-    { name = "prek", specifier = ">=0.5.7" },
+    { name = "prek" },
     { name = "ruff", specifier = "==0.17.2" },
 ]
 test = [
-    { name = "attrs", specifier = ">=26.1.0" },
-    { name = "bidict", specifier = ">=0.24.1" },
-    { name = "colorama", specifier = ">=0.4.6" },
-    { name = "frozendict", specifier = ">=2.4.7" },
-    { name = "inline-snapshot", specifier = ">=0.36.1" },
-    { name = "numpy", specifier = ">=2.4.6" },
-    { name = "py-spy", specifier = ">=0.4.2" },
+    { name = "attrs" },
+    { name = "bidict" },
+    { name = "colorama" },
+    { name = "frozendict" },
+    { name = "inline-snapshot" },
+    { name = "numpy" },
+    { name = "py-spy" },
     { name = "pytest", specifier = ">=9.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "pytest-timeout" },
 ]
 types = [
-    { name = "mypy", specifier = ">=2.4.0" },
+    { name = "mypy" },
     { name = "mypy-pytest-plugin", marker = "python_full_version >= '3.12'", git = "https://github.com/George-Ogden/mypy-pytest" },
-    { name = "types-colorama", specifier = ">=0.4.15.20260508" },
-    { name = "types-pygments", specifier = ">=2.21.0.20260819" },
+    { name = "types-colorama" },
+    { name = "types-pygments" },
 ]
 
 [[package]]
