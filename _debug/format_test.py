@@ -1485,7 +1485,7 @@ recursive_named_tuple.attr.append(recursive_named_tuple)
             if sys.version_info < (3, 15)
             else [
                 (
-                    builtins.frozendict(long=list("long")),  # type: ignore[attr-defined]
+                    builtins.frozendict(long=list("long")),
                     32,
                     """
             frozendict({
