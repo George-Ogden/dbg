@@ -858,7 +858,7 @@ with contextlib.suppress(AttributeError):
     BaseFormat.SEQUENCE_MAKERS.append(
         DictMaker(
             include_name=True,
-            base_cls=builtins.frozendict,  # type: ignore[attr-defined]
+            base_cls=builtins.frozendict,
             sequence_cls=CurlySequenceFormat,
             show_braces_when_empty=True,
         )

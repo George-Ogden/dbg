@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   tag-and-release:
-    uses: George-Ogden/actions/.github/workflows/python-release.yaml@v4.7.2
+    uses: George-Ogden/actions/.github/workflows/python-release.yaml@v5.0.0
     with:
       validation-code: "from debug import dbg; assert callable(dbg)"
       python-version: "3.15"

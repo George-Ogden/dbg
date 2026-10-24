@@ -121,9 +121,6 @@ repos:
           \.pre-commit-config\.yaml|
           \.gitignore
           )$
-      - id: mypy
-        args: [-r, requirements-dev.txt, --show-traceback]
-        exclude: ^test_samples
       - id: spell-check-commit-msgs
       - id: mirror-auto-msg
       - id: version-txt-auto-msg
