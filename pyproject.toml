@@ -36,6 +36,7 @@ types = [
   "mypy-pytest-plugin ; python_full_version >= '3.12'",
   "types-colorama",
   "types-pygments",
+  { include-group = "test" },
 ]
 
 [tool.uv.sources]
